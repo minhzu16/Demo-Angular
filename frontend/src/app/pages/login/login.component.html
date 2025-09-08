@@ -1,0 +1,18 @@
+<div class="login-container">
+  <h2>Đăng nhập</h2>
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <label>
+      Tên đăng nhập
+      <input type="text" formControlName="username" />
+    </label>
+
+    <label>
+      Mật khẩu
+      <input type="password" formControlName="password" />
+    </label>
+
+    <button type="submit" [disabled]="loading || form.invalid">{{ loading ? 'Đang xử lý...' : 'Đăng nhập' }}</button>
+
+    <p *ngIf="error" style="color:#d33">{{ error }}</p>
+  </form>
+</div>
