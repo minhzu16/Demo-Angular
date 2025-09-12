@@ -2,8 +2,11 @@ package demo_tt.demo_tt.security;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+
 
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import demo_tt.demo_tt.entity.UserEntity;
@@ -18,7 +21,11 @@ public class CustomUserDetails implements UserDetails {
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
-		return Collections.emptyList();
+		// Return a default authority for authenticated users
+		List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
+		System.out.println("CustomUserDetails.getAuthorities() called for user: " + user.getUsername());
+		System.out.println("Authorities: " + authorities);
+		return authorities;
 	}
 
 	@Override

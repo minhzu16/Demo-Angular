@@ -1,0 +1,143 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <div class="header-left">
+      <button (click)="goBack()" class="btn btn-back">
+        <span class="back-icon">←</span> Quay lại
+      </button>
+      <h2>Thông tin cá nhân</h2>
+    </div>
+    <button 
+      *ngIf="!isEditing" 
+      (click)="toggleEdit()" 
+      class="btn btn-primary">
+      Chỉnh sửa
+    </button>
+  </div>
+
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+  </div>
+
+  <div *ngIf="success" class="alert alert-success">
+    {{ success }}
+  </div>
+
+  <div *ngIf="user" class="profile-content">
+    <form *ngIf="isEditing; else viewMode" (ngSubmit)="saveProfile()">
+      <div class="form-group">
+        <label for="fullName">Họ và tên:</label>
+        <input 
+          type="text" 
+          id="fullName" 
+          [(ngModel)]="user.fullName" 
+          name="fullName"
+          required>
+      </div>
+
+      <div class="form-group">
+        <label for="age">Tuổi:</label>
+        <input 
+          type="number" 
+          id="age" 
+          [(ngModel)]="user.age" 
+          name="age"
+          min="1" 
+          max="120">
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input 
+          type="email" 
+          id="email" 
+          [(ngModel)]="user.email" 
+          name="email"
+          required>
+      </div>
+
+      <div class="form-group">
+        <label for="phoneNumber">Số điện thoại:</label>
+        <input 
+          type="tel" 
+          id="phoneNumber" 
+          [(ngModel)]="user.phoneNumber" 
+          name="phoneNumber">
+      </div>
+
+      <div class="form-group">
+        <label for="address">Địa chỉ:</label>
+        <textarea 
+          id="address" 
+          [(ngModel)]="user.address" 
+          name="address"
+          rows="3"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="gender">Giới tính:</label>
+        <select id="gender" [(ngModel)]="user.gender" name="gender">
+          <option value="MALE">Nam</option>
+          <option value="FEMALE">Nữ</option>
+          <option value="OTHER">Khác</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="workplace">Nơi làm việc:</label>
+        <input 
+          type="text" 
+          id="workplace" 
+          [(ngModel)]="user.workplace" 
+          name="workplace">
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-success" [disabled]="isUnchanged()">Lưu</button>
+        <button type="button" (click)="cancelEdit()" class="btn btn-secondary">Hủy</button>
+      </div>
+    </form>
+
+    <ng-template #viewMode>
+      <div class="profile-info">
+        <div class="info-item">
+          <label>Họ và tên:</label>
+          <span>{{ user.fullName }}</span>
+        </div>
+
+        <div class="info-item">
+          <label>Tuổi:</label>
+          <span>{{ user.age || 'Chưa cập nhật' }}</span>
+        </div>
+
+        <div class="info-item">
+          <label>Email:</label>
+          <span>{{ user.email }}</span>
+        </div>
+
+        <div class="info-item">
+          <label>Số điện thoại:</label>
+          <span>{{ user.phoneNumber || 'Chưa cập nhật' }}</span>
+        </div>
+
+        <div class="info-item">
+          <label>Địa chỉ:</label>
+          <span>{{ user.address || 'Chưa cập nhật' }}</span>
+        </div>
+
+        <div class="info-item">
+          <label>Giới tính:</label>
+          <span>{{ getGenderText(user.gender) }}</span>
+        </div>
+
+        <div class="info-item">
+          <label>Nơi làm việc:</label>
+          <span>{{ user.workplace || 'Chưa cập nhật' }}</span>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+
+  <div *ngIf="!user" class="loading">
+    Đang tải thông tin...
+  </div>
+</div>

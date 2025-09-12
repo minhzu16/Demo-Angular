@@ -1,5 +1,44 @@
 <div class="home-container">
-  <h2>Home</h2>
-  <p>Chào mừng! Bạn đã đăng nhập thành công.</p>
-  <button (click)="logout()">Đăng xuất</button>
+  <div class="welcome-section">
+    <h2>Trang chủ</h2>
+    <p *ngIf="profile" class="welcome-message">
+      Chào mừng <strong>{{ profile.fullName || profile.username }}</strong>! Bạn đã đăng nhập thành công.
+    </p>
+    <p *ngIf="!profile && !loading" class="welcome-message">
+      Chào mừng! Bạn đã đăng nhập thành công.
+    </p>
+    <div class="action-buttons">
+      <button (click)="logout()" class="btn btn-logout">Đăng xuất</button>
+      <a routerLink="/profile" class="btn btn-primary">Xem thông tin cá nhân</a>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    <p>Đang tải thông tin...</p>
+  </div>
+
+  <div *ngIf="profile" class="profile-summary">
+    <h3>Thông tin tóm tắt</h3>
+    <div class="info-grid">
+      <div class="info-item">
+        <label>Họ tên:</label>
+        <span>{{ profile.fullName }}</span>
+      </div>
+      <div class="info-item">
+        <label>Email:</label>
+        <span>{{ profile.email }}</span>
+      </div>
+      <div class="info-item">
+        <label>Số điện thoại:</label>
+        <span>{{ profile.phoneNumber || 'Chưa cập nhật' }}</span>
+      </div>
+      <div class="info-item">
+        <label>Nơi làm việc:</label>
+        <span>{{ profile.workplace || 'Chưa cập nhật' }}</span>
+      </div>
+    </div>
+    <p class="profile-note">
+      <a routerLink="/profile">Nhấn vào đây để xem và chỉnh sửa thông tin chi tiết</a>
+    </p>
+  </div>
 </div>
