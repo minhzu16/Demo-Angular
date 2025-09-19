@@ -25,17 +25,27 @@ export class ProfileComponent implements OnInit {
   }
 
   loadUserProfile() {
+    console.log('Loading user profile...');
     this.user = this.authService.getUser();
+    console.log('User from localStorage:', this.user);
+    
     if (!this.user) {
+      console.log('No user in localStorage, fetching from API...');
       this.authService.getProfile().subscribe({
         next: (profile) => {
+          console.log('Profile fetched from API:', profile);
           this.user = profile;
           this.authService.saveUser(profile);
           this.original = JSON.parse(JSON.stringify(profile));
         },
         error: (err) => {
-          this.error = 'Không thể tải thông tin cá nhân';
           console.error('Error loading profile:', err);
+          this.error = 'Không thể tải thông tin cá nhân';
+          // If profile fetch fails, redirect to login
+          if (err.status === 401 || err.status === 403) {
+            console.log('Unauthorized, redirecting to login...');
+            this.authService.logout();
+          }
         }
       });
     }
@@ -95,7 +105,7 @@ export class ProfileComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/home']);
+    this.router.navigate(['/admin/dashboard']);
   }
 
   isUnchanged(): boolean {

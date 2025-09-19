@@ -1,0 +1,38 @@
+<div class="admin-layout">
+  <!-- Sidebar -->
+  <app-navigation 
+    [collapsed]="sidebarCollapsed"
+    (toggleCollapse)="onToggleSidebar()">
+  </app-navigation>
+  
+  <!-- Sidebar Overlay for Mobile -->
+  <div class="sidebar-overlay" 
+       [class.show]="sidebarCollapsed"
+       (click)="onToggleSidebar()">
+  </div>
+  
+  <!-- Header -->
+  <app-navbar 
+    [collapsed]="sidebarCollapsed"
+    (toggleSidebar)="onToggleSidebar()">
+  </app-navbar>
+  
+  <!-- Main Content -->
+  <main class="main-content" [class.expanded]="sidebarCollapsed">
+    <div class="container-fluid">
+      <!-- Breadcrumb -->
+      <div class="row mb-3">
+        <div class="col">
+          <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+        </div>
+      </div>
+      
+      <!-- Page Content -->
+      <div class="row">
+        <div class="col">
+          <router-outlet></router-outlet>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

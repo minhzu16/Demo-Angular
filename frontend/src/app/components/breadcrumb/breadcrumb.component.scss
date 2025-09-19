@@ -1,0 +1,21 @@
+.breadcrumb {
+  background: transparent;
+  padding: 0;
+  
+  .breadcrumb-item {
+    font-size: 0.875rem;
+    
+    a {
+      color: #64748b;
+      
+      &:hover {
+        color: var(--primary-color);
+      }
+    }
+    
+    &.active {
+      color: #334155;
+      font-weight: 500;
+    }
+  }
+}

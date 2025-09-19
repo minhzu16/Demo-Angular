@@ -1,0 +1,197 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <!-- Logo -->
+    <div class="text-center mb-4">
+      <div class="logo mb-3">
+        <i class="anticon anticon-dashboard text-primary" style="font-size: 3rem;"></i>
+      </div>
+      <h2 class="fw-bold text-dark">Create Account</h2>
+      <p class="text-muted">Sign up for a new account</p>
+    </div>
+
+    <!-- Register Form -->
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <!-- Name Fields -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="firstName" class="form-label">First Name</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="anticon anticon-user"></i>
+            </span>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="firstName" 
+              formControlName="firstName"
+              placeholder="First name"
+              [class.is-invalid]="form.get('firstName')?.invalid && form.get('firstName')?.touched">
+          </div>
+          <div class="invalid-feedback" *ngIf="form.get('firstName')?.invalid && form.get('firstName')?.touched">
+            First name is required
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label for="lastName" class="form-label">Last Name</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="anticon anticon-user"></i>
+            </span>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="lastName" 
+              formControlName="lastName"
+              placeholder="Last name"
+              [class.is-invalid]="form.get('lastName')?.invalid && form.get('lastName')?.touched">
+          </div>
+          <div class="invalid-feedback" *ngIf="form.get('lastName')?.invalid && form.get('lastName')?.touched">
+            Last name is required
+          </div>
+        </div>
+      </div>
+
+      <!-- Company -->
+      <div class="mb-3">
+        <label for="company" class="form-label">Company (Optional)</label>
+        <div class="input-group">
+          <span class="input-group-text">
+            <i class="anticon anticon-bank"></i>
+          </span>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="company" 
+            formControlName="company"
+            placeholder="Company name">
+        </div>
+      </div>
+      
+      <!-- Username -->
+      <div class="mb-3">
+        <label for="username" class="form-label">Username</label>
+        <div class="input-group">
+          <span class="input-group-text">
+            <i class="anticon anticon-user"></i>
+          </span>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="username" 
+            formControlName="username"
+            placeholder="Enter your username"
+            [class.is-invalid]="form.get('username')?.invalid && form.get('username')?.touched">
+        </div>
+        <div class="invalid-feedback" *ngIf="form.get('username')?.invalid && form.get('username')?.touched">
+          Username is required
+        </div>
+      </div>
+      
+      <!-- Password -->
+      <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <div class="input-group">
+          <span class="input-group-text">
+            <i class="anticon anticon-lock"></i>
+          </span>
+          <input 
+            type="password" 
+            class="form-control" 
+            id="password" 
+            formControlName="password"
+            placeholder="Enter your password"
+            [class.is-invalid]="form.get('password')?.invalid && form.get('password')?.touched">
+        </div>
+        <div class="invalid-feedback" *ngIf="form.get('password')?.invalid && form.get('password')?.touched">
+          Password must be at least 6 characters
+        </div>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="mb-3">
+        <label for="confirmPassword" class="form-label">Confirm Password</label>
+        <div class="input-group">
+          <span class="input-group-text">
+            <i class="anticon anticon-lock"></i>
+          </span>
+          <input 
+            type="password" 
+            class="form-control" 
+            id="confirmPassword" 
+            formControlName="confirmPassword"
+            placeholder="Confirm your password"
+            [class.is-invalid]="form.get('confirmPassword')?.invalid && form.get('confirmPassword')?.touched">
+        </div>
+        <div class="invalid-feedback" *ngIf="form.get('confirmPassword')?.errors?.['passwordMismatch']">
+          Passwords do not match
+        </div>
+      </div>
+      
+      <!-- Terms and Privacy -->
+      <div class="mb-4">
+        <div class="form-check">
+          <input 
+            class="form-check-input" 
+            type="checkbox" 
+            id="acceptTerms" 
+            formControlName="acceptTerms"
+            [class.is-invalid]="form.get('acceptTerms')?.invalid && form.get('acceptTerms')?.touched">
+          <label class="form-check-label" for="acceptTerms">
+            I agree to the <a href="#" class="text-decoration-none">Terms of Service</a> and <a href="#" class="text-decoration-none">Privacy Policy</a>
+          </label>
+        </div>
+        <div class="invalid-feedback" *ngIf="form.get('acceptTerms')?.invalid && form.get('acceptTerms')?.touched">
+          You must accept the terms and conditions
+        </div>
+      </div>
+      
+      <div class="alert alert-danger" *ngIf="error">
+        {{ error }}
+      </div>
+      
+      <button 
+        type="submit" 
+        class="btn btn-primary w-100 mb-3" 
+        [disabled]="form.invalid || loading">
+        <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+        {{ loading ? 'Creating Account...' : 'Create Account' }}
+      </button>
+    </form>
+
+    <!-- Divider -->
+    <div class="text-center mb-3">
+      <span class="text-muted">or continue with</span>
+    </div>
+
+    <!-- Social Login -->
+    <div class="d-grid gap-2">
+      <button 
+        type="button" 
+        class="social-btn"
+        (click)="onSocialLogin('google')">
+        <i class="anticon anticon-google me-2"></i>
+        Continue with Google
+      </button>
+      <button 
+        type="button" 
+        class="social-btn"
+        (click)="onSocialLogin('twitter')">
+        <i class="anticon anticon-twitter me-2"></i>
+        Continue with Twitter
+      </button>
+      <button 
+        type="button" 
+        class="social-btn"
+        (click)="onSocialLogin('facebook')">
+        <i class="anticon anticon-facebook me-2"></i>
+        Continue with Facebook
+      </button>
+    </div>
+
+    <!-- Login Link -->
+    <div class="text-center mt-4">
+      <span class="text-muted">Already have an account? </span>
+      <a routerLink="/login" class="text-decoration-none fw-semibold">Sign in</a>
+    </div>
+  </div>
+</div>

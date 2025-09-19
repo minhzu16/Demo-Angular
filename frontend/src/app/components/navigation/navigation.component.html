@@ -1,0 +1,53 @@
+<div class="sidebar" [class.collapsed]="collapsed">
+  <div class="sidebar-header p-3">
+    <div class="d-flex align-items-center">
+      <div class="logo me-3">
+        <i class="anticon anticon-dashboard text-primary" style="font-size: 1.5rem;"></i>
+      </div>
+      <div class="logo-text" [class.d-none]="collapsed">
+        <h5 class="mb-0 text-dark">Admin Panel</h5>
+        <small class="text-muted">Dashboard</small>
+      </div>
+    </div>
+  </div>
+  
+  <nav class="sidebar-nav">
+    <ul class="nav flex-column px-3">
+      <li *ngFor="let item of menuItems" class="nav-item mb-1">
+        <a class="nav-link d-flex align-items-center" 
+           (click)="navigateTo(item.url)"
+           [class.collapsed]="collapsed"
+           style="cursor: pointer;">
+          <i [class]="'anticon anticon-' + item.icon + ' me-3'"></i>
+          <span [class.d-none]="collapsed">{{ item.label }}</span>
+          <i *ngIf="item.children && !collapsed" 
+             class="anticon anticon-right ms-auto"></i>
+        </a>
+        
+        <!-- Submenu -->
+        <ul *ngIf="item.children && !collapsed" class="nav flex-column ms-4">
+          <li *ngFor="let child of item.children" class="nav-item">
+            <a class="nav-link py-2" (click)="navigateTo(child.url)" style="cursor: pointer;">
+              {{ child.label }}
+            </a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+  
+  <div class="sidebar-footer p-3 mt-auto">
+    <div class="d-flex align-items-center">
+      <div class="avatar me-3">
+        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" 
+             style="width: 40px; height: 40px;">
+          <i class="anticon anticon-user"></i>
+        </div>
+      </div>
+      <div [class.d-none]="collapsed">
+        <div class="fw-semibold">John Doe</div>
+        <small class="text-muted">Administrator</small>
+      </div>
+    </div>
+  </div>
+</div>

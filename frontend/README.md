@@ -1,27 +1,127 @@
-# Frontend
+# Angular Admin Dashboard SPA
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.3.17.
+A modern, responsive Angular Single Page Application with admin dashboard functionality.
 
-## Development server
+## Features
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+### 🎨 Admin Layout
+- **Collapsible Sidebar**: Left sidebar with navigation menu that can be collapsed/expanded
+- **Mobile Overlay**: Responsive design with mobile-friendly sidebar overlay
+- **Header Navigation**: Top header with sidebar toggle, search, notifications, and user menu
+- **Breadcrumb Navigation**: Dynamic breadcrumb for page navigation
+- **Router Outlet**: Main content area that renders different pages
 
-## Code scaffolding
+### 📊 Dashboard
+- **Statistics Cards**: 4 cards showing key metrics with icons and percentage badges
+- **Charts**: Monthly revenue bar chart and income overview pie chart (Chart.js ready)
+- **Recent Orders Table**: Data table with status indicators and responsive design
+- **Transaction History**: Sidebar with transaction list and avatar indicators
+- **Help & Support**: Support team avatars and contact buttons
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+### 🔐 Authentication
+- **Login Page**: Email/password form with "Keep me signed in" and "Forgot Password" options
+- **Register Page**: Complete registration form with first/last name, company, email, password confirmation
+- **Social Login**: Google, Twitter, and Facebook login buttons (ready for integration)
+- **Form Validation**: Comprehensive form validation with error messages
 
-## Build
+### 🎯 Guest Layout
+- **Clean Design**: Simple layout for authentication pages
+- **Responsive**: Mobile-friendly design with proper spacing
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+## Technology Stack
 
-## Running unit tests
+- **Angular 17**: Latest Angular framework with standalone components
+- **Bootstrap 5**: CSS framework for responsive design and components
+- **Ant Design Icons**: Beautiful icon library
+- **Chart.js**: Ready for chart integration (ng2-charts)
+- **TypeScript**: Type-safe development
+- **SCSS**: Enhanced CSS with variables and mixins
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## Project Structure
 
-## Running end-to-end tests
+```
+src/app/
+├── components/           # Reusable components
+│   ├── card/            # Statistics card component
+│   ├── breadcrumb/      # Breadcrumb navigation
+│   ├── navigation/      # Sidebar navigation
+│   ├── navbar/          # Header navigation
+│   └── charts/          # Chart components
+├── layouts/             # Layout components
+│   ├── admin-layout/    # Admin dashboard layout
+│   └── guest-layout/    # Guest/auth layout
+├── pages/               # Page components
+│   ├── dashboard/       # Main dashboard
+│   ├── login/           # Login page
+│   └── register/        # Registration page
+├── services/            # Angular services
+├── guards/              # Route guards
+└── app.routes.ts        # Routing configuration
+```
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+## Getting Started
 
-## Further help
+1. **Install Dependencies**
+   ```bash
+   npm install
+   ```
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+2. **Start Development Server**
+   ```bash
+   npm start
+   ```
+
+3. **Access the Application**
+   - Open http://localhost:4200
+   - Default route redirects to login page
+   - After login, redirects to admin dashboard
+
+## Routes
+
+- `/login` - Login page (Guest layout)
+- `/register` - Registration page (Guest layout)
+- `/admin/dashboard` - Main dashboard (Admin layout)
+- `/admin/home` - Home page (Admin layout)
+- `/admin/profile` - Profile page (Admin layout)
+
+## Components
+
+### Shared Components
+- **app-card**: Reusable card component for statistics and content
+- **app-breadcrumb**: Dynamic breadcrumb navigation
+- **app-navigation**: Sidebar navigation with menu items
+- **app-navbar**: Header with search, notifications, and user menu
+- **app-bar-chart**: Bar chart component (Chart.js ready)
+- **app-pie-chart**: Pie chart component (Chart.js ready)
+
+### Layout Components
+- **app-admin-layout**: Complete admin layout with sidebar, header, and main content
+- **app-guest-layout**: Simple layout for authentication pages
+
+## Styling
+
+- **Bootstrap Grid**: Responsive grid system
+- **Bootstrap Utilities**: Spacing, colors, and utility classes
+- **Custom SCSS**: Enhanced styling with CSS variables
+- **Ant Design Icons**: Consistent iconography
+- **Responsive Design**: Mobile-first approach
+
+## Future Enhancements
+
+- [ ] Chart.js integration for real charts
+- [ ] Social authentication implementation
+- [ ] Real-time notifications
+- [ ] Dark mode toggle
+- [ ] Advanced data tables with sorting/filtering
+- [ ] User profile management
+- [ ] Settings page
+- [ ] API integration
+
+## Development Notes
+
+- All components are standalone (no NgModules)
+- Uses Angular 17+ features and best practices
+- TypeScript strict mode enabled
+- SCSS for enhanced styling capabilities
+- Bootstrap 5 for responsive design
+- Ready for Chart.js integration

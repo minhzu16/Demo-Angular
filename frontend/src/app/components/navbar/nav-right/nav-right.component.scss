@@ -1,0 +1,22 @@
+.search-box {
+  .input-group {
+    .form-control {
+      &:focus {
+        box-shadow: none;
+        background-color: white;
+      }
+    }
+  }
+}
+
+.dropdown {
+  .btn-link {
+    border: none;
+    padding: 0.5rem;
+    
+    &:hover {
+      background-color: #f1f5f9;
+      border-radius: 0.5rem;
+    }
+  }
+}

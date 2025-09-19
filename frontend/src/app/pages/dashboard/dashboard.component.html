@@ -1,0 +1,134 @@
+<div class="dashboard">
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3" *ngFor="let stat of stats">
+      <app-card
+        [title]="stat.title"
+        [value]="stat.value"
+        [description]="stat.description"
+        [icon]="stat.icon"
+        [badge]="stat.badge"
+        [type]="stat.type"
+        [badgeType]="stat.badgeType">
+      </app-card>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <!-- Monthly Chart -->
+    <div class="col-lg-8 mb-3">
+      <app-bar-chart 
+        title="Monthly Revenue"
+        [data]="[12000, 19000, 15000, 25000, 22000, 30000]"
+        [labels]="['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']">
+      </app-bar-chart>
+    </div>
+    
+    <!-- Income Overview -->
+    <div class="col-lg-4 mb-3">
+      <app-pie-chart 
+        title="Income Overview"
+        [data]="[45, 25, 20, 10]"
+        [labels]="['Online', 'Retail', 'Wholesale', 'Other']">
+      </app-pie-chart>
+    </div>
+  </div>
+
+  <!-- Tables and Sidebar Row -->
+  <div class="row">
+    <!-- Recent Orders -->
+    <div class="col-lg-8 mb-3">
+      <div class="table-container">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">Recent Orders</h5>
+          <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let order of recentOrders">
+                <td><strong>{{ order.id }}</strong></td>
+                <td>{{ order.customer }}</td>
+                <td>{{ order.product }}</td>
+                <td><strong>{{ order.amount }}</strong></td>
+                <td>
+                  <span class="status-dot" [class]="getStatusClass(order.status)"></span>
+                  <span class="text-capitalize">{{ order.status }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right Sidebar -->
+    <div class="col-lg-4">
+      <!-- Transaction History -->
+      <div class="table-container mb-3">
+        <h5 class="mb-3">Transaction History</h5>
+        
+        <div class="transaction-list">
+          <div class="transaction-item" *ngFor="let transaction of transactions">
+            <div class="transaction-avatar me-3" [class]="getAvatarColor(transaction.id - 1)">
+              {{ transaction.avatar }}
+            </div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold">{{ transaction.title }}</div>
+              <small class="text-muted">{{ transaction.time }}</small>
+            </div>
+            <div class="text-end">
+              <div class="fw-semibold text-success">{{ transaction.amount }}</div>
+              <small class="text-success">{{ transaction.percentage }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Help & Support -->
+      <div class="table-container">
+        <h5 class="mb-3">Help & Support</h5>
+        
+        <div class="support-team mb-3">
+          <div class="d-flex align-items-center mb-2">
+            <span class="text-muted me-2">Team:</span>
+            <div class="d-flex">
+              <div *ngFor="let member of supportTeam" 
+                   class="support-avatar me-1" 
+                   [class]="getAvatarColor(supportTeam.indexOf(member))"
+                   [title]="member.name">
+                {{ member.avatar }}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="d-grid gap-2">
+          <button class="btn btn-primary" (click)="goToProfile()">
+            <i class="anticon anticon-user me-2"></i>
+            Go to Profile
+          </button>
+          <button class="btn btn-primary">
+            <i class="anticon anticon-customer-service me-2"></i>
+            Contact Support
+          </button>
+          <button class="btn btn-outline-secondary">
+            <i class="anticon anticon-question-circle me-2"></i>
+            Help Center
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

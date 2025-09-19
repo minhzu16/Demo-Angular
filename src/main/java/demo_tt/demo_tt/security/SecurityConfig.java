@@ -45,7 +45,7 @@ public class SecurityConfig {
 			)
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-				.requestMatchers("/api/auth/login", "/api/auth/test", "/h2-console/**").permitAll()
+				.requestMatchers("/api/auth/login", "/api/auth/test", "/h2-console/**", "/actuator/health/**" ).permitAll()
 				.requestMatchers("/api/auth/profile").authenticated()
 				.anyRequest().authenticated()
 			)
@@ -76,19 +76,25 @@ public class SecurityConfig {
 		};
 	}
 
-	@Bean
-	public CorsConfigurationSource corsConfigurationSource() {
-		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOriginPatterns(List.of("http://localhost:4200", "http://127.0.0.1:4200"));
-		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-		configuration.setAllowedHeaders(List.of("*"));
-		configuration.setExposedHeaders(List.of("Authorization"));
-		configuration.setAllowCredentials(true);
-		configuration.setMaxAge(3600L);
-		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-		source.registerCorsConfiguration("/**", configuration);
-		return source;
-	}
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // Explicit origins to avoid wildcard issues with credentials
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost",
+            "http://localhost:80",
+            "http://127.0.0.1",
+            "http://127.0.0.1:80"
+        ));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 
 	@Bean
 	public AuthenticationProvider authenticationProvider() {

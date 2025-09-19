@@ -48,8 +48,12 @@
             console.log('Login successful:', response); 
             if (response.accessToken) {
               this.saveToken(response.accessToken);
+              console.log('Token saved to localStorage');
               if (response.user) {
                 this.saveUser(response.user);
+                console.log('User profile saved to localStorage');
+              } else {
+                console.log('No user profile in response');
               }
             } else {
               console.error('No token in response');
@@ -68,10 +72,13 @@
 
     saveToken(token: string) {
       localStorage.setItem(TOKEN_KEY, token);
+      console.log('Token saved to localStorage:', token.substring(0, 20) + '...');
     }
 
     getToken(): string | null {
-      return localStorage.getItem(TOKEN_KEY);
+      const token = localStorage.getItem(TOKEN_KEY);
+      console.log('Getting token from localStorage:', token ? token.substring(0, 20) + '...' : 'null');
+      return token;
     }
 
     saveUser(user: UserProfile) {
@@ -84,7 +91,32 @@
     }
 
     isAuthenticated(): boolean {
-      return !!this.getToken();
+      const token = this.getToken();
+      if (!token) {
+        console.log('No token found');
+        return false;
+      }
+      
+      // Check if token is expired (basic check)
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Date.now() / 1000;
+        if (payload.exp && payload.exp < currentTime) {
+          console.log('Token expired, removing from storage');
+          // Don't call logout() here to avoid redirect loop
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          return false;
+        }
+        console.log('Token is valid');
+        return true;
+      } catch (error) {
+        console.error('Error parsing token:', error);
+        // Don't call logout() here to avoid redirect loop
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        return false;
+      }
     }
 
     logout() {

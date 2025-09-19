@@ -1,0 +1,65 @@
+<div class="d-flex align-items-center">
+  <!-- Search -->
+  <div class="search-box me-3">
+    <div class="input-group">
+      <span class="input-group-text bg-light border-0">
+        <i class="anticon anticon-search text-muted"></i>
+      </span>
+      <input type="text" class="form-control border-0 bg-light" placeholder="Search...">
+    </div>
+  </div>
+  
+  <!-- Notifications -->
+  <div class="dropdown me-3">
+    <button class="btn btn-link text-dark position-relative" 
+            type="button" 
+            data-bs-toggle="dropdown">
+      <i class="anticon anticon-bell" style="font-size: 1.25rem;"></i>
+      <span *ngIf="unreadCount > 0" 
+            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+        {{ unreadCount }}
+      </span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end" style="width: 300px;">
+      <li class="dropdown-header d-flex justify-content-between align-items-center">
+        <span>Notifications</span>
+        <small class="text-muted">{{ unreadCount }} unread</small>
+      </li>
+      <li><hr class="dropdown-divider"></li>
+      <li *ngFor="let notification of notifications">
+        <a class="dropdown-item" 
+           [class.fw-bold]="notification.unread"
+           href="#">
+          <div class="d-flex justify-content-between">
+            <span>{{ notification.message }}</span>
+            <small class="text-muted">{{ notification.time }}</small>
+          </div>
+        </a>
+      </li>
+      <li><hr class="dropdown-divider"></li>
+      <li><a class="dropdown-item text-center" href="#">View all notifications</a></li>
+    </ul>
+  </div>
+  
+  <!-- User Menu -->
+  <div class="dropdown">
+    <button class="btn btn-link text-dark d-flex align-items-center" 
+            type="button" 
+            data-bs-toggle="dropdown">
+      <div class="avatar me-2">
+        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" 
+             style="width: 32px; height: 32px;">
+          <i class="anticon anticon-user"></i>
+        </div>
+      </div>
+      <span class="d-none d-md-inline">John Doe</span>
+      <i class="anticon anticon-down ms-1"></i>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li><a class="dropdown-item" href="#"><i class="anticon anticon-user me-2"></i>Profile</a></li>
+      <li><a class="dropdown-item" href="#"><i class="anticon anticon-setting me-2"></i>Settings</a></li>
+      <li><hr class="dropdown-divider"></li>
+      <li><a class="dropdown-item" href="#"><i class="anticon anticon-logout me-2"></i>Logout</a></li>
+    </ul>
+  </div>
+</div>

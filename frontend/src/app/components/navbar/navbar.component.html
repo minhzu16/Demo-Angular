@@ -1,0 +1,15 @@
+<header class="header" [class.collapsed]="collapsed" [class.expanded]="!collapsed">
+  <div class="container-fluid h-100">
+    <div class="row h-100 align-items-center">
+      <div class="col">
+        <app-nav-left 
+          [collapsed]="collapsed"
+          (toggleSidebar)="toggleSidebar.emit()">
+        </app-nav-left>
+      </div>
+      <div class="col-auto">
+        <app-nav-right></app-nav-right>
+      </div>
+    </div>
+  </div>
+</header>
