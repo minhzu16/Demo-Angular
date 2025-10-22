@@ -31,3 +31,16 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Frontend ###
+frontend/dist/
+frontend/.angular/cache/
+frontend/node_modules/
+
+### Backend ###
+backend/*/target/
+out/
+
+### Environment ###
+.env
+*.log
