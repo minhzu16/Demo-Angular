@@ -1,0 +1,2 @@
+# Common module is a library, not a runnable service.
+# This file should not contain any configuration.
