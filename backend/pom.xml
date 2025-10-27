@@ -30,6 +30,10 @@
         <module>cart</module>
         <module>payment</module>
         <module>warehouse</module>
+        <module>shop</module>
+        <module>template_storage</module>
+        <module>notification</module>
+        <module>review</module>
 	</modules>
 	
     <dependencyManagement>

@@ -1,44 +1,75 @@
 <div class="home-container">
-  <div class="welcome-section">
-    <h2>Trang chủ</h2>
-    <p *ngIf="profile" class="welcome-message">
-      Chào mừng <strong>{{ profile.fullName || profile.username }}</strong>! Bạn đã đăng nhập thành công.
-    </p>
-    <p *ngIf="!profile && !loading" class="welcome-message">
-      Chào mừng! Bạn đã đăng nhập thành công.
-    </p>
-    <div class="action-buttons">
-      <button (click)="logout()" class="btn btn-logout">Đăng xuất</button>
-      <a routerLink="/profile" class="btn btn-primary">Xem thông tin cá nhân</a>
+  <!-- Hero Section -->
+  <div class="hero-section">
+    <div class="hero-content">
+      <h1 class="hero-title">Chào mừng đến với Tiki</h1>
+      <p class="hero-subtitle">Nền tảng thương mại điện tử hàng đầu Việt Nam</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg" routerLink="/products">Khám phá sản phẩm</button>
+        <button class="btn btn-outline btn-lg" routerLink="/login">Đăng nhập</button>
+      </div>
     </div>
   </div>
 
-  <div *ngIf="loading" class="loading">
-    <p>Đang tải thông tin...</p>
-  </div>
-
-  <div *ngIf="profile" class="profile-summary">
-    <h3>Thông tin tóm tắt</h3>
-    <div class="info-grid">
-      <div class="info-item">
-        <label>Họ tên:</label>
-        <span>{{ profile.fullName }}</span>
-      </div>
-      <div class="info-item">
-        <label>Email:</label>
-        <span>{{ profile.email }}</span>
-      </div>
-      <div class="info-item">
-        <label>Số điện thoại:</label>
-        <span>{{ profile.phoneNumber || 'Chưa cập nhật' }}</span>
-      </div>
-      <div class="info-item">
-        <label>Nơi làm việc:</label>
-        <span>{{ profile.workplace || 'Chưa cập nhật' }}</span>
+  <!-- Features Section -->
+  <div class="features-section">
+    <div class="container">
+      <h2 class="section-title">Tại sao chọn Tiki?</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🚚</div>
+          <h3>Giao hàng nhanh</h3>
+          <p>Giao hàng trong 2 giờ tại TP.HCM và Hà Nội</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💳</div>
+          <h3>Thanh toán an toàn</h3>
+          <p>Hỗ trợ nhiều phương thức thanh toán bảo mật</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <h3>Bảo hành chính hãng</h3>
+          <p>100% sản phẩm chính hãng với chế độ bảo hành tốt</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <h3>Ứng dụng di động</h3>
+          <p>Mua sắm mọi lúc mọi nơi với ứng dụng Tiki</p>
+        </div>
       </div>
     </div>
-    <p class="profile-note">
-      <a routerLink="/profile">Nhấn vào đây để xem và chỉnh sửa thông tin chi tiết</a>
-    </p>
+  </div>
+
+  <!-- Stats Section -->
+  <div class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-number">10M+</div>
+          <div class="stat-label">Khách hàng</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">1M+</div>
+          <div class="stat-label">Sản phẩm</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">99.9%</div>
+          <div class="stat-label">Uptime</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">24/7</div>
+          <div class="stat-label">Hỗ trợ</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA Section -->
+  <div class="cta-section">
+    <div class="container">
+      <h2>Sẵn sàng bắt đầu mua sắm?</h2>
+      <p>Tham gia cùng hàng triệu khách hàng đã tin tưởng Tiki</p>
+      <button class="btn btn-primary btn-lg" routerLink="/register">Đăng ký ngay</button>
+    </div>
   </div>
 </div>

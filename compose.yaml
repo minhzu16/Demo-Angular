@@ -39,11 +39,54 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Elasticsearch Search
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: tiki-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - tiki_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # RabbitMQ Message Queue
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: tiki-rabbitmq
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - tiki_net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
   # Backend Gateway
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: gateway/Dockerfile
     container_name: tiki-backend
     ports:
       - "8080:8080"
@@ -106,10 +149,20 @@ services:
       - DB_PASSWORD=${MYSQL_PASSWORD:-123}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=admin
+      - RABBITMQ_PASSWORD=admin123
     depends_on:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - tiki_net
@@ -163,7 +216,7 @@ services:
       dockerfile: payment/Dockerfile
     container_name: tiki-payment
     ports:
-      - "8086:8086"
+      - "8084:8084"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - DB_HOST=mysql
@@ -184,6 +237,52 @@ services:
       dockerfile: warehouse/Dockerfile
     container_name: tiki-warehouse
     ports:
+      - "8090:8090"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=${MYSQL_USER:-sa}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-123}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tiki_net
+    restart: unless-stopped
+
+  # Shop Service
+  shop:
+    build:
+      context: ./backend
+      dockerfile: shop/Dockerfile
+    container_name: tiki-shop
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=${MYSQL_USER:-sa}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-123}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tiki_net
+    restart: unless-stopped
+
+  # Template Storage Service
+  template-storage:
+    build:
+      context: ./backend
+      dockerfile: template_storage/Dockerfile
+    container_name: tiki-template-storage
+    ports:
       - "8087:8087"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
@@ -191,6 +290,57 @@ services:
       - DB_PORT=3306
       - DB_USERNAME=${MYSQL_USER:-sa}
       - DB_PASSWORD=${MYSQL_PASSWORD:-123}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tiki_net
+    restart: unless-stopped
+
+  # Notification Service
+  notification:
+    build:
+      context: ./backend
+      dockerfile: notification/Dockerfile
+    container_name: tiki-notification
+    ports:
+      - "8088:8088"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=${MYSQL_USER:-sa}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-123}
+      - EMAIL_USERNAME=${EMAIL_USERNAME:-}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tiki_net
+    restart: unless-stopped
+
+  # Review Service
+  review:
+    build:
+      context: ./backend
+      dockerfile: review/Dockerfile
+    container_name: tiki-review
+    ports:
+      - "8089:8089"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=${MYSQL_USER:-sa}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-123}
+      - ORDER_SERVICE_URL=http://order:8083
+      - PRODUCT_SERVICE_URL=http://product:8081
+      - NOTIFICATION_SERVICE_URL=http://notification:8088
     depends_on:
       mysql:
         condition: service_healthy
@@ -223,6 +373,8 @@ services:
 volumes:
   mysql_data:
   redis_data:
+  es_data:
+  rabbitmq_data:
 
 networks:
   tiki_net:
