@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+  
+  <mirrors>
+    <!-- Use official Maven Central (most reliable) -->
+    <mirror>
+      <id>maven-central</id>
+      <mirrorOf>central</mirrorOf>
+      <name>Maven Central Repository</name>
+      <url>https://repo1.maven.org/maven2</url>
+    </mirror>
+  </mirrors>
+
+  <!-- Retry configuration for network issues -->
+  <profiles>
+    <profile>
+      <id>default</id>
+      <properties>
+        <maven.wagon.http.retryHandler.count>3</maven.wagon.http.retryHandler.count>
+        <maven.wagon.http.connectionTimeout>60000</maven.wagon.http.connectionTimeout>
+        <maven.wagon.http.readTimeout>60000</maven.wagon.http.readTimeout>
+      </properties>
+    </profile>
+  </profiles>
+  
+  <activeProfiles>
+    <activeProfile>default</activeProfile>
+  </activeProfiles>
+
+</settings>
