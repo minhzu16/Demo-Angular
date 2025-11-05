@@ -1,0 +1,39 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: analytics-service
+  
+  cache:
+    type: simple
+    cache-names:
+      - revenue
+      - topProducts
+      - orderStats
+      - aov
+      - conversion
+      - dashboard
+      - productPerformance
+      - categoryPerformance
+      - wishlistTrends
+      - customerAcquisition
+      - clvDistribution
+      - customerRetention
+      - purchasePatterns
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# Logging
+logging:
+  level:
+    com.tiki.analytics: DEBUG
+    org.springframework.web: INFO
