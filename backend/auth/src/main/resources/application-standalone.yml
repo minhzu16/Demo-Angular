@@ -16,3 +16,8 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
+
+# External Services Configuration
+services:
+  notification:
+    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8088}

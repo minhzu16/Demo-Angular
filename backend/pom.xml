@@ -34,6 +34,7 @@
         <module>template_storage</module>
         <module>notification</module>
         <module>review</module>
+        <module>analytics</module>
 	</modules>
 	
     <dependencyManagement>

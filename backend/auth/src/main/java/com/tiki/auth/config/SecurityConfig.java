@@ -39,11 +39,21 @@ public class SecurityConfig {
                     "/api/v1/auth/register",
                     "/api/v1/auth/refresh",
                     "/api/v1/health",
-                    "/actuator/**"
+                    "/actuator/**",
+                    "/api/v1/otp/**",
+                    "/api/v1/password-recovery/**",
+                    "/api/v1/email-verification/**",
+                    "/api/v1/security-events/**",
+                    "/api/v1/auth/login-history",
+                    "/api/v1/users/me",
+                    "/api/v1/users/me/**"
                 ).permitAll()
                 .requestMatchers("/api/v1/auth/me").authenticated()
                 .requestMatchers("/api/v1/auth/logout*").authenticated()
                 .requestMatchers("/api/v1/addresses/**").authenticated()
+                .requestMatchers("/api/v1/seller-application/**").authenticated()
+                .requestMatchers("/api/v1/sessions/**").authenticated()
+                .requestMatchers("/api/v1/2fa/**").authenticated()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> 

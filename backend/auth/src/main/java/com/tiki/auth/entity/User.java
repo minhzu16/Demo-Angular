@@ -3,10 +3,18 @@ package com.tiki.auth.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "users")
+@Getter
+@Setter
 public class User {
     
     public enum Role { 
@@ -55,29 +63,70 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role = Role.BUYER;
+    private Role role = Role.BUYER; // Legacy field, kept for backward compatibility
+    
+    @Transient
+    private Set<Role> roles; // Multi-role support
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column(name = "email_verified")
+    private Boolean emailVerified = false;
+
+    @Column(name = "email_verified_at")
+    private LocalDateTime emailVerifiedAt;
+
+    // Multi-role helper methods
+    public Set<Role> getRoles() {
+        if (roles == null) {
+            roles = new HashSet<>();
+            roles.add(role); // Fallback to legacy role
+        }
+        return roles;
+    }
     
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
+        // Update legacy role field to primary role
+        if (roles != null && !roles.isEmpty()) {
+            if (roles.contains(Role.ADMIN)) {
+                this.role = Role.ADMIN;
+            } else if (roles.contains(Role.SELLER)) {
+                this.role = Role.SELLER;
+            } else {
+                this.role = Role.BUYER;
+            }
+        }
+    }
     
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public boolean hasRole(Role role) {
+        return getRoles().contains(role);
+    }
     
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public void addRole(Role role) {
+        getRoles().add(role);
+        setRoles(roles); // Update legacy field
+    }
     
-    public Role getRole() { return role; }
-    public void setRole(Role role) { this.role = role; }
+    public void removeRole(Role role) {
+        getRoles().remove(role);
+        setRoles(roles); // Update legacy field
+    }
     
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public String getRolesAsString() {
+        return getRoles().stream()
+                .map(Role::name)
+                .sorted()
+                .collect(Collectors.joining(","));
+    }
+    
+    // Helper methods for password (alias for passwordHash)
+    public String getPassword() { return passwordHash; }
+    public void setPassword(String password) { this.passwordHash = password; }
 }
 
 

@@ -5,6 +5,7 @@ import com.tiki.auth.dto.SellerApplicationRequest;
 import com.tiki.auth.dto.SellerApplicationResponse;
 import com.tiki.auth.service.SellerApplicationService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/seller-applications")
+@Slf4j
 public class SellerApplicationController {
     
     private final SellerApplicationService applicationService;
@@ -36,12 +38,18 @@ public class SellerApplicationController {
      * Get current user's application status
      */
     @GetMapping("/my-application")
-    public ResponseEntity<SellerApplicationResponse> getMyApplication() {
-        SellerApplicationResponse response = applicationService.getMyApplication();
-        if (response == null) {
-            return ResponseEntity.noContent().build();
+    public ResponseEntity<?> getMyApplication() {
+        try {
+            SellerApplicationResponse response = applicationService.getMyApplication();
+            if (response == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error getting seller application", e);
+            // Return 404 for non-existent application
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(response);
     }
     
     /**

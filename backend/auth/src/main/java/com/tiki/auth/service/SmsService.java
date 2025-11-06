@@ -29,16 +29,6 @@ public class SmsService {
         log.info("OTP Code: {}", otpCode);
         log.info("=".repeat(50));
         
-        // TODO: Implement real SMS sending
-        // Example with Twilio:
-        // twilioClient.messages.create(
-        //     new Message.Creator(
-        //         new PhoneNumber(phone),
-        //         new PhoneNumber(twilioPhoneNumber),
-        //         message
-        //     )
-        // );
-        
         // Simulate SMS sending delay
         try {
             Thread.sleep(100);
@@ -80,7 +70,5 @@ public class SmsService {
         log.info("To: {}", phone);
         log.info("Message: {}", message);
         log.info("=".repeat(50));
-        
-        // TODO: Implement real SMS sending
     }
 }

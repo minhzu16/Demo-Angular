@@ -2,10 +2,10 @@ services:
   # MySQL Database
   mysql:
     image: mysql:8.0
-    container_name: tiki-mysql
+    container_name: mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-mvp_ecommerce}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-user_db}
       MYSQL_USER: ${MYSQL_USER:-sa}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123}
     ports:
@@ -25,7 +25,7 @@ services:
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: tiki-redis
+    container_name: redis
     ports:
       - "6379:6379"
     volumes:
@@ -42,7 +42,7 @@ services:
   # Elasticsearch Search
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: tiki-elasticsearch
+    container_name: elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -64,7 +64,7 @@ services:
   # RabbitMQ Message Queue
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    container_name: tiki-rabbitmq
+    container_name: rabbitmq
     ports:
       - "5672:5672"   # AMQP port
       - "15672:15672" # Management UI
@@ -85,9 +85,9 @@ services:
   # Backend Gateway
   backend:
     build:
-      context: ./backend
-      dockerfile: gateway/Dockerfile
-    container_name: tiki-backend
+      context: ./backend/gateway
+      dockerfile: Dockerfile.simple
+    container_name: backend
     ports:
       - "8080:8080"
     environment:
@@ -113,9 +113,9 @@ services:
   # Auth Service
   auth:
     build:
-      context: ./backend
-      dockerfile: auth/Dockerfile
-    container_name: tiki-auth
+      context: ./backend/auth
+      dockerfile: Dockerfile.simple
+    container_name: auth
     ports:
       - "8082:8082"
     environment:
@@ -136,9 +136,11 @@ services:
   # Product Service
   product:
     build:
-      context: ./backend
-      dockerfile: product/Dockerfile
-    container_name: tiki-product
+      # context: ./backend
+      # dockerfile: product/Dockerfile
+      context: ./backend/product
+      dockerfile: Dockerfile.simple
+    container_name: product
     ports:
       - "8081:8081"
     environment:
@@ -173,7 +175,7 @@ services:
     build:
       context: ./backend
       dockerfile: order/Dockerfile
-    container_name: tiki-order
+    container_name: order
     ports:
       - "8083:8083"
     environment:
@@ -192,7 +194,7 @@ services:
     build:
       context: ./backend
       dockerfile: cart/Dockerfile
-    container_name: tiki-cart
+    container_name: cart
     ports:
       - "8085:8085"
     environment:
@@ -214,7 +216,7 @@ services:
     build:
       context: ./backend
       dockerfile: payment/Dockerfile
-    container_name: tiki-payment
+    container_name: payment
     ports:
       - "8084:8084"
     environment:
@@ -235,9 +237,9 @@ services:
     build:
       context: ./backend
       dockerfile: warehouse/Dockerfile
-    container_name: tiki-warehouse
+    container_name: warehouse
     ports:
-      - "8090:8090"
+      - "8092:8092"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - DB_HOST=mysql
@@ -254,9 +256,9 @@ services:
   # Shop Service
   shop:
     build:
-      context: ./backend
-      dockerfile: shop/Dockerfile
-    container_name: tiki-shop
+      context: ./backend/shop
+      dockerfile: Dockerfile.simple
+    container_name: shop
     ports:
       - "8086:8086"
     environment:
@@ -279,9 +281,9 @@ services:
   # Template Storage Service
   template-storage:
     build:
-      context: ./backend
-      dockerfile: template_storage/Dockerfile
-    container_name: tiki-template-storage
+      context: ./backend/template_storage
+      dockerfile: Dockerfile.simple
+    container_name: template-storage
     ports:
       - "8087:8087"
     environment:
@@ -304,9 +306,9 @@ services:
   # Notification Service
   notification:
     build:
-      context: ./backend
-      dockerfile: notification/Dockerfile
-    container_name: tiki-notification
+      context: ./backend/notification
+      dockerfile: Dockerfile.simple
+    container_name: notification
     ports:
       - "8088:8088"
     environment:
@@ -327,9 +329,9 @@ services:
   # Review Service
   review:
     build:
-      context: ./backend
-      dockerfile: review/Dockerfile
-    container_name: tiki-review
+      context: ./backend/review
+      dockerfile: Dockerfile.simple
+    container_name: review
     ports:
       - "8089:8089"
     environment:
@@ -353,7 +355,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: tiki-frontend
+    container_name: frontend
     ports:
       - "4200:80"
     depends_on:

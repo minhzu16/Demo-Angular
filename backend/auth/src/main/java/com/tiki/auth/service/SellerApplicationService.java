@@ -2,6 +2,7 @@ package com.tiki.auth.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tiki.auth.client.NotificationClient;
 import com.tiki.auth.dto.ReviewSellerApplicationRequest;
 import com.tiki.auth.dto.SellerApplicationRequest;
 import com.tiki.auth.dto.SellerApplicationResponse;
@@ -19,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,7 +32,9 @@ public class SellerApplicationService {
     
     private final SellerApplicationRepository applicationRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
     private final ObjectMapper objectMapper;
+    private final NotificationClient notificationClient;
     
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -141,13 +146,15 @@ public class SellerApplicationService {
         }
         
         if (request.getApproved()) {
-            // Approve: Update application status and user role
+            // Approve: Update application status and ADD SELLER role (keep existing roles)
             application.setStatus(SellerApplication.Status.APPROVED);
             
             User user = userRepository.findById(application.getUserId())
                     .orElseThrow(() -> new UserNotFoundException("User not found"));
-            user.setRole(User.Role.SELLER);
-            userRepository.save(user);
+            
+            // Add SELLER role to user (multi-role support)
+            userService.addRoleToUser(user.getId(), User.Role.SELLER, admin.getId());
+            log.info("Added SELLER role to user {} by admin {}", user.getId(), admin.getId());
             
         } else {
             // Reject: Update status and add reason
@@ -163,9 +170,50 @@ public class SellerApplicationService {
         
         SellerApplication saved = applicationRepository.save(application);
         
-        // TODO: Send notification to user
+        // Send notification to user
+        sendApplicationStatusNotification(saved);
         
         return toResponse(saved);
+    }
+    
+    /**
+     * Send notification when seller application status changes
+     * Sprint 14 - Implemented
+     */
+    private void sendApplicationStatusNotification(SellerApplication application) {
+        try {
+            String title = application.getStatus() == SellerApplication.Status.APPROVED
+                    ? "Đơn đăng ký bán hàng đã được duyệt"
+                    : "Đơn đăng ký bán hàng bị từ chối";
+            
+            String message = application.getStatus() == SellerApplication.Status.APPROVED
+                    ? "Chúc mừng! Đơn đăng ký bán hàng của bạn đã được duyệt. Bạn có thể bắt đầu bán hàng ngay bây giờ."
+                    : "Rất tiếc, đơn đăng ký bán hàng của bạn đã bị từ chối. Lý do: " + 
+                      (application.getRejectionReason() != null ? application.getRejectionReason() : "Không đủ điều kiện");
+            
+            // Prepare notification type based on application status
+            String notificationType = application.getStatus() == SellerApplication.Status.APPROVED 
+                    ? "SHOP_APPROVED" 
+                    : "SHOP_REJECTED";
+            
+            Map<String, Object> notificationRequest = new HashMap<>();
+            notificationRequest.put("userId", application.getUserId());
+            notificationRequest.put("type", notificationType);
+            notificationRequest.put("title", title);
+            notificationRequest.put("message", message);
+            notificationRequest.put("channel", "IN_APP");
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("applicationId", application.getId());
+            data.put("status", application.getStatus().name());
+            notificationRequest.put("data", data);
+            
+            notificationClient.sendNotification(notificationRequest);
+            log.info("Notification sent to user {} for application {}", application.getUserId(), application.getId());
+        } catch (Exception e) {
+            log.error("Failed to send notification for application {}: {}", application.getId(), e.getMessage());
+            // Don't fail the whole operation if notification fails
+        }
     }
     
     private SellerApplicationResponse toResponse(SellerApplication entity) {

@@ -23,6 +23,24 @@ public class UserController {
     }
     
     /**
+     * Get current user profile
+     */
+    @GetMapping("/me")
+    public ResponseEntity<AuthResponse.UserInfo> getCurrentUser(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        User user = userService.getUserById(userId);
+        return ResponseEntity.ok(new AuthResponse.UserInfo(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole().name()
+        ));
+    }
+    
+    /**
      * Get user by ID
      */
     @GetMapping("/{id}")
