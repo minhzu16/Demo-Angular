@@ -24,6 +24,25 @@ body {
   color: #334155;
 }
 
+/* FoodMart Container */
+.container-foodmart {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  
+  @media (min-width: 1400px) {
+    max-width: 1320px;
+  }
+  
+  @media (max-width: 992px) {
+    padding: 0 16px;
+  }
+  
+  @media (max-width: 576px) {
+    padding: 0 12px;
+  }
+}
+
 /* Custom Bootstrap Overrides */
 .btn-primary {
   background-color: var(--primary-color);

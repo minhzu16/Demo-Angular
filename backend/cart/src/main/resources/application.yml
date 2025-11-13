@@ -5,17 +5,19 @@ spring:
     name: cart-service
   config:
     import: optional:classpath:application-resilience.yml
+  # Cấu hình database di chuyển đến các profile cụ thể (docker/local)
 
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678}
   expiration: ${JWT_EXPIRATION:900000}
 
-# Service URLs
+# Service URLs - Sử dụng service name trong Docker Compose
 product:
   service:
-    url: ${PRODUCT_SERVICE_URL:http://localhost:8084}
+    url: ${PRODUCT_SERVICE_URL:http://product-service:8083}
 
+# Actuator Config
 management:
   endpoints:
     web:

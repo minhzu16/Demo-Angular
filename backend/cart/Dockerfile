@@ -1,5 +1,5 @@
 # Build stage
-FROM maven:3.9.9-eclipse-temurin-17 AS builder
+FROM maven:3.9.5-eclipse-temurin-17 AS builder
 WORKDIR /build
 
 # Copy Maven settings with reliable repository configuration
@@ -10,48 +10,45 @@ COPY pom.xml ./pom.xml
 COPY common/pom.xml ./common/pom.xml
 COPY cart/pom.xml ./cart/pom.xml
 
-# Pre-fetch deps with retry logic
-RUN mvn -B -U -DskipTests -f cart/pom.xml dependency:go-offline -am \
+# Pre-fetch deps with retry logic - tối ưu bằng cách giảm các đối số không cần thiết
+RUN mvn -B -U -DskipTests -f pom.xml -pl cart -am dependency:go-offline \
     -Dmaven.wagon.http.retryHandler.count=3 \
-    -Dmaven.wagon.http.connectionTimeout=60000 \
-    -Dmaven.wagon.http.readTimeout=60000 || true
+    -Dmaven.wagon.http.connectionTimeout=20000 || true
 
-# Copy sources
+# Copy sources - chỉ copy các thư mục cần thiết
 COPY common ./common
 COPY cart ./cart
 
-# Build cart module with shell-level retry for network resilience
-# 0) Install parent POM to local repo (no modules)
-RUN for i in 1 2 3; do \
-        mvn -B -U -DskipTests -f pom.xml -N clean install \
-            -Dmaven.wagon.http.retryHandler.count=3 \
-            -Dmaven.wagon.http.connectionTimeout=60000 \
-            -Dmaven.wagon.http.readTimeout=60000 && break || \
-        (echo "Attempt $i failed, retrying..." && sleep 5); \
-    done
+# Build với một lệnh duy nhất để giảm kích thước image
+RUN mvn -B -U -DskipTests -f pom.xml -pl cart -am clean package \
+    -Dmaven.wagon.http.retryHandler.count=3 \
+    -Dmaven.wagon.http.connectionTimeout=20000 || \
+    mvn -B -U -DskipTests -f pom.xml -pl cart -am clean package
 
-# 1) Build and install common to local repo (dependency of cart)
-RUN for i in 1 2 3; do \
-        mvn -B -U -DskipTests -f common/pom.xml clean install \
-            -Dmaven.wagon.http.retryHandler.count=3 \
-            -Dmaven.wagon.http.connectionTimeout=60000 \
-            -Dmaven.wagon.http.readTimeout=60000 && break || \
-        (echo "Attempt $i failed, retrying..." && sleep 5); \
-    done
-
-# 2) Build cart module
-RUN for i in 1 2 3; do \
-        mvn -B -U -DskipTests -f cart/pom.xml clean package \
-            -Dmaven.wagon.http.retryHandler.count=3 \
-            -Dmaven.wagon.http.connectionTimeout=60000 \
-            -Dmaven.wagon.http.readTimeout=60000 && break || \
-        (echo "Attempt $i failed, retrying..." && sleep 5); \
-    done
-
-# Runtime stage
-FROM eclipse-temurin:17-jre-alpine
+# Runtime stage - sử dụng alpine để giảm kích thước image
+FROM eclipse-temurin:17-jre
 WORKDIR /app
+
+# Thêm timezone Việt Nam
+RUN apt-get update && apt-get install -y --no-install-recommends tzdata wget && \
+    ln -sf /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime && \
+    echo "Asia/Ho_Chi_Minh" > /etc/timezone && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Port
 EXPOSE 8085
-ENV JAVA_OPTS=""
+
+# Thêm các biến môi trường mặc định 
+ENV SPRING_PROFILES_ACTIVE=docker \
+    JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
+
 COPY --from=builder /build/cart/target/*.jar /app/app.jar
+
+# Health check cho Docker
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD wget -q -O /dev/null http://localhost:8085/actuator/health || exit 1
+
 ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar /app/app.jar"]
+
+

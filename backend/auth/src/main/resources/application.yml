@@ -2,10 +2,14 @@ server:
   port: 8082
 
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:docker}
   application:
     name: auth-service
+  config:
+    import: optional:classpath:application-resilience.yml
   datasource:
-    url: jdbc:mysql://mysql:3306/user_db?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
+    url: jdbc:mysql://localhost:3306/user_db?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
     username: ${DB_USERNAME:sa}
     password: ${DB_PASSWORD:123}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -16,10 +20,6 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
-  data:
-    redis:
-      host: ${REDIS_HOST:redis}
-      port: ${REDIS_PORT:6379}
 
 # JWT Configuration
 jwt:
@@ -27,7 +27,7 @@ jwt:
   expiration: 86400000  # 24 hours in milliseconds
   refreshExpiration: 604800000  # 7 days in milliseconds
 
-# External Services Configuration
+# External Services Configuration - Dùng Docker service name
 services:
   notification:
     url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8088}

@@ -1,62 +1,23 @@
 server:
   port: 8081
 
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:docker}
+  application:
+    name: product-service
+  config:
+    import: optional:classpath:application-resilience.yml
+
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678}
   expiration: ${JWT_EXPIRATION:900000}
 
-spring:
-  application:
-    name: product-service
-  datasource:
-    url: jdbc:mysql://mysql:3306/product_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
-    username: ${DB_USERNAME:sa}
-    password: ${DB_PASSWORD:123}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
-      - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
-  data:
-    redis:
-      host: ${REDIS_HOST:redis}
-      port: ${REDIS_PORT:6379}
-      timeout: 2000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 2
-          max-wait: -1ms
-  cache:
-    type: redis
-    redis:
-      time-to-live: 3600000
-  elasticsearch:
-    uris: http://${ELASTICSEARCH_HOST:elasticsearch}:${ELASTICSEARCH_PORT:9200}
-    connection-timeout: 5s
-    socket-timeout: 60s
-  rabbitmq:
-    host: ${RABBITMQ_HOST:rabbitmq}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:admin}
-    password: ${RABBITMQ_PASSWORD:admin123}
-    listener:
-      simple:
-        acknowledge-mode: auto
-        prefetch: 10
-        retry:
-          enabled: true
-          initial-interval: 3s
-          max-attempts: 3
+# Auto-config exclusions
+spring.autoconfigure.exclude:
+  - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+  - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
 
 # Actuator Configuration for Health Checks & Metrics
 management:
@@ -67,3 +28,5 @@ management:
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true  # Kubernetes readiness/liveness

@@ -89,11 +89,13 @@
 			<version>3.5.1</version>
 		</dependency>
 		
-		<!-- Redis for session management -->
+		<!-- Redis for session management - Temporarily disabled -->
+		<!--
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
+		-->
 		
 		<!-- OpenFeign for microservices communication -->
 		<dependency>
