@@ -220,33 +220,10 @@ Changes:
 - All existing styles remain functional"
 
 # ============================================
-# Commit 13: API Testing Script
-# ============================================
-git add test-apis.ps1
-git commit -m "test: add comprehensive API testing script
-
-- Add PowerShell script for automated API testing
-- Cover all 4 microservices (Auth, Product, Cart, Order)
-- Test 25+ API endpoints
-- Include authentication flow testing
-
-Coverage:
-- Auth Service: 4 endpoints (register, login, profile, refresh)
-- Product Service: 5 endpoints (list, search, detail, filter, sort)
-- Cart Service: 8 endpoints (get, add, update, remove, validate, etc.)
-- Order Service: 8 endpoints (create, list, detail, cancel, stats, etc.)
-
-Features:
-- Color-coded output for pass/fail status
-- Automatic token management
-- Request/response logging
-- Error handling and reporting"
-
-# ============================================
 # After all commits
 # ============================================
 # Review commits
-git log --oneline --graph -13
+git log --oneline --graph -12
 
 # Push to remote
 git push origin develop

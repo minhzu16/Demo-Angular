@@ -44,3 +44,6 @@ out/
 ### Environment ###
 .env
 *.log
+
+### PowerShell Scripts ###
+*.ps1
