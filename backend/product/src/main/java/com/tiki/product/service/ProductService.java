@@ -15,8 +15,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -160,6 +162,7 @@ public class ProductService {
         public ResourceNotFoundException(String message) { super(message); }
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public static class BadRequestException extends RuntimeException {
         public BadRequestException(String message) { super(message); }
     }

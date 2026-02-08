@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './nav-right.component.html',
-  styleUrl: './nav-right.component.scss'
+  styleUrls: ['./nav-right.component.scss']
 })
 export class NavRightComponent {
   notifications = [

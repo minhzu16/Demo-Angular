@@ -1,9 +1,5 @@
-server:
-  port: 8085
-
+# Cấu hình riêng cho môi trường Docker
 spring:
-  application:
-    name: cart-service
   datasource:
     url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/cart_db?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
     username: ${DB_USERNAME:sa}
@@ -13,6 +9,8 @@ spring:
       connection-timeout: 30000
       maximum-pool-size: 10
       minimum-idle: 5
+      idle-timeout: 600000
+      max-lifetime: 1800000
   jpa:
     hibernate:
       ddl-auto: update
@@ -24,11 +22,26 @@ spring:
     redis:
       host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
-      connect-timeout: 2000
+  # Mở cổng kết nối RabbitMQ (nếu service này sử dụng)
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin123}
+    virtual-host: /
+    connection-timeout: 5000
 
-# Service URLs - Docker service names
-product:
-  service:
-    url: ${PRODUCT_SERVICE_URL:http://product-service:8081}
-
-# Đã bỏ cấu hình management trùng lặp với file gốc
+# Logging cho môi trường Docker
+logging:
+  level:
+    root: INFO
+    com.tiki: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+    
+# External Services trong Docker
+services:
+  warehouse:
+    url: ${WAREHOUSE_SERVICE_URL:http://warehouse:8092}
+  shop:
+    url: ${SHOP_SERVICE_URL:http://shop:8086}

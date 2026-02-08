@@ -1,11 +1,7 @@
-server:
-  port: 8082
-
+# Cấu hình cho môi trường local development
 spring:
-  application:
-    name: auth-service
   datasource:
-    url: jdbc:mysql://127.0.0.1:3307/user_db?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
+    url: jdbc:mysql://localhost:3306/auth_db?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
     username: ${DB_USERNAME:sa}
     password: ${DB_PASSWORD:123}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -15,23 +11,46 @@ spring:
     show-sql: true
     properties:
       hibernate:
+        format_sql: true
         dialect: org.hibernate.dialect.MySQL8Dialect
-  flyway:
-    baseline-on-migrate: true
   data:
     redis:
-      host: ${REDIS_HOST:127.0.0.1}
-      port: ${REDIS_PORT:6379}
+      host: localhost
+      port: 6379
+  # Mở cổng kết nối RabbitMQ local
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: admin123
+    virtual-host: /
+  # Cho phép auto reload trong development
+  devtools:
+    restart:
+      enabled: true
+  flyway:
+    baseline-on-migrate: true
 
-jwt:
-  secret: mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678
-  expiration: 900000  # 15 minutes in milliseconds
-  refresh-expiration: 604800000  # 7 days in milliseconds
-
+# Logging chi tiết hơn cho development
 logging:
   level:
     root: INFO
-    '[com.tiki.auth]': DEBUG
-    '[org.springframework.security]': WARN
-    '[io.micrometer]': WARN
-    '[org.hibernate.SQL]': DEBUG
+    com.tiki.templatestorage: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# External services trong local
+services:
+  warehouse:
+    url: http://localhost:8092
+  shop:
+    url: http://localhost:8086
+    
+# Đặt biến môi trường cho swagger-ui
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  api-docs:
+    enabled: true

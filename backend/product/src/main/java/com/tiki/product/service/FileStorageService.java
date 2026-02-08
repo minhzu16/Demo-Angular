@@ -1,6 +1,7 @@
 package com.tiki.product.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -13,11 +14,14 @@ import java.util.UUID;
 
 @Service
 public class FileStorageService {
-    private final Path root = Paths.get("uploads");
+    private final Path root;
 
-    public FileStorageService() throws IOException {
-        if (!Files.exists(root)) {
-            Files.createDirectories(root);
+    public FileStorageService(@Value("${file.upload-dir:/tmp/uploads}") String uploadDir) throws IOException {
+        this.root = Paths.get(uploadDir).toAbsolutePath();
+        try {
+            Files.createDirectories(this.root);
+        } catch (IOException e) {
+            throw new IOException("Cannot create upload directory at " + this.root, e);
         }
     }
 

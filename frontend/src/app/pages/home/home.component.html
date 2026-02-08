@@ -11,6 +11,49 @@
     </div>
   </div>
 
+  <!-- Flash Sale Banner -->
+  <div class="flash-sale-section">
+    <div class="container">
+      <div class="flash-sale-card">
+        <div class="flash-left">
+          <div class="flash-badge">FLASH SALE</div>
+          <h2 class="flash-title">Deal sốc hôm nay</h2>
+          <p class="flash-subtitle">Giảm giá lớn cho hàng ngàn sản phẩm trong thời gian có hạn. Nhanh tay săn deal trước khi hết!</p>
+
+          <div class="flash-countdown" *ngIf="flashCountdown">
+            <span class="countdown-label">Kết thúc sau</span>
+            <div class="countdown-timer" [class.ended]="flashCountdown === 'Đã kết thúc'">
+              <i class="bi bi-alarm-fill"></i>
+              <span class="time-text">{{ flashCountdown }}</span>
+            </div>
+          </div>
+
+          <button
+            class="btn btn-primary btn-lg flash-cta"
+            routerLink="/products"
+            [queryParams]="{ flashSale: true }">
+            Săn deal ngay
+          </button>
+        </div>
+
+        <div class="flash-right">
+          <div class="flash-tag">
+            <span class="percent">-50%</span>
+            <span class="text">Đồ gia dụng</span>
+          </div>
+          <div class="flash-tag">
+            <span class="percent">-40%</span>
+            <span class="text">Nhà bếp</span>
+          </div>
+          <div class="flash-tag">
+            <span class="percent">-30%</span>
+            <span class="text">Thiết bị số</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Features Section -->
   <div class="features-section">
     <div class="container">

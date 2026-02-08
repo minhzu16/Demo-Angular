@@ -8,9 +8,21 @@
     </div>
     <button 
       *ngIf="!isEditing" 
-      (click)="toggleEdit()" 
-      class="btn btn-primary">
+      class="btn btn-primary"
+      [routerLink]="'/profile/edit'">
       Chỉnh sửa
+    </button>
+    <button
+      *ngIf="!isEditing && canGoToShop()"
+      (click)="switchToSeller()"
+      class="btn btn-secondary">
+      Cửa hàng cá nhân
+    </button>
+    <button
+      *ngIf="!isEditing && canApplySeller()"
+      (click)="applySeller()"
+      class="btn btn-secondary">
+      Đăng ký bán hàng
     </button>
   </div>
 
@@ -132,6 +144,48 @@
         <div class="info-item">
           <label>Nơi làm việc:</label>
           <span>{{ user.workplace || 'Chưa cập nhật' }}</span>
+        </div>
+
+        <div class="info-item seller-status">
+          <label>Trạng thái bán hàng:</label>
+          <span *ngIf="isLoadingSeller">Đang kiểm tra...</span>
+          <span *ngIf="!isLoadingSeller && sellerStatus === 'NONE'">Chưa đăng ký bán hàng</span>
+          <span *ngIf="!isLoadingSeller && sellerStatus !== 'NONE'">{{ getSellerStatusText(sellerStatus) }}</span>
+        </div>
+      </div>
+
+      <div class="profile-quick-actions">
+        <h3>Trung tâm tài khoản</h3>
+        <div class="quick-actions-grid">
+          <a routerLink="/orders" class="quick-action-card">
+            <h4>Đơn hàng đã mua</h4>
+            <p>Xem và theo dõi các đơn hàng của bạn.</p>
+          </a>
+
+          <a routerLink="/profile/edit" class="quick-action-card">
+            <h4>Thông tin cá nhân</h4>
+            <p>Cập nhật họ tên, email, số điện thoại, địa chỉ.</p>
+          </a>
+
+          <a routerLink="/addresses" class="quick-action-card">
+            <h4>Địa chỉ giao hàng</h4>
+            <p>Quản lý và chọn địa chỉ giao hàng mặc định.</p>
+          </a>
+
+          <a routerLink="/wallets" class="quick-action-card">
+            <h4>Ví điện tử & thanh toán</h4>
+            <p>Liên kết ví điện tử / tài khoản ngân hàng để thanh toán nhanh.</p>
+          </a>
+
+          <a routerLink="/wishlist" class="quick-action-card">
+            <h4>Danh sách yêu thích</h4>
+            <p>Xem các sản phẩm bạn đã thêm vào wishlist.</p>
+          </a>
+
+          <a href="mailto:support@shopy.vn" class="quick-action-card">
+            <h4>Trung tâm hỗ trợ</h4>
+            <p>Liên hệ admin khi cần trợ giúp.</p>
+          </a>
         </div>
       </div>
     </ng-template>

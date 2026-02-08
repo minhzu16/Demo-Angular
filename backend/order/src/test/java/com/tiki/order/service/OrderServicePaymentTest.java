@@ -1,14 +1,23 @@
 package com.tiki.order.service;
 
 import com.tiki.order.dto.PaymentInfoDTO;
+import com.tiki.order.entity.OrderEntity;
 import com.tiki.order.enums.PaymentMethod;
 import com.tiki.order.enums.PaymentStatus;
+import com.tiki.order.repository.OrderRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 /**
  * Integration tests for OrderService payment methods
@@ -20,10 +29,30 @@ class OrderServicePaymentTest {
     @InjectMocks
     private OrderService orderService;
 
+    @Mock
+    private OrderRepository orderRepository;
+
+    private OrderEntity codPendingOrder;
+
+    @BeforeEach
+    void setUp() {
+        codPendingOrder = new OrderEntity();
+        codPendingOrder.setId(1);
+        codPendingOrder.setUserId(1L);
+        codPendingOrder.setSubtotal(BigDecimal.ZERO);
+        codPendingOrder.setTotalAmount(BigDecimal.ZERO);
+        codPendingOrder.setCustomerName("Test Customer");
+        codPendingOrder.setCustomerPhone("0123456789");
+        codPendingOrder.setShippingAddress("Test Address");
+        // paymentMethod defaults to COD, paymentStatus defaults to PENDING
+    }
+
     @Test
     void testGetPaymentInfo() {
         // Given
         Integer orderId = 1;
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(codPendingOrder));
 
         // When
         PaymentInfoDTO paymentInfo = orderService.getPaymentInfo(orderId);
@@ -39,6 +68,9 @@ class OrderServicePaymentTest {
     void testConfirmCODPayment() {
         // Given
         Integer orderId = 1;
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(codPendingOrder));
+        when(orderRepository.save(any(OrderEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         PaymentInfoDTO paymentInfo = orderService.confirmCODPayment(orderId);
@@ -68,7 +100,7 @@ class OrderServicePaymentTest {
             () -> orderService.validatePaymentMethod(null)
         );
         
-        assertEquals("Payment method is required", exception.getMessage());
+        assertEquals("Phương thức thanh toán là bắt buộc", exception.getMessage());
     }
 
     @Test
@@ -79,7 +111,7 @@ class OrderServicePaymentTest {
             () -> orderService.validatePaymentMethod(PaymentMethod.VNPAY)
         );
         
-        assertTrue(exception.getMessage().contains("not supported yet"));
+        assertTrue(exception.getMessage().contains("chưa được hỗ trợ"));
     }
 
     @Test
@@ -90,7 +122,7 @@ class OrderServicePaymentTest {
             () -> orderService.validatePaymentMethod(PaymentMethod.MOMO)
         );
         
-        assertTrue(exception.getMessage().contains("not supported yet"));
+        assertTrue(exception.getMessage().contains("chưa được hỗ trợ"));
     }
 
     @Test
@@ -101,6 +133,6 @@ class OrderServicePaymentTest {
             () -> orderService.validatePaymentMethod(PaymentMethod.BANK_TRANSFER)
         );
         
-        assertTrue(exception.getMessage().contains("not supported yet"));
+        assertTrue(exception.getMessage().contains("chưa được hỗ trợ"));
     }
 }

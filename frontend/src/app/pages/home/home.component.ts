@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -11,13 +11,23 @@ import { AuthService, UserProfile } from '../../services/auth.service';
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   private auth = inject(AuthService);
   profile: UserProfile | null = null;
   loading = false;
+  flashSaleEndsAt: Date | null = null;
+  flashCountdown = '';
+  private flashTimerId: any;
 
   ngOnInit() {
+    this.initFlashSaleCountdown();
     this.loadProfile();
+  }
+
+  ngOnDestroy(): void {
+    if (this.flashTimerId) {
+      clearInterval(this.flashTimerId);
+    }
   }
 
   logout() {
@@ -51,6 +61,43 @@ export class HomeComponent implements OnInit {
         alert(`Lỗi ${error.status}: ${error.message}`);
       }
     });
+  }
+
+  private initFlashSaleCountdown(): void {
+    const now = new Date();
+    const twoHoursMs = 2 * 60 * 60 * 1000;
+    this.flashSaleEndsAt = new Date(now.getTime() + twoHoursMs);
+    this.updateFlashCountdown();
+    this.flashTimerId = setInterval(() => this.updateFlashCountdown(), 1000);
+  }
+
+  private updateFlashCountdown(): void {
+    if (!this.flashSaleEndsAt) {
+      this.flashCountdown = '';
+      return;
+    }
+
+    const now = Date.now();
+    const diff = this.flashSaleEndsAt.getTime() - now;
+
+    if (diff <= 0) {
+      this.flashCountdown = 'Đã kết thúc';
+      if (this.flashTimerId) {
+        clearInterval(this.flashTimerId);
+      }
+      return;
+    }
+
+    const totalSeconds = Math.floor(diff / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    this.flashCountdown = `${this.padTime(hours)}:${this.padTime(minutes)}:${this.padTime(seconds)}`;
+  }
+
+  private padTime(value: number): string {
+    return value.toString().padStart(2, '0');
   }
 
   saveProfile() {

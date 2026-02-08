@@ -30,7 +30,7 @@ public class OrderService {
     @Autowired
     private OrderRepository orderRepository;
     public OrderDto createOrder(CreateOrderRequest request) {
-        // Validate user via common-service
+        // Validate user via common-service (if provided)
         if (request.getUserId() != null) {
             try {
                 userClient.getUser(request.getUserId().longValue());
@@ -38,20 +38,61 @@ public class OrderService {
                 throw new IllegalArgumentException("ID người dùng không hợp lệ: " + request.getUserId());
             }
         }
-        OrderDto dto = new OrderDto();
-        dto.setId(1);
-        dto.setUserId(request.getUserId());
-        dto.setStatus("CREATED");
-        dto.setCreatedAt(LocalDateTime.now());
-        dto.setTotalAmount(BigDecimal.ZERO);
-        return dto;
+
+        // Build OrderEntity from request
+        OrderEntity order = new OrderEntity();
+        if (request.getUserId() != null) {
+            order.setUserId(request.getUserId().longValue());
+        }
+
+        // Shipping info
+        CreateOrderRequest.ShippingAddressDto addr = request.getShippingAddress();
+        if (addr != null) {
+            order.setCustomerName(addr.getFullName());
+            order.setCustomerPhone(addr.getPhoneNumber());
+            order.setShippingProvince(addr.getProvince());
+            order.setShippingDistrict(addr.getDistrict());
+            order.setShippingAddress(addr.getStreet());
+        }
+
+        // Pricing
+        BigDecimal subtotal = BigDecimal.ZERO;
+        if (request.getItems() != null) {
+            for (CreateOrderRequest.OrderItemDto item : request.getItems()) {
+                if (item.getUnitPrice() != null && item.getQuantity() != null) {
+                    subtotal = subtotal.add(item.getUnitPrice()
+                            .multiply(BigDecimal.valueOf(item.getQuantity())));
+                }
+            }
+        }
+        order.setSubtotal(subtotal.max(BigDecimal.ZERO));
+        order.setVoucherDiscount(BigDecimal.ZERO);
+
+        // Simple shipping fee rule (sync with CartService): free ship if >= 500k
+        BigDecimal shippingFee = BigDecimal.ZERO;
+        if (subtotal.compareTo(BigDecimal.ZERO) > 0 && subtotal.compareTo(new BigDecimal("500000")) < 0) {
+            shippingFee = new BigDecimal("30000");
+        }
+        order.setShippingFee(shippingFee);
+        order.calculateTotal();
+
+        // Payment info
+        if (request.getPaymentMethod() != null) {
+            order.setPaymentMethod(request.getPaymentMethod());
+        } else {
+            order.setPaymentMethod(PaymentMethod.COD);
+        }
+        order.setPaymentStatus(PaymentStatus.PENDING);
+
+        // Persist
+        OrderEntity saved = orderRepository.save(order);
+        return toDto(saved);
     }
 
     public OrderDto getOrder(Integer orderId) {
-        OrderDto dto = new OrderDto();
-        dto.setId(orderId);
-        dto.setStatus("CREATED");
-        return dto;
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order không tồn tại"));
+        return toDto(order);
     }
 
     public OrderDto cancelOrder(Integer orderId) {
@@ -67,18 +108,38 @@ public class OrderService {
     }
 
     public List<OrderDto> getAllOrders() {
-        return new ArrayList<>();
+        List<OrderEntity> entities = orderRepository.findAll();
+        List<OrderDto> dtos = new ArrayList<>();
+        for (OrderEntity e : entities) {
+            dtos.add(toDto(e));
+        }
+        return dtos;
     }
 
     public List<OrderDto> getOrdersByUser(Integer userId) {
-        return new ArrayList<>();
+        return getOrdersByUserAndStatus(userId, null);
+    }
+
+    public List<OrderDto> getOrdersByUserAndStatus(Integer userId, OrderEntity.OrderStatus status) {
+        List<OrderEntity> entities;
+        if (status != null) {
+            entities = orderRepository.findByUserIdAndStatus(userId.longValue(), status);
+        } else {
+            entities = orderRepository.findByUserId(userId.longValue());
+        }
+        List<OrderDto> dtos = new ArrayList<>();
+        for (OrderEntity e : entities) {
+            dtos.add(toDto(e));
+        }
+        return dtos;
     }
 
     public OrderDto updateStatus(Integer orderId, OrderEntity.OrderStatus status) {
-        OrderDto dto = new OrderDto();
-        dto.setId(orderId);
-        dto.setStatus(status.name());
-        return dto;
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order không tồn tại"));
+        order.setStatus(status);
+        OrderEntity saved = orderRepository.save(order);
+        return toDto(saved);
     }
 
     @Autowired
@@ -91,10 +152,12 @@ public class OrderService {
         } catch (java.io.IOException e) {
             e.printStackTrace();
         }
-        OrderDto dto = new OrderDto();
-        dto.setId(orderId);
-        dto.setStatus("PAID");
-        return dto;
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order không tồn tại"));
+        order.setPaymentStatus(PaymentStatus.PAID);
+        order.setPaidAt(LocalDateTime.now());
+        OrderEntity saved = orderRepository.save(order);
+        return toDto(saved);
     }
 
     /**
@@ -243,5 +306,34 @@ public class OrderService {
         
         // Mock: assume each product sold in 10% of orders
         return totalOrders != null ? (int)(totalOrders * 0.1) : 0;
+    }
+
+    private OrderDto toDto(OrderEntity order) {
+        OrderDto dto = new OrderDto();
+        dto.setId(order.getId());
+        if (order.getUserId() != null) {
+            dto.setUserId(order.getUserId().intValue());
+        }
+        dto.setOrderNumber(order.getOrderNumber());
+        dto.setTotalAmount(order.getTotalAmount());
+        dto.setSubtotal(order.getSubtotal());
+        dto.setShippingFee(order.getShippingFee());
+        dto.setStatus(order.getStatus() != null ? order.getStatus().name() : null);
+        dto.setCreatedAt(order.getCreatedAt());
+        dto.setPaidAt(order.getPaidAt());
+        dto.setPaymentMethod(order.getPaymentMethod());
+        dto.setPaymentStatus(order.getPaymentStatus());
+
+        OrderDto.ShippingAddress sa = new OrderDto.ShippingAddress();
+        sa.setFullName(order.getCustomerName());
+        sa.setPhoneNumber(order.getCustomerPhone());
+        sa.setProvince(order.getShippingProvince());
+        sa.setDistrict(order.getShippingDistrict());
+        sa.setWard("");
+        sa.setStreet(order.getShippingAddress());
+        dto.setShippingAddress(sa);
+
+        dto.setItems(new ArrayList<>()); // Order items not implemented yet
+        return dto;
     }
 }

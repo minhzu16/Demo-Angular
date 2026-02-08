@@ -24,9 +24,27 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
+            // .authorizeHttpRequests(auth -> auth
+                // // Cho phép guest truy cập các public endpoints
+                // .requestMatchers(
+                //     "/actuator/**", 
+                //     "/api/v1/health", 
+                //     "/products/**",
+                //     "/api/v1/products", 
+                //     "/api/v1/products/**", 
+                //     "/api/v1/categories/**",
+                //     "/categories/**",
+                //     "/api/v1/brands/**",
+                //     "/brands/**",
+                //     // Wishlist endpoints: kiểm soát bằng X-User-Id + authGuard FE
+                //     "/api/v1/wishlist/**",
+                //     "/api/v1/wishlists/**"
+                // ).permitAll()
+                // .anyRequest().authenticated()
+                    // TẠM THỜI cho phép tất cả endpoint không cần xác thực
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/**", "/api/v1/health", "/api/v1/products/**").permitAll()
-                .anyRequest().authenticated()
+                .anyRequest().permitAll()
+            
             )
             .sessionManagement(session -> 
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -42,9 +60,8 @@ public class SecurityConfig {
                     response.setContentType("application/json");
                     response.getWriter().write("{\"error\":\"Forbidden\",\"message\":\"Insufficient permissions\"}");
                 })
-            );
-            // Temporarily disable JWT filter for testing
-            // .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            )
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         
         return http.build();
     }

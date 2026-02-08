@@ -15,7 +15,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Integer>
     @Query("SELECT p FROM ProductEntity p " +
             "LEFT JOIN p.category c " +
             "WHERE (:q IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :q, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :q, '%'))) " +
-            "AND (:categoryId IS NULL OR c.id = :categoryId) " +
+            "AND (:categoryId IS NULL OR c.id = :categoryId OR (c.parent IS NOT NULL AND c.parent.id = :categoryId)) " +
             "AND (:brand IS NULL OR LOWER(p.brand) = LOWER(:brand)) " +
             "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
             "AND (:maxPrice IS NULL OR p.price <= :maxPrice)")

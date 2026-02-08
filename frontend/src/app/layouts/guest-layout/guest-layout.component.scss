@@ -7,4 +7,8 @@
 .main-content {
   flex: 1;
   padding-top: 0;
+  margin-left: 0 !important; /* Ghi đè margin-left từ styles.scss */
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }

@@ -8,7 +8,7 @@ import { NavRightComponent } from './nav-right/nav-right.component';
   standalone: true,
   imports: [CommonModule, NavLeftComponent, NavRightComponent],
   templateUrl: './navbar.component.html',
-  styleUrl: './navbar.component.scss'
+  styleUrls: ['./navbar.component.scss']
 })
 export class NavbarComponent {
   @Input() collapsed: boolean = false;

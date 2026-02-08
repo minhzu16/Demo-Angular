@@ -25,7 +25,7 @@ public class SalesAnalyticsController {
     
     // Service temporarily disabled to avoid timeout
     // private final SalesAnalyticsService salesAnalyticsService;
-    
+        
     /**
      * Get sales overview
      * GET /api/v1/analytics/sales/overview

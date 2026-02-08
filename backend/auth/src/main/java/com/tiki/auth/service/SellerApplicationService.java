@@ -2,7 +2,6 @@ package com.tiki.auth.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tiki.auth.client.NotificationClient;
 import com.tiki.auth.dto.ReviewSellerApplicationRequest;
 import com.tiki.auth.dto.SellerApplicationRequest;
 import com.tiki.auth.dto.SellerApplicationResponse;
@@ -34,7 +33,6 @@ public class SellerApplicationService {
     private final UserRepository userRepository;
     private final UserService userService;
     private final ObjectMapper objectMapper;
-    private final NotificationClient notificationClient;
     
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -208,8 +206,9 @@ public class SellerApplicationService {
             data.put("status", application.getStatus().name());
             notificationRequest.put("data", data);
             
-            notificationClient.sendNotification(notificationRequest);
-            log.info("Notification sent to user {} for application {}", application.getUserId(), application.getId());
+            // TODO: integrate with Notification service client
+            log.info("[SELLER_APPLICATION_NOTIFICATION] userId={}, applicationId={}, payload={}",
+                    application.getUserId(), application.getId(), notificationRequest);
         } catch (Exception e) {
             log.error("Failed to send notification for application {}: {}", application.getId(), e.getMessage());
             // Don't fail the whole operation if notification fails

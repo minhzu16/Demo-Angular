@@ -24,6 +24,11 @@ export class LoginComponent {
 
   loading = false;
   error: string | null = null;
+  showPassword = false;
+
+  togglePassword() {
+    this.showPassword = !this.showPassword;
+  }
 
   submit() {
     if (this.form.invalid) return;
@@ -31,7 +36,7 @@ export class LoginComponent {
     this.error = null;
     
     const loginData = {
-      username: this.form.value.username!,
+      usernameOrEmail: this.form.value.username!,
       password: this.form.value.password!
     };
     
@@ -39,17 +44,17 @@ export class LoginComponent {
       next: res => {
         console.log('Login successful, saving token and navigating...', res);
         this.auth.saveToken(res.accessToken);
-        console.log('Token saved, navigating to dashboard...');
-        // Welcome is shown on dashboard after navigation
+        console.log('Token saved, navigating to products...');
+        // Welcome is shown on products page after navigation
         
         // Add a small delay to ensure token is saved, then navigate with state
         setTimeout(() => {
           const fullName = (res?.user?.fullName || res?.user?.username || this.form.value.username) as string;
-          this.router.navigate(['/admin/dashboard'], { state: { fromLogin: true, fullName } }).then(success => {
+          this.router.navigate(['/products'], { state: { fromLogin: true, fullName } }).then(success => {
             console.log('Navigation result:', success);
             if (!success) {
               console.error('Navigation failed, trying alternative route...');
-              this.router.navigate(['/admin/dashboard'], { state: { fromLogin: true, fullName } });
+              this.router.navigate(['/products'], { state: { fromLogin: true, fullName } });
             }
           }).catch(err => {
             console.error('Navigation error:', err);

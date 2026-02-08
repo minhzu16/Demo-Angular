@@ -1,3 +1,7 @@
+// @import 'styles/variables';
+// @import 'styles/mixins';
+
+
 /* Global Styles */
 :root {
   --primary-color: #4f46e5;
@@ -8,7 +12,7 @@
   --info-color: #06b6d4;
   --light-color: #f8fafc;
   --dark-color: #1e293b;
-  --sidebar-width: 280px;
+  --sidebar-width: 0px;
   --header-height: 70px;
 }
 
@@ -29,15 +33,15 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
-  
+
   @media (min-width: 1400px) {
     max-width: 1320px;
   }
-  
+
   @media (max-width: 992px) {
     padding: 0 16px;
   }
-  
+
   @media (max-width: 576px) {
     padding: 0 12px;
   }
@@ -263,24 +267,24 @@ body {
   .sidebar {
     transform: translateX(-100%);
   }
-  
+
   .sidebar.show {
     transform: translateX(0);
   }
-  
+
   .sidebar-overlay.show {
     display: block;
   }
-  
+
   .header {
     left: 0 !important;
   }
-  
+
   .main-content {
     margin-left: 0;
     padding: 1rem;
   }
-  
+
   .auth-card {
     margin: 1rem;
     padding: 1.5rem;

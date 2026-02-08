@@ -1,0 +1,256 @@
+# Git Commit Commands - Copy and paste these one by one
+# Or run the commit-script.ps1 for automated execution
+
+# ============================================
+# Commit 1: Configuration Files
+# ============================================
+git add frontend/src/environments/environment.ts frontend/src/environments/environment.prod.ts frontend/proxy.conf.json
+git commit -m "feat(frontend): add environment configuration and proxy setup
+
+- Add development environment configuration (environment.ts)
+- Add production environment configuration (environment.prod.ts)
+- Add proxy configuration for CORS handling (proxy.conf.json)
+- Configure API base URLs for all microservices (auth, product, order, cart)
+
+Resolves: Critical missing configuration files that prevented frontend build"
+
+# ============================================
+# Commit 2: Guards & Interceptors
+# ============================================
+git add frontend/src/app/guards/seller.guard.ts frontend/src/app/core/interceptors/error.interceptor.ts
+git commit -m "feat(frontend): implement security guards and HTTP error interceptor
+
+- Add seller guard for role-based route protection (SELLER, ADMIN)
+- Implement global HTTP error interceptor with auto token cleanup
+- Add automatic redirect to login on 401 Unauthorized
+- Add user-friendly error messages for all HTTP failures
+
+Features:
+- Role-based access control (RBAC)
+- Automatic authentication error handling
+- Global error boundary for HTTP requests"
+
+# ============================================
+# Commit 3: Routes Configuration
+# ============================================
+git add frontend/src/app/app.routes.ts
+git commit -m "refactor(frontend): simplify routes configuration
+
+- Simplify routes to use only existing components
+- Remove references to 20+ unimplemented components
+- Add proper route guards for protected routes (authGuard)
+- Improve route organization and readability
+
+Changes:
+- Reduced from complex nested structure to 6 core routes
+- All routes now reference existing components (login, register, dashboard, profile)
+- Prevents TypeScript build errors from missing component imports"
+
+# ============================================
+# Commit 4: Product Service
+# ============================================
+git add frontend/src/app/services/product.service.ts
+git commit -m "feat(frontend): implement comprehensive product service
+
+- Add product listing with pagination support
+- Implement product search functionality
+- Add product filtering by category and price range
+- Add product sorting options (price, name, popularity)
+- Implement product detail retrieval
+
+API Endpoints:
+- GET /products (list with filters)
+- GET /products/search (search by keyword)
+- GET /products/:id (product details)
+- GET /products/filter (advanced filtering)
+
+Features:
+- Full pagination support
+- Advanced search and filtering
+- Type-safe interfaces for all operations"
+
+# ============================================
+# Commit 5: Cart Service
+# ============================================
+git add frontend/src/app/services/cart.service.ts
+git commit -m "feat(frontend): implement shopping cart management service
+
+- Add cart retrieval and management
+- Implement add/update/remove item operations
+- Add cart validation with backend price verification
+- Implement cart merge for logged-in users
+- Add cart summary calculation
+- Add payment session creation
+
+Features:
+- Server-side price validation for security
+- Guest cart to user cart migration
+- Real-time cart updates
+- Cart validation before checkout
+- Session-based cart for guests
+- User-based cart for authenticated users"
+
+# ============================================
+# Commit 6: Order Service
+# ============================================
+git add frontend/src/app/services/order.service.ts
+git commit -m "feat(frontend): implement comprehensive order management service
+
+- Add order creation with validation
+- Implement order history retrieval with pagination
+- Add order status tracking
+- Implement order cancellation
+- Add order return/refund requests
+- Add order statistics for dashboards
+- Add shop order management for sellers
+
+API Endpoints:
+- POST /orders (create order)
+- GET /orders/my-orders (user order history)
+- GET /orders/:id (order details)
+- POST /orders/:id/cancel (cancel order)
+- GET /orders/shop/:shopId (seller orders)
+- GET /orders/shop/:shopId/statistics (order stats)
+
+Features:
+- Complete order lifecycle management
+- Pagination and filtering support
+- Seller dashboard integration
+- Order statistics and analytics"
+
+# ============================================
+# Commit 7: Shop Service
+# ============================================
+git add frontend/src/app/services/shop.service.ts
+git commit -m "feat(frontend): implement shop management service
+
+- Add shop retrieval for sellers
+- Implement shop creation
+- Add shop update functionality
+- Add shop profile management
+
+Features:
+- Seller shop management
+- Shop profile CRUD operations
+- Shop information retrieval
+- Support for multi-shop sellers"
+
+# ============================================
+# Commit 8: Seller Application Service
+# ============================================
+git add frontend/src/app/services/seller-application.service.ts
+git commit -m "feat(frontend): implement seller registration service
+
+- Add seller application submission
+- Implement application status tracking
+- Add admin approval/rejection endpoints
+- Add application history retrieval
+
+Features:
+- Multi-step seller registration process
+- Application status tracking (PENDING/APPROVED/REJECTED)
+- Admin application management
+- Application review workflow
+- Business license and tax code validation"
+
+# ============================================
+# Commit 9: Warehouse Service
+# ============================================
+git add frontend/src/app/services/warehouse.service.ts
+git commit -m "feat(frontend): implement inventory management service
+
+- Add product stock statistics
+- Implement stock level tracking
+- Add low stock alerts
+- Add stock update operations
+
+Features:
+- Real-time inventory tracking
+- Low stock notifications
+- Out-of-stock alerts
+- Shop-level stock management
+- Product statistics for sellers"
+
+# ============================================
+# Commit 10: Dashboard Component Fix
+# ============================================
+git add frontend/src/app/pages/dashboard/dashboard.component.ts
+git commit -m "fix(frontend): resolve TypeScript errors in dashboard component
+
+- Add explicit type annotations to all callback parameters
+- Fix 'implicit any' type errors (4 instances)
+- Fix 'object is of type unknown' errors (4 instances)
+- Add proper error handling for all async operations
+
+Technical improvements:
+- Strict TypeScript compliance
+- Better type safety throughout component
+- Improved error reporting and handling
+- Enhanced code maintainability"
+
+# ============================================
+# Commit 11: Auth Service Enhancement
+# ============================================
+git add frontend/src/app/services/auth.service.ts
+git commit -m "feat(frontend): add role property to user profile
+
+- Add role field to UserProfile interface
+- Enable role-based access control (RBAC)
+- Support for SELLER, ADMIN, USER roles
+
+Changes:
+- UserProfile interface extended with optional role field
+- Enhanced authentication service for role-based features
+- Enables seller guard and admin guard functionality"
+
+# ============================================
+# Commit 12: Style Configuration Fix
+# ============================================
+git add frontend/src/styles.scss
+git commit -m "fix(frontend): resolve SCSS import errors
+
+- Comment out missing SCSS partial imports
+- Fix build errors related to missing style files
+- Maintain existing styles functionality
+
+Changes:
+- Removed references to non-existent styles/variables
+- Removed references to non-existent styles/mixins
+- Build now completes successfully
+- All existing styles remain functional"
+
+# ============================================
+# Commit 13: API Testing Script
+# ============================================
+git add test-apis.ps1
+git commit -m "test: add comprehensive API testing script
+
+- Add PowerShell script for automated API testing
+- Cover all 4 microservices (Auth, Product, Cart, Order)
+- Test 25+ API endpoints
+- Include authentication flow testing
+
+Coverage:
+- Auth Service: 4 endpoints (register, login, profile, refresh)
+- Product Service: 5 endpoints (list, search, detail, filter, sort)
+- Cart Service: 8 endpoints (get, add, update, remove, validate, etc.)
+- Order Service: 8 endpoints (create, list, detail, cancel, stats, etc.)
+
+Features:
+- Color-coded output for pass/fail status
+- Automatic token management
+- Request/response logging
+- Error handling and reporting"
+
+# ============================================
+# After all commits
+# ============================================
+# Review commits
+git log --oneline --graph -13
+
+# Push to remote
+git push origin develop
+
+# Or create a feature branch first
+# git checkout -b feature/frontend-infrastructure
+# git push origin feature/frontend-infrastructure

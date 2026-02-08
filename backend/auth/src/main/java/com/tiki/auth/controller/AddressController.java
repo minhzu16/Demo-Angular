@@ -18,9 +18,10 @@ public class AddressController {
     private AddressService addressService;
     
     @GetMapping
-    public ResponseEntity<List<AddressDto>> getUserAddresses() {
+    public ResponseEntity<List<AddressDto>> getUserAddresses(
+            @RequestHeader("X-User-Id") Long userId) {
         try {
-            List<AddressDto> addresses = addressService.getUserAddresses();
+            List<AddressDto> addresses = addressService.getUserAddresses(userId);
             return ResponseEntity.ok(addresses);
         } catch (Exception e) {
             throw new BadRequestException("Failed to get addresses: " + e.getMessage());
@@ -28,9 +29,11 @@ public class AddressController {
     }
     
     @GetMapping("/{id}")
-    public ResponseEntity<AddressDto> getAddress(@PathVariable Long id) {
+    public ResponseEntity<AddressDto> getAddress(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long id) {
         try {
-            AddressDto address = addressService.getAddress(id);
+            AddressDto address = addressService.getAddress(userId, id);
             return ResponseEntity.ok(address);
         } catch (Exception e) {
             throw new BadRequestException("Failed to get address: " + e.getMessage());
@@ -38,9 +41,11 @@ public class AddressController {
     }
     
     @PostMapping
-    public ResponseEntity<AddressDto> createAddress(@Valid @RequestBody AddressDto addressDto) {
+    public ResponseEntity<AddressDto> createAddress(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody AddressDto addressDto) {
         try {
-            AddressDto created = addressService.createAddress(addressDto);
+            AddressDto created = addressService.createAddress(userId, addressDto);
             return ResponseEntity.ok(created);
         } catch (Exception e) {
             throw new BadRequestException("Failed to create address: " + e.getMessage());
@@ -48,9 +53,12 @@ public class AddressController {
     }
     
     @PutMapping("/{id}")
-    public ResponseEntity<AddressDto> updateAddress(@PathVariable Long id, @Valid @RequestBody AddressDto addressDto) {
+    public ResponseEntity<AddressDto> updateAddress(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long id,
+            @Valid @RequestBody AddressDto addressDto) {
         try {
-            AddressDto updated = addressService.updateAddress(id, addressDto);
+            AddressDto updated = addressService.updateAddress(userId, id, addressDto);
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
             throw new BadRequestException("Failed to update address: " + e.getMessage());
@@ -58,9 +66,11 @@ public class AddressController {
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteAddress(@PathVariable Long id) {
+    public ResponseEntity<String> deleteAddress(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long id) {
         try {
-            addressService.deleteAddress(id);
+            addressService.deleteAddress(userId, id);
             return ResponseEntity.ok("Address deleted successfully");
         } catch (Exception e) {
             throw new BadRequestException("Failed to delete address: " + e.getMessage());
@@ -68,9 +78,11 @@ public class AddressController {
     }
     
     @PostMapping("/{id}/set-default")
-    public ResponseEntity<AddressDto> setDefaultAddress(@PathVariable Long id) {
+    public ResponseEntity<AddressDto> setDefaultAddress(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long id) {
         try {
-            AddressDto address = addressService.setDefaultAddress(id);
+            AddressDto address = addressService.setDefaultAddress(userId, id);
             return ResponseEntity.ok(address);
         } catch (Exception e) {
             throw new BadRequestException("Failed to set default address: " + e.getMessage());
@@ -78,9 +90,10 @@ public class AddressController {
     }
     
     @GetMapping("/default")
-    public ResponseEntity<AddressDto> getDefaultAddress() {
+    public ResponseEntity<AddressDto> getDefaultAddress(
+            @RequestHeader("X-User-Id") Long userId) {
         try {
-            AddressDto address = addressService.getDefaultAddress();
+            AddressDto address = addressService.getDefaultAddress(userId);
             return ResponseEntity.ok(address);
         } catch (Exception e) {
             throw new BadRequestException("Failed to get default address: " + e.getMessage());
