@@ -47,3 +47,15 @@ out/
 
 ### PowerShell Scripts ###
 *.ps1
+
+# Temporary test files & logs
+*.txt
+*.md
+!README.md
+!HELP.md
+.agents/
+api-test-output*
+*_schema*
+*_logs*
+build-*.txt
+*-crash*.txt
