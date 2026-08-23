@@ -1,0 +1,52 @@
+.admin-sellers {
+  padding-bottom: 2rem;
+
+  .shop-avatar {
+    width: 42px;
+    height: 42px;
+    background: #0d6efd;
+    color: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+  }
+
+  .badge {
+    padding: 0.5em 0.8em;
+    font-weight: 600;
+    border-radius: 6px;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.5);
+    z-index: 1040;
+    backdrop-filter: blur(4px);
+  }
+
+  .custom-modal {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 550px;
+    max-width: 95vw;
+    background: white;
+    border-radius: 20px;
+    z-index: 1050;
+    animation: slideUp 0.3s ease-out;
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translate(-50%, -40%); }
+      to { opacity: 1; transform: translate(-50%, -50%); }
+    }
+  }
+
+  .table-responsive {
+    border-radius: 0 0 16px 16px;
+  }
+}

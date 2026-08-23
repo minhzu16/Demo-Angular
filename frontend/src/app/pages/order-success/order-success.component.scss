@@ -1,0 +1,248 @@
+.order-success-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f5e9 100%);
+}
+
+.success-header {
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.success-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  margin-bottom: 1.5rem;
+  animation: scaleIn 0.5s ease-out 0.2s both;
+}
+
+.success-icon {
+  font-size: 3rem;
+  color: #fff;
+}
+
+.success-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 0.5rem;
+}
+
+.success-subtitle {
+  font-size: 1.1rem;
+  color: #6c757d;
+}
+
+.order-code {
+  color: #0d6efd;
+  font-size: 1.3rem;
+}
+
+/* Cards */
+.info-card,
+.payment-card,
+.actions-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  animation: fadeInUp 0.5s ease-out 0.3s both;
+}
+
+.info-card-title,
+.payment-card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-label {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.info-value {
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+/* Order Items */
+.order-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.item-img {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid #eee;
+}
+
+.item-info {
+  flex: 1;
+}
+
+.item-name {
+  font-weight: 600;
+  color: #1a1a2e;
+  font-size: 0.95rem;
+}
+
+.item-qty {
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+.item-price {
+  font-weight: 700;
+  color: #e53935;
+}
+
+.order-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 2px solid #f0f0f0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.total-amount {
+  color: #e53935;
+  font-size: 1.4rem;
+}
+
+/* QR Code */
+.qr-wrapper {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.qr-image {
+  width: 260px;
+  height: 260px;
+  border-radius: 12px;
+  border: 3px solid #e0e0e0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.qr-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6c757d;
+  padding: 2rem;
+}
+
+.qr-placeholder i {
+  font-size: 2rem;
+  animation: spin 1.5s linear infinite;
+}
+
+.payment-instructions {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+.payment-instructions p {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #0d6efd;
+}
+
+.payment-instructions ol {
+  padding-left: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.payment-instructions ol li {
+  margin-bottom: 0.35rem;
+  color: #495057;
+}
+
+.transfer-note {
+  background: #fff3cd;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #856404;
+  font-size: 0.95rem;
+}
+
+/* COD */
+.cod-info {
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.cod-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  margin-bottom: 1rem;
+}
+
+.cod-icon-wrapper i {
+  font-size: 2.5rem;
+  color: #fff;
+}
+
+.cod-text {
+  font-size: 1.05rem;
+  color: #495057;
+  line-height: 1.7;
+}
+
+/* Actions */
+.actions-card {
+  padding: 1.25rem;
+}
+
+/* Animations */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

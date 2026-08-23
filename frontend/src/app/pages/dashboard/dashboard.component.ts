@@ -6,8 +6,10 @@ import { BarChartComponent } from '../../components/charts/bar-chart/bar-chart.c
 import { PieChartComponent } from '../../components/charts/pie-chart/pie-chart.component';
 import { AuthService } from '../../services/auth.service';
 import { ShopService } from '../../services/shop.service';
-import { OrderService } from '../../services/order.service';
+import { OrderService, OrderListResponse } from '../../services/order.service';
 import { WarehouseService } from '../../services/warehouse.service';
+import { AnalyticsService } from '../../services/analytics.service';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-dashboard',
@@ -22,8 +24,16 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   private shopService = inject(ShopService);
   private orderService = inject(OrderService);
   private warehouseService = inject(WarehouseService);
+  private analyticsService = inject(AnalyticsService);
+  private toastr = inject(ToastrService);
 
   currentShopId: number | null = null;
+  
+  // Chart Data
+  revenueData: number[] = [];
+  revenueLabels: string[] = [];
+  statusData: number[] = [];
+  statusLabels: string[] = [];
 
   ngOnInit(): void {
     this.loadDashboardData();
@@ -35,7 +45,6 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       const state: any = history.state || {};
       const fromLogin = state.fromLogin === true;
       const nameFromState = state.fullName as string | undefined;
-      console.log('Dashboard after view init - nav state:', state);
 
       const token = this.authService.getToken();
       const welcomeKey = `welcome_shown_${token ? token.slice(0, 10) : 'guest'}`;
@@ -43,7 +52,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
       const show = (name?: string) => {
         if (hasShown) return;
-        if (name) alert(`Chào mừng, ${name}!`);
+        if (name) this.toastr.success(`Chào mừng, ${name}!`);
         sessionStorage.setItem(welcomeKey, 'true');
       };
 
@@ -76,13 +85,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
 
   goToProfile() {
-    console.log('Navigating to profile...');
-    console.log('Current auth status:', this.authService.isAuthenticated());
-    console.log('Current token:', this.authService.getToken() ? 'exists' : 'null');
-
-    this.router.navigate(['/profile']).then(success => {
-      console.log('Profile navigation result:', success);
-    }).catch(err => {
+    this.router.navigate(['/profile']).catch(err => {
       console.error('Profile navigation error:', err);
     });
   }
@@ -94,6 +97,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         this.loadOrderStats(shop.id);
         this.loadStockStats(shop.id);
         this.loadRecentOrders(shop.id);
+        this.loadChartData(shop.id);
       },
       error: (err: any) => {
         console.error('Error loading seller shop for dashboard:', err);
@@ -139,19 +143,45 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   private loadRecentOrders(shopId: number): void {
-    this.orderService.getOrdersByShop(shopId, { page: 0, size: 5 }).subscribe({
-      next: (page: any) => {
-        this.recentOrders = (page.content || []).map((order: any) => ({
-          id: `#${order.orderNumber || order.id}`,
-          customer: `User #${order.userId}`,
-          product: order.items && order.items.length > 0 ? order.items[0].productName : 'N/A',
-          amount: `${(order.totalAmount || 0).toLocaleString('vi-VN')} ₫`,
-          status: (order.status || 'PENDING').toLowerCase()
+    this.orderService.getShopOrders(shopId).subscribe({
+      next: (res: OrderListResponse) => {
+        const orders = res.content || [];
+        this.recentOrders = orders.slice(0, 5).map(o => ({
+          id: `#${o.id}`,
+          customer: `User ${o.userId}`,
+          product: o.items?.[0]?.productName || 'N/A',
+          amount: (o.totalAmount || 0).toLocaleString('vi-VN') + ' ₫',
+          status: o.status
         }));
       },
       error: (err: any) => {
         console.error('Error loading recent orders for dashboard:', err);
-        this.recentOrders = [];
+      }
+    });
+  }
+
+  private loadChartData(shopId: number): void {
+    // 1. Get Revenue Data for Bar Chart
+    const end = new Date().toISOString().split('T')[0];
+    const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    this.analyticsService.getRevenue(shopId, start, end, 'daily').subscribe({
+      next: (data: any[]) => {
+        this.revenueLabels = data.map(d => new Date(d.date).toLocaleDateString('vi-VN', { weekday: 'short' }));
+        this.revenueData = data.map(d => d.revenue);
+      }
+    });
+
+    // 2. Get Dashboard / Order Distribution for Pie Chart
+    this.analyticsService.getDashboard(shopId).subscribe({
+      next: (dashboard: any) => {
+        const stats = dashboard.orderStats || {};
+        this.statusLabels = ['Completed', 'Pending', 'Cancelled'];
+        this.statusData = [
+          stats.completedOrders || 0, 
+          stats.pendingOrders || 0, 
+          stats.cancelledOrders || 0
+        ];
       }
     });
   }

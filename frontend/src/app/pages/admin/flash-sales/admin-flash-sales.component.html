@@ -1,0 +1,197 @@
+<div class="admin-flash-sales">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold text-dark mb-1">Quản lý Flash Sales</h2>
+      <p class="text-secondary mb-0">Thiết lập và theo dõi các chương trình giảm giá chớp nhoáng</p>
+    </div>
+    <button class="btn btn-primary px-4 py-2" (click)="openCreateModal()">
+      <i class="bi bi-plus-lg me-2"></i> Tạo đợt Sale mới
+    </button>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-4">
+      <div class="stat-card active shadow-sm">
+        <div class="icon-box"><i class="bi bi-lightning-fill"></i></div>
+        <div class="stat-content">
+          <span class="label">Đang diễn ra</span>
+          <h3 class="value">{{activeCount}}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="stat-card scheduled shadow-sm">
+        <div class="icon-box"><i class="bi bi-calendar-event"></i></div>
+        <div class="stat-content">
+          <span class="label">Sắp tới</span>
+          <h3 class="value">{{scheduledCount}}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="stat-card finished shadow-sm">
+        <div class="icon-box"><i class="bi bi-check-circle"></i></div>
+        <div class="stat-content">
+          <span class="label">Đã kết thúc</span>
+          <h3 class="value">{{finishedCount}}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Table -->
+  <div class="card border-0 shadow-sm overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="bg-light">
+          <tr>
+            <th class="ps-4">Tên chương trình</th>
+            <th>Thời gian</th>
+            <th>Trạng thái</th>
+            <th>Sản phẩm</th>
+            <th class="text-end pe-4">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let sale of flashSales">
+            <td class="ps-4">
+              <div class="fw-bold text-dark">{{sale.name}}</div>
+              <small class="text-secondary">{{sale.description}}</small>
+            </td>
+            <td>
+              <div class="d-flex flex-column">
+                <small class="text-success"><i class="bi bi-clock me-1"></i> Bắt đầu: {{sale.startTime | date:'dd/MM HH:mm'}}</small>
+                <small class="text-danger"><i class="bi bi-clock-history me-1"></i> Kết thúc: {{sale.endTime | date:'dd/MM HH:mm'}}</small>
+              </div>
+            </td>
+            <td>
+              <span [class]="getStatusClass(sale.status)">{{sale.status}}</span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary" (click)="openProductsModal(sale)">
+                <i class="bi bi-box me-1"></i> Quản lý SP
+              </button>
+            </td>
+            <td class="text-end pe-4">
+              <div class="btn-group">
+                <button class="btn btn-icon text-primary" (click)="openEditModal(sale)" title="Sửa">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-icon text-success" *ngIf="sale.status === 'ACTIVE'" (click)="endSale(sale.id)" title="Kết thúc sớm">
+                  <i class="bi bi-stop-circle"></i>
+                </button>
+                <button class="btn btn-icon text-danger" (click)="deleteSale(sale.id)" title="Xóa">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="flashSales.length === 0">
+            <td colspan="5" class="text-center py-5">
+              <div class="text-secondary">Chưa có chương trình Flash Sale nào</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()"></div>
+  <div class="custom-modal shadow" *ngIf="showModal">
+    <div class="modal-header d-flex justify-content-between align-items-center p-4 border-bottom">
+      <h5 class="modal-title fw-bold">
+        {{modalMode === 'create' ? 'Tạo mới Flash Sale' : 
+          modalMode === 'edit' ? 'Sửa Flash Sale' : 'Danh sách sản phẩm Sale'}}
+      </h5>
+      <button type="button" class="btn-close" (click)="closeModal()"></button>
+    </div>
+    
+    <div class="modal-body p-4">
+      <!-- Create/Edit Form -->
+      <form [formGroup]="saleForm" *ngIf="modalMode !== 'products'">
+        <div class="mb-3">
+          <label class="form-label">Tên chương trình</label>
+          <input type="text" class="form-control" formControlName="name" placeholder="VD: Sale Hè Rực Rỡ">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Mô tả</label>
+          <textarea class="form-control" formControlName="description" rows="2"></textarea>
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Thời gian bắt đầu</label>
+            <input type="datetime-local" class="form-control" formControlName="startTime">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Thời gian kết thúc</label>
+            <input type="datetime-local" class="form-control" formControlName="endTime">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Trạng thái</label>
+          <select class="form-select" formControlName="status">
+            <option value="SCHEDULED">Đã lên lịch</option>
+            <option value="ACTIVE">Đang diễn ra</option>
+            <option value="FINISHED">Đã kết thúc</option>
+          </select>
+        </div>
+        <div class="d-grid mt-4">
+          <button class="btn btn-primary py-2" (click)="saveSale()">Lưu thay đổi</button>
+        </div>
+      </form>
+
+      <!-- Products Management -->
+      <div *ngIf="modalMode === 'products'">
+        <div class="add-product-box p-3 bg-light rounded mb-4">
+          <h6 class="fw-bold mb-3">Thêm sản phẩm mới</h6>
+          <form [formGroup]="productForm" class="row g-2">
+            <div class="col-md-12 mb-2">
+              <select class="form-select" formControlName="productId">
+                <option value="">Chọn sản phẩm...</option>
+                <option *ngFor="let p of allProducts" [value]="p.id">{{p.name}} - {{p.price | currency:'VND'}}</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <input type="number" class="form-control" formControlName="salePrice" placeholder="Giá Sale">
+            </div>
+            <div class="col-md-4">
+              <input type="number" class="form-control" formControlName="quantityLimit" placeholder="Số lượng">
+            </div>
+            <div class="col-md-4">
+              <button class="btn btn-success w-100" (click)="addProduct()">Thêm</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="table-responsive" style="max-height: 300px;">
+          <table class="table table-sm table-hover">
+            <thead>
+              <tr>
+                <th>Sản phẩm</th>
+                <th>Giá Sale</th>
+                <th>Số lượng</th>
+                <th>Đã bán</th>
+                <th class="text-end">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of saleProducts">
+                <td>{{getProductName(item.productId)}}</td>
+                <td class="text-danger fw-bold">{{item.salePrice | currency:'VND'}}</td>
+                <td>{{item.quantityLimit}}</td>
+                <td>{{item.quantitySold}}</td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-icon text-danger" (click)="removeProduct(item.productId)">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

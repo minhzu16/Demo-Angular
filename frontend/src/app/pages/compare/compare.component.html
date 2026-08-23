@@ -1,0 +1,65 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>{{ 'PRODUCT.COMPARE' | translate }}</h2>
+    <button *ngIf="products.length > 0" class="btn btn-outline-danger btn-sm" (click)="clearAll()">
+      <i class="bi bi-trash"></i> Xóa tất cả
+    </button>
+  </div>
+
+  <div *ngIf="products.length === 0" class="text-center py-5 bg-light rounded">
+    <i class="bi bi-diagram-3 text-muted" style="font-size: 3rem;"></i>
+    <h4 class="mt-3 text-muted">Chưa có sản phẩm nào để so sánh</h4>
+    <p class="text-muted">Vui lòng thêm sản phẩm vào danh sách so sánh.</p>
+    <a routerLink="/products" class="btn btn-primary mt-2">Đến trang sản phẩm</a>
+  </div>
+
+  <div *ngIf="products.length > 0" class="table-responsive">
+    <table class="table table-bordered text-center align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 20%;" class="text-start">Đặc điểm</th>
+          <th *ngFor="let p of products" [style.width]="(80 / products.length) + '%'">
+            <div class="position-relative">
+              <button class="btn-close position-absolute top-0 end-0" (click)="removeFromCompare(p.id)"></button>
+              <img [src]="p.imageUrl || 'assets/placeholder-product.jpg'" [alt]="p.name" class="img-fluid rounded mb-2" style="max-height: 150px; object-fit: contain;">
+              <h6 class="mb-1">
+                <a [routerLink]="['/products', p.id]" class="text-dark text-decoration-none">{{ p.name }}</a>
+              </h6>
+              <div class="text-danger fw-bold mb-2">{{ p.price | number }}₫</div>
+              <button class="btn btn-primary btn-sm w-100" [routerLink]="['/products', p.id]">
+                <i class="bi bi-cart-plus"></i> Xem chi tiết
+              </button>
+            </div>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Compare Basic Info -->
+        <tr>
+          <td class="text-start fw-semibold text-muted">Đánh giá</td>
+          <td *ngFor="let p of products">
+            <span class="text-warning">★ {{ p.averageRating | number:'1.1-1' }}</span>
+            <div class="small text-muted">({{ p.reviewCount }} nhận xét)</div>
+          </td>
+        </tr>
+        <tr>
+          <td class="text-start fw-semibold text-muted">Mô tả ngắn</td>
+          <td *ngFor="let p of products">
+            <p class="small text-muted mb-0 text-truncate" style="max-width: 200px; margin: auto;">{{ p.description || '-' }}</p>
+          </td>
+        </tr>
+        
+        <!-- Compare Specific Specs -->
+        <tr class="table-light">
+          <td colspan="5" class="text-start fw-bold">Thông số kỹ thuật chi tiết</td>
+        </tr>
+        <tr *ngFor="let spec of specKeys">
+          <td class="text-start fw-semibold text-muted">{{ spec }}</td>
+          <td *ngFor="let p of products">
+            {{ getSpecValue(p, spec) }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

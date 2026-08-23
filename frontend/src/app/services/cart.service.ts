@@ -10,6 +10,8 @@ export interface CartItem {
     price: number;
     imageUrl?: string;
     totalPrice?: number;
+    selected?: boolean;
+    maxStock?: number;
 }
 
 export interface Cart {
@@ -73,9 +75,9 @@ export class CartService {
      * Add item to cart
      */
     addItem(productId: number, quantity: number = 1, userId?: number): Observable<Cart> {
-        const headers = new HttpHeaders();
+        let headers = new HttpHeaders();
         if (userId) {
-            headers.set('X-User-Id', userId.toString());
+            headers = headers.set('X-User-Id', userId.toString());
         }
 
         const body: AddItemRequest = {
@@ -115,9 +117,9 @@ export class CartService {
      * Get cart summary
      */
     getCartSummary(userId?: number, sessionId?: string): Observable<{ totalItems: number; totalAmount: number; itemCount: number }> {
-        const headers = new HttpHeaders();
+        let headers = new HttpHeaders();
         if (userId) {
-            headers.set('X-User-Id', userId.toString());
+            headers = headers.set('X-User-Id', userId.toString());
         }
 
         const params: any = {};
@@ -130,9 +132,9 @@ export class CartService {
      * Validate cart
      */
     validateCart(userId?: number, sessionId?: string): Observable<{ valid: boolean; totalItems: number; errors: any[] }> {
-        const headers = new HttpHeaders();
+        let headers = new HttpHeaders();
         if (userId) {
-            headers.set('X-User-Id', userId.toString());
+            headers = headers.set('X-User-Id', userId.toString());
         }
 
         const params: any = {};
@@ -145,9 +147,9 @@ export class CartService {
      * Clear cart
      */
     clearCart(userId?: number, sessionId?: string): Observable<void> {
-        const headers = new HttpHeaders();
+        let headers = new HttpHeaders();
         if (userId) {
-            headers.set('X-User-Id', userId.toString());
+            headers = headers.set('X-User-Id', userId.toString());
         }
 
         const params: any = {};

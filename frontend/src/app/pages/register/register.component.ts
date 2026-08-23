@@ -20,7 +20,6 @@ export class RegisterComponent {
     firstName: ['', Validators.required],
     lastName: ['', Validators.required],
     username: ['', Validators.required],
-    company: [''],
     password: ['', [Validators.required, Validators.minLength(6)]],
     confirmPassword: ['', Validators.required],
     acceptTerms: [false, Validators.requiredTrue]
@@ -32,38 +31,37 @@ export class RegisterComponent {
   passwordMatchValidator(form: any) {
     const password = form.get('password');
     const confirmPassword = form.get('confirmPassword');
-    
+
     if (password && confirmPassword && password.value !== confirmPassword.value) {
       confirmPassword.setErrors({ passwordMismatch: true });
     } else {
       confirmPassword?.setErrors(null);
     }
-    
+
     return null;
   }
 
   submit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.loading) return;
     this.loading = true;
     this.error = null;
-    
-    const registerData = {
-      username: this.form.value.username,
-      password: this.form.value.password,
-      firstName: this.form.value.firstName,
-      lastName: this.form.value.lastName,
-      company: this.form.value.company
-    };
-    
-    // For now, just simulate registration and redirect to login
-    setTimeout(() => {
-      this.loading = false;
-      this.router.navigateByUrl('/login');
-    }, 2000);
-  }
 
-  onSocialLogin(provider: string) {
-    console.log(`Register with ${provider}`);
-    // Implement social registration logic here
+    const registerData = {
+      username: this.form.value.username!,
+      password: this.form.value.password!,
+      firstName: this.form.value.firstName!,
+      lastName: this.form.value.lastName!
+    };
+
+    this.auth.register(registerData).subscribe({
+      next: () => {
+        this.loading = false;
+        this.router.navigateByUrl('/login');
+      },
+      error: err => {
+        this.loading = false;
+        this.error = err?.error?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
+      }
+    });
   }
 }

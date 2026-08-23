@@ -1,119 +1,102 @@
-<div class="auth-container">
-  <div class="auth-card">
-
-    <!-- Logo -->
-    <div class="text-center mb-4">
-      <div class="logo mb-3">
-        <i class="anticon anticon-dashboard text-primary" style="font-size: 3rem;"></i>
+<div class="auth-wrapper page-fade-in">
+  <!-- Right panel – branding (Moved left to right or reversed for design, keeping left as branding) -->
+  <div class="auth-brand">
+    <div class="auth-brand-bg-orb"></div>
+    <div class="auth-brand-bg-orb-2"></div>
+    <div class="brand-inner stagger-children">
+      <div class="brand-logo">
+        <i class="bi bi-lightning-charge-fill"></i>
       </div>
-      <h2 class="fw-bold text-dark">Welcome Back</h2>
-      <p class="text-muted">Sign in to your account</p>
+      <h1 class="brand-title"><span class="logo-nex">Nex</span><span class="logo-mart">Mart</span></h1>
+      <p class="brand-tagline">Mua sắm thông minh<br>Trải nghiệm đỉnh cao ⚡</p>
+      <div class="brand-features text-start">
+        <div class="bf-item"><i class="bi bi-truck"></i> <span>Giao hàng siêu tốc 2H</span></div>
+        <div class="bf-item"><i class="bi bi-shield-check"></i> <span>100% chính hãng</span></div>
+        <div class="bf-item"><i class="bi bi-lightning-charge-fill"></i> <span>Tích NexPoints mọi đơn</span></div>
+      </div>
     </div>
+  </div>
 
-    <!-- Login Form -->
-    <form [formGroup]="form" (ngSubmit)="submit()">
-      <div class="mb-3">
-        <label for="username" class="form-label">Username</label>
-        <div class="input-group">
-          <span class="input-group-text">
-            <i class="anticon anticon-user"></i>
-          </span>
-          <input
-            type="text"
-            class="form-control"
-            id="username"
-            formControlName="username"
-            placeholder="Enter your username"
-            [class.is-invalid]="form.get('username')?.invalid && form.get('username')?.touched">
-        </div>
-        <div class="invalid-feedback" *ngIf="form.get('username')?.invalid && form.get('username')?.touched">
-          Username is required
-        </div>
+  <!-- Left panel – form -->
+  <div class="auth-form-panel">
+    <a routerLink="/home" class="back-home-btn"><i class="bi bi-arrow-left"></i> Trang chủ</a>
+    
+    <div class="auth-card animate-float-up">
+      <div class="text-center mb-5">
+        <h2 class="auth-title">Chào mừng trở lại! 👋</h2>
+        <p class="auth-subtitle">Đăng nhập vào tài khoản của bạn</p>
       </div>
 
-      <div class="mb-3">
-        <label for="password" class="form-label">Password</label>
-        <div class="input-group">
-          <span class="input-group-text">
-            <i class="anticon anticon-lock"></i>
-          </span>
-          <input
-            [type]="showPassword ? 'text' : 'password'"
-            class="form-control"
-            id="password"
-            formControlName="password"
-            placeholder="Enter your password"
-            [class.is-invalid]="form.get('password')?.invalid && form.get('password')?.touched">
-          <button type="button" class="btn btn-outline-secondary toggle-visibility" (click)="togglePassword()" [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'">
-            <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
-          </button>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="nx-form-group">
+          <label for="username" class="nx-form-label">Tên đăng nhập</label>
+          <div class="nx-input-icon">
+            <i class="bi bi-person"></i>
+            <input
+              type="text"
+              class="nx-form-control"
+              id="username"
+              formControlName="username"
+              placeholder="Nhập tên đăng nhập"
+              [class.is-invalid]="form.get('username')?.invalid && form.get('username')?.touched">
+          </div>
+          <div class="nx-error-text" *ngIf="form.get('username')?.invalid && form.get('username')?.touched">
+            Vui lòng nhập tên đăng nhập
+          </div>
         </div>
-        <div class="invalid-feedback" *ngIf="form.get('password')?.invalid && form.get('password')?.touched">
-          Password is required
+
+        <div class="nx-form-group">
+          <label for="password" class="nx-form-label">Mật khẩu</label>
+          <div class="nx-input-icon">
+            <i class="bi bi-lock"></i>
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              class="nx-form-control"
+              id="password"
+              formControlName="password"
+              placeholder="Nhập mật khẩu"
+              [class.is-invalid]="form.get('password')?.invalid && form.get('password')?.touched">
+            <button type="button" class="nx-btn-icon" (click)="togglePassword()">
+              <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+            </button>
+          </div>
+          <div class="nx-error-text" *ngIf="form.get('password')?.invalid && form.get('password')?.touched">
+            Vui lòng nhập mật khẩu
+          </div>
         </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-4 mt-2">
+          <div class="nx-checkbox">
+            <input type="checkbox" id="rememberMe" formControlName="rememberMe">
+            <label for="rememberMe">Ghi nhớ đăng nhập</label>
+          </div>
+          <a href="javascript:void(0)" class="nx-link-sm">Quên mật khẩu?</a>
+        </div>
+
+        <div class="alert alert-danger" *ngIf="error">
+          <i class="bi bi-exclamation-triangle"></i><span>{{ error }}</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-xl w-100 btn-submit"
+                [disabled]="form.invalid || loading">
+          <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+          {{ loading ? 'Đang xác thực...' : 'Đăng nhập ngay' }}
+        </button>
+      </form>
+
+      <div class="auth-divider">
+        <span>hoặc</span>
       </div>
 
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="form-check">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            id="rememberMe"
-            formControlName="rememberMe">
-          <label class="form-check-label" for="rememberMe">
-            Keep me signed in
-          </label>
-        </div>
-        <a href="#" class="text-decoration-none">Forgot Password?</a>
+      <div class="auth-social">
+        <button class="btn-social google"><i class="bi bi-google"></i></button>
+        <button class="btn-social facebook"><i class="bi bi-facebook"></i></button>
       </div>
 
-      <div class="alert alert-danger" *ngIf="error">
-        {{ error }}
+      <div class="text-center mt-4">
+        <span class="text-muted small">Chưa có tài khoản? </span>
+        <a routerLink="/register" class="nx-link fw-semibold">Đăng ký ngay</a>
       </div>
-
-      <button
-        type="submit"
-        class="btn btn-primary w-100 mb-3"
-        [disabled]="form.invalid || loading">
-        <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-        {{ loading ? 'Signing in...' : 'Sign In' }}
-      </button>
-    </form>
-
-    <!-- Divider -->
-    <div class="text-center mb-3">
-      <span class="text-muted">or continue with</span>
-    </div>
-
-    <!-- Social Login -->
-    <div class="d-grid gap-2">
-      <button
-        type="button"
-        class="social-btn"
-        (click)="onSocialLogin('google')">
-        <i class="anticon anticon-google me-2"></i>
-        Continue with Google
-      </button>
-      <button
-        type="button"
-        class="social-btn"
-        (click)="onSocialLogin('twitter')">
-        <i class="anticon anticon-twitter me-2"></i>
-        Continue with Twitter
-      </button>
-      <button
-        type="button"
-        class="social-btn"
-        (click)="onSocialLogin('facebook')">
-        <i class="anticon anticon-facebook me-2"></i>
-        Continue with Facebook
-      </button>
-    </div>
-
-    <!-- Register Link -->
-    <div class="text-center mt-4">
-      <span class="text-muted">Don't have an account? </span>
-      <a routerLink="/register" class="text-decoration-none fw-semibold">Sign up</a>
     </div>
   </div>
 </div>

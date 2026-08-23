@@ -1,0 +1,19 @@
+{
+  "HEADER": {
+    "SEARCH_PLACEHOLDER": "Free shipping up to 30k",
+    "HOME": "Home",
+    "MY_ACCOUNT": "Account",
+    "SELLER_CHANNEL": "Seller Channel"
+  },
+  "HOME": {
+    "FLASH_SALE": "Flash Sale",
+    "RECOMMENDED_FOR_YOU": "Recommended for you",
+    "VIEW_MORE": "View more",
+    "SOLD": "Sold"
+  },
+  "PRODUCT": {
+    "ADD_TO_CART": "Add to Cart",
+    "BUY_NOW": "Buy Now",
+    "COMPARE": "Compare"
+  }
+}

@@ -1,0 +1,69 @@
+.seller-dashboard {
+    padding: 1.5rem;
+    background-color: #f8f9fc;
+    min-height: 100vh;
+}
+
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+
+.text-gray-300 {
+    color: #dddfeb !important;
+}
+
+.text-gray-800 {
+    color: #5a5c69 !important;
+}
+
+.shadow {
+    box-shadow: 0 .15rem 1.75rem 0 rgba(58, 59, 69, .15) !important;
+}
+
+.card {
+    border: none;
+    border-radius: 0.35rem;
+
+    .card-header {
+        background-color: #f8f9fc;
+        border-bottom: 1px solid #e3e6f0;
+
+        h6 {
+            font-weight: 700;
+            color: #4e73df;
+        }
+    }
+}
+
+.text-xs {
+    font-size: .7rem;
+}
+
+.fs-2 {
+    font-size: 2rem;
+}
+
+.table th {
+    border-top: none;
+    color: #858796;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}

@@ -1,0 +1,99 @@
+.admin-flash-sales {
+  padding-bottom: 2rem;
+
+  .stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    transition: transform 0.2s;
+
+    &:hover {
+      transform: translateY(-4px);
+    }
+
+    .icon-box {
+      width: 54px;
+      height: 54px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .stat-content {
+      .label {
+        font-size: 0.85rem;
+        color: #6c757d;
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+      .value {
+        margin: 0;
+        font-weight: 700;
+        color: #212529;
+      }
+    }
+
+    &.active {
+      border-left: 4px solid #198754;
+      .icon-box { background: rgba(25, 135, 84, 0.1); color: #198754; }
+    }
+    &.scheduled {
+      border-left: 4px solid #0d6efd;
+      .icon-box { background: rgba(13, 110, 253, 0.1); color: #0d6efd; }
+    }
+    &.finished {
+      border-left: 4px solid #6c757d;
+      .icon-box { background: rgba(108, 117, 125, 0.1); color: #6c757d; }
+    }
+  }
+
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    &:hover {
+      background: rgba(0,0,0,0.05);
+    }
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.5);
+    z-index: 1040;
+    backdrop-filter: blur(4px);
+  }
+
+  .custom-modal {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px;
+    max-width: 95vw;
+    background: white;
+    border-radius: 20px;
+    z-index: 1050;
+    animation: slideUp 0.3s ease-out;
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translate(-50%, -40%); }
+      to { opacity: 1; transform: translate(-50%, -50%); }
+    }
+  }
+
+  .badge {
+    padding: 0.5em 0.8em;
+    font-weight: 600;
+    border-radius: 6px;
+  }
+}

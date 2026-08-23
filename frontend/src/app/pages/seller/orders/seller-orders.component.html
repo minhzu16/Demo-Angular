@@ -1,0 +1,89 @@
+<div class="seller-orders-page">
+    <div class="page-header mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Quản lý đơn hàng</h1>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Danh sách đơn hàng</h6>
+
+            <div class="dropdown no-arrow">
+                <select class="form-select form-select-sm" [(ngModel)]="statusFilter"
+                    (change)="filterOrders(statusFilter)">
+                    <option value="ALL">Tất cả trạng thái</option>
+                    <option value="PENDING">Chờ xác nhận</option>
+                    <option value="CONFIRMED">Đã xác nhận</option>
+                    <option value="SHIPPING">Đang giao hàng</option>
+                    <option value="COMPLETED">Hoàn thành</option>
+                    <option value="CANCELLED">Đã hủy</option>
+                </select>
+            </div>
+        </div>
+        <div class="card-body">
+            <div *ngIf="loading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Đang tải...</span>
+                </div>
+            </div>
+
+            <div *ngIf="!loading && orders.length === 0" class="text-center py-5">
+                <i class="bi bi-inbox display-4 text-gray-300 mb-3 d-block"></i>
+                <p class="text-muted">Không tìm thấy đơn hàng nào</p>
+            </div>
+
+            <div class="table-responsive" *ngIf="!loading && orders.length > 0">
+                <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Ngày đặt</th>
+                            <th>Khách hàng</th>
+                            <th>Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let order of orders">
+                            <td>#{{ order.id }}</td>
+                            <td>{{ formatDate(order.createdAt) }}</td>
+                            <td>
+                                <div class="fw-bold">{{ order.customerName || 'Khách lẻ' }}</div>
+                                <small class="text-muted">{{ order.phoneNumber || 'N/A' }}</small>
+                            </td>
+                            <td class="text-danger fw-bold">{{ formatPrice(order.totalAmount) }}</td>
+                            <td>
+                                <span class="badge" [ngClass]="getStatusBadgeClass(order.status)">
+                                    {{ getStatusText(order.status) }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+
+                                    <button *ngIf="order.status === 'PENDING'" class="btn btn-sm btn-outline-success"
+                                        (click)="updateOrderStatus(order.id, 'CONFIRMED')" title="Xác nhận đơn">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+
+                                    <button *ngIf="order.status === 'CONFIRMED'" class="btn btn-sm btn-outline-info"
+                                        (click)="updateOrderStatus(order.id, 'SHIPPING')" title="Giao hàng">
+                                        <i class="bi bi-truck"></i>
+                                    </button>
+
+                                    <button *ngIf="['PENDING', 'CONFIRMED'].includes(order.status)"
+                                        class="btn btn-sm btn-outline-danger"
+                                        (click)="updateOrderStatus(order.id, 'CANCELLED')" title="Hủy đơn">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

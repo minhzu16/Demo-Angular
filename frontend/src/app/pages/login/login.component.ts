@@ -34,45 +34,35 @@ export class LoginComponent {
     if (this.form.invalid) return;
     this.loading = true;
     this.error = null;
-    
+
     const loginData = {
       usernameOrEmail: this.form.value.username!,
       password: this.form.value.password!
     };
-    
+
     this.auth.login(loginData).subscribe({
       next: res => {
-        console.log('Login successful, saving token and navigating...', res);
         this.auth.saveToken(res.accessToken);
-        console.log('Token saved, navigating to products...');
-        // Welcome is shown on products page after navigation
-        
-        // Add a small delay to ensure token is saved, then navigate with state
-        setTimeout(() => {
-          const fullName = (res?.user?.fullName || res?.user?.username || this.form.value.username) as string;
-          this.router.navigate(['/products'], { state: { fromLogin: true, fullName } }).then(success => {
-            console.log('Navigation result:', success);
-            if (!success) {
-              console.error('Navigation failed, trying alternative route...');
-              this.router.navigate(['/products'], { state: { fromLogin: true, fullName } });
-            }
-          }).catch(err => {
-            console.error('Navigation error:', err);
-          });
-        }, 100);
-        
+        const fullName = (res?.user?.fullName || res?.user?.username || this.form.value.username) as string;
+
+        const roles = res?.user?.role || 'BUYER';
+        if (roles.includes('ADMIN')) {
+          this.router.navigate(['/dashboard'], { state: { fromLogin: true, fullName } });
+        } else if (roles.includes('SELLER')) {
+          this.router.navigate(['/seller/dashboard'], { state: { fromLogin: true, fullName } });
+        } else {
+          // Regular buyer route
+          this.router.navigate(['/home'], { state: { fromLogin: true, fullName } });
+        }
+
         this.loading = false;
       },
       error: err => {
-        console.error('Login error', err);
         this.error = (err?.error?.message as string) || 'Login failed';
         this.loading = false;
       }
     });
   }
 
-  onSocialLogin(provider: string) {
-    console.log(`Login with ${provider}`);
-    // Implement social login logic here
-  }
+
 }

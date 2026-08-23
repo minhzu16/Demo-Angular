@@ -19,18 +19,18 @@
     <!-- Monthly Chart -->
     <div class="col-lg-8 mb-3">
       <app-bar-chart 
-        title="Doanh thu theo tháng"
-        [data]="[12000, 19000, 15000, 25000, 22000, 30000]"
-        [labels]="['Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6']">
+        title="Doanh thu 7 ngày gần nhất"
+        [data]="revenueData"
+        [labels]="revenueLabels">
       </app-bar-chart>
     </div>
     
     <!-- Income Overview -->
     <div class="col-lg-4 mb-3">
       <app-pie-chart 
-        title="Cơ cấu doanh thu"
-        [data]="[45, 25, 20, 10]" 
-        [labels]="['Online', 'Cửa hàng', 'Sỉ', 'Khác']">
+        title="Trạng thái đơn hàng"
+        [data]="statusData" 
+        [labels]="statusLabels">
       </app-pie-chart>
     </div>
   </div>
@@ -42,7 +42,7 @@
       <div class="table-container">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h5 class="mb-0">Đơn hàng gần đây</h5>
-          <a routerLink="/seller/orders" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+          <a routerLink="/dashboard" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
         </div>
         
         <div class="table-responsive">

@@ -1,0 +1,170 @@
+<div class="checkout-page page-fade-in">
+  <!-- Unified Header / Steps -->
+  <div class="checkout-header">
+    <div class="nx-container">
+      <h1 class="page-title"><i class="bi bi-shield-lock"></i> Thanh Toán An Toàn</h1>
+      <div class="checkout-steps">
+        <div class="step done"><i class="bi bi-cart-check-fill"></i> Giỏ hàng</div>
+        <div class="step-connector done"></div>
+        <div class="step active"><i class="bi bi-geo-alt-fill"></i> Địa chỉ & Vận chuyển</div>
+        <div class="step-connector"></div>
+        <div class="step"><i class="bi bi-credit-card-fill"></i> Thanh toán</div>
+        <div class="step-connector"></div>
+        <div class="step"><i class="bi bi-check-circle-fill"></i> Xác nhận</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nx-container py-5">
+    <div *ngIf="loading" class="checkout-loading">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p>Đang chuẩn bị trang thanh toán...</p>
+    </div>
+
+    <div *ngIf="!loading && cart" class="checkout-layout">
+      <!-- Left Column: Form -->
+      <div class="checkout-form-col">
+        <form [formGroup]="checkoutForm" (ngSubmit)="submitOrder()" class="checkout-form">
+          
+          <div class="checkout-section animate-float-up" style="animation-delay: 0.1s;">
+            <h3 class="section-title"><i class="bi bi-geo-alt"></i> 1. Địa chỉ giao hàng</h3>
+            
+            <!-- Quick Address Select -->
+            <div class="address-selector mb-4" *ngIf="addresses.length > 0">
+              <label class="nx-form-label mb-2">Chọn từ sổ địa chỉ:</label>
+              <div class="address-pills">
+                <div *ngFor="let addr of addresses" class="address-pill" 
+                     [class.active]="checkoutForm.get('address')?.value === addr.address"
+                     (click)="selectAddress(addr)">
+                  <div class="pill-name">{{ addr.receiverName }} <span *ngIf="addr.isDefault" class="badge">Mặc định</span> </div>
+                  <div class="pill-addr text-truncate">{{ addr.address }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="nx-form-grid">
+              <div class="nx-form-group">
+                <label class="nx-form-label">Họ và tên người nhận</label>
+                <input type="text" class="nx-form-control" formControlName="fullName" placeholder="VD: Nguyễn Văn A">
+                <div class="nx-error-text" *ngIf="checkoutForm.get('fullName')?.touched && checkoutForm.get('fullName')?.invalid">
+                  Vui lòng nhập họ tên
+                </div>
+              </div>
+              <div class="nx-form-group">
+                <label class="nx-form-label">Số điện thoại</label>
+                <input type="tel" class="nx-form-control" formControlName="phoneNumber" placeholder="VD: 0912345678">
+                <div class="nx-error-text" *ngIf="checkoutForm.get('phoneNumber')?.touched && checkoutForm.get('phoneNumber')?.invalid">
+                  Số điện thoại không hợp lệ (10 số)
+                </div>
+              </div>
+            </div>
+            <div class="nx-form-group">
+              <label class="nx-form-label">Địa chỉ chi tiết</label>
+              <textarea class="nx-form-control" formControlName="address" rows="3" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố"></textarea>
+              <div class="nx-error-text" *ngIf="checkoutForm.get('address')?.touched && checkoutForm.get('address')?.invalid">
+                Vui lòng nhập địa chỉ nhận hàng
+              </div>
+            </div>
+            <div class="nx-form-group mb-0">
+              <label class="nx-form-label">Ghi chú (tùy chọn)</label>
+              <textarea class="nx-form-control" formControlName="note" rows="2" placeholder="Lưu ý cho người giao hàng..."></textarea>
+            </div>
+          </div>
+
+          <div class="checkout-section animate-float-up" style="animation-delay: 0.2s;">
+            <h3 class="section-title"><i class="bi bi-wallet2"></i> 2. Phương thức thanh toán</h3>
+            <div class="payment-methods">
+              <label class="payment-method-card" *ngFor="let method of paymentMethods" [class.active]="checkoutForm.get('paymentMethod')?.value === method.id">
+                <input type="radio" formControlName="paymentMethod" [value]="method.id" class="d-none">
+                <div class="pm-icon"><i class="bi {{ method.icon }}"></i></div>
+                <div class="pm-info">
+                  <div class="pm-name">{{ method.name }}</div>
+                  <div class="pm-desc" *ngIf="method.id === 'COD'">Thanh toán khi nhận hàng</div>
+                  <div class="pm-desc" *ngIf="method.id === 'VNPAY'">Thanh toán qua ví VNPay / Thẻ ATM</div>
+                </div>
+                <div class="pm-radio"><i class="bi bi-check-circle-fill"></i></div>
+              </label>
+            </div>
+          </div>
+
+          <div *ngIf="error" class="alert alert-danger mb-4">
+            <i class="bi bi-exclamation-triangle"></i><span>{{ error }}</span>
+          </div>
+
+          <div class="checkout-actions animate-float-up" style="animation-delay: 0.3s;">
+            <a routerLink="/cart" class="btn btn-glass"><i class="bi bi-arrow-left"></i> Quay lại giỏ hàng</a>
+            <button type="submit" class="btn btn-primary btn-xl" [disabled]="checkoutForm.invalid || processing">
+              <span *ngIf="processing" class="spinner-border spinner-border-sm me-2"></span>
+              {{ processing ? 'Đang xử lý...' : 'XÁC NHẬN ĐẶT HÀNG' }}
+              <i class="bi bi-check2-all ms-2" *ngIf="!processing"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Right Column: Summary -->
+      <div class="checkout-summary-col animate-float-up" style="animation-delay: 0.4s;">
+        <div class="summary-card sticky-sidebar">
+          <h3 class="summary-title">Đơn hàng ({{ cart.items.length || 0 }} SP)</h3>
+          
+          <div class="order-items-scroll">
+            <div *ngFor="let item of cart?.items" class="order-item">
+              <div class="item-img">
+                <!-- ✅ BUG 36 FIX: Load fallback placeholder when image URL fails to load -->
+                <img [src]="item.imageUrl || 'assets/placeholder-product.jpg'" [alt]="item.productName" (error)="item.imageUrl = 'assets/placeholder-product.jpg'">
+                <span class="item-qty">{{ item.quantity }}</span>
+              </div>
+              <div class="item-details">
+                <div class="item-name">{{ item.productName }}</div>
+                <div class="item-price">{{ formatPrice(item.price) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-list mt-4">
+            <div class="summary-row">
+              <span class="label">Tạm tính</span>
+              <span class="value">{{ formatPrice(cart.totalAmount) }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="label">Phí vận chuyển</span>
+              <span class="value text-success">Miễn phí</span>
+            </div>
+            <div class="summary-row discount" *ngIf="discountAmount > 0">
+              <span class="label">Giảm giá voucher</span>
+              <span class="value">-{{ formatPrice(discountAmount) }}</span>
+            </div>
+            
+            <!-- NexPoints Redemption -->
+            <div class="summary-divider mt-2 mb-2"></div>
+            <div class="loyalty-redemption">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="label"><i class="bi bi-lightning-charge-fill text-warning"></i> Dùng <strong>{{ userPoints | number }}</strong> NexPoints</span>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" role="switch" [checked]="pointsRedeemed" (change)="togglePoints()" [disabled]="userPoints === 0">
+                </div>
+              </div>
+              <p class="small text-muted mt-1" *ngIf="userPoints > 0 && !pointsRedeemed">Tiết kiệm thêm {{ formatPrice(userPoints) }}</p>
+              <p class="small text-success mt-1 fw-bold" *ngIf="pointsRedeemed">Đã áp dụng giảm {{ formatPrice(pointsDiscount) }}</p>
+            </div>
+            <div class="summary-row discount" *ngIf="pointsRedeemed">
+              <span class="label">Ưu đãi NexPoints</span>
+              <span class="value">-{{ formatPrice(pointsDiscount) }}</span>
+            </div>
+          </div>
+
+          <div class="summary-divider"></div>
+
+          <div class="summary-total">
+            <span class="label">Tổng cộng</span>
+            <span class="value">{{ formatPrice(cart.totalAmount - discountAmount - pointsDiscount) }}</span>
+          </div>
+
+          <div class="loyalty-earn mt-3">
+            <i class="bi bi-lightning-charge-fill text-warning"></i> Bạn sẽ nhận được <strong>{{ ((cart.totalAmount - discountAmount - pointsDiscount) / 10000) | number:'1.0-0' }} NexPoints</strong> khi đơn hàng hoàn tất.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

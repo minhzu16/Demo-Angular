@@ -1,4 +1,4 @@
-<nav aria-label="breadcrumb" *ngIf="items.length > 0">
+<nav aria-label="breadcrumb" *ngIf="items && items?.length > 0">
   <ol class="breadcrumb mb-0">
     <li *ngFor="let item of items; let last = last" 
         class="breadcrumb-item" 

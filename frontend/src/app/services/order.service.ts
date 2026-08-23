@@ -28,6 +28,8 @@ export interface CreateOrderRequest {
     shippingAddress: string;
     paymentMethod: string;
     items: OrderItem[];
+    voucherCode?: string;
+    note?: string;
 }
 
 export interface OrderListResponse {
@@ -222,5 +224,13 @@ export class OrderService {
      */
     getOrderStatistics(shopId: number): Observable<any> {
         return this.getShopOrderStats(shopId);
+    }
+
+    /**
+     * Update order status (Seller/Admin)
+     */
+    updateOrderStatus(orderId: number, status: string): Observable<Order> {
+        const headers = this.getAuthHeaders();
+        return this.http.put<Order>(`${this.apiUrl}/${orderId}/status`, { status }, { headers });
     }
 }

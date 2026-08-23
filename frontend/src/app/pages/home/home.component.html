@@ -1,118 +1,415 @@
-<div class="home-container">
-  <!-- Hero Section -->
-  <div class="hero-section">
-    <div class="hero-content">
-      <h1 class="hero-title">Chào mừng đến với Tiki</h1>
-      <p class="hero-subtitle">Nền tảng thương mại điện tử hàng đầu Việt Nam</p>
-      <div class="hero-actions">
-        <button class="btn btn-primary btn-lg" routerLink="/products">Khám phá sản phẩm</button>
-        <button class="btn btn-outline btn-lg" routerLink="/login">Đăng nhập</button>
+<!-- ═══════════════════════════════════════════════
+     NexMart Home Page
+     ═══════════════════════════════════════════════ -->
+<div class="home-page page-fade-in">
+
+  <!-- ── HERO SECTION ───────────────────── -->
+  <section class="hero-section" id="home-hero">
+    <!-- Animated background orbs -->
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+
+    <div class="nx-container hero-inner">
+      <!-- Left: Text content -->
+      <div class="hero-content stagger-children">
+        <div class="hero-eyebrow">
+          <i class="bi bi-lightning-charge-fill"></i>
+          Next-gen Marketplace
+        </div>
+
+        <h1 class="hero-title">
+          Mua sắm thông minh<br>
+          <span class="text-gradient">Trải nghiệm đỉnh cao</span>
+        </h1>
+
+        <p class="hero-desc">
+          Hàng triệu sản phẩm chính hãng · Flash Sale mỗi ngày · Tích NexPoints đổi quà
+        </p>
+
+        <!-- Hero Stats -->
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <span class="hero-stat-num">10M+</span>
+            <span class="hero-stat-label">Khách hàng</span>
+          </div>
+          <div class="hero-stat-divider"></div>
+          <div class="hero-stat">
+            <span class="hero-stat-num">1M+</span>
+            <span class="hero-stat-label">Sản phẩm</span>
+          </div>
+          <div class="hero-stat-divider"></div>
+          <div class="hero-stat">
+            <span class="hero-stat-num">50K+</span>
+            <span class="hero-stat-label">Nhà bán hàng</span>
+          </div>
+        </div>
+
+        <!-- CTA Buttons -->
+        <div class="hero-cta">
+          <button class="btn btn-primary btn-xl" routerLink="/products" id="hero-shop-btn">
+            <i class="bi bi-bag-heart"></i>
+            Mua sắm ngay
+          </button>
+          <button class="btn btn-glass btn-lg" routerLink="/register" id="hero-join-btn" *ngIf="!profile">
+            <i class="bi bi-person-plus"></i>
+            Đăng ký miễn phí
+          </button>
+          <button class="btn btn-glass btn-lg" routerLink="/flash-sale" id="hero-flash-btn" *ngIf="profile">
+            <i class="bi bi-lightning-charge-fill text-warning"></i>
+            Flash Sale
+          </button>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Flash Sale Banner -->
-  <div class="flash-sale-section">
-    <div class="container">
-      <div class="flash-sale-card">
-        <div class="flash-left">
-          <div class="flash-badge">FLASH SALE</div>
-          <h2 class="flash-title">Deal sốc hôm nay</h2>
-          <p class="flash-subtitle">Giảm giá lớn cho hàng ngàn sản phẩm trong thời gian có hạn. Nhanh tay săn deal trước khi hết!</p>
+      <!-- Right: Cards display -->
+      <div class="hero-visual">
+        <div class="hero-card-stack">
+          <!-- Flash Sale card -->
+          <div class="hcard hcard-flash animate-float">
+            <div class="hcard-badge">
+              <i class="bi bi-lightning-charge-fill"></i> FLASH SALE
+            </div>
+            <div class="hcard-title">Tai nghe Sony WH-1000XM5</div>
+            <div class="hcard-price">
+              <span class="hcard-current">2.990.000 ₫</span>
+              <span class="hcard-original">5.990.000 ₫</span>
+            </div>
+            <div class="hcard-discount">
+              <span>-50%</span>
+            </div>
+            <div class="hcard-progress">
+              <div class="hcard-progress-bar" style="width: 72%"></div>
+            </div>
+            <div class="hcard-sold">⚡ Còn 28 sản phẩm</div>
+          </div>
 
-          <div class="flash-countdown" *ngIf="flashCountdown">
-            <span class="countdown-label">Kết thúc sau</span>
-            <div class="countdown-timer" [class.ended]="flashCountdown === 'Đã kết thúc'">
-              <i class="bi bi-alarm-fill"></i>
-              <span class="time-text">{{ flashCountdown }}</span>
+          <!-- Trending card -->
+          <div class="hcard hcard-trending">
+            <div class="hcard-mini-title">🔥 Trending</div>
+            <div class="hcard-mini-list">
+              <div class="hcard-mini-item">iPhone 16 Pro</div>
+              <div class="hcard-mini-item">MacBook Air M3</div>
+              <div class="hcard-mini-item">Samsung S25 Ultra</div>
             </div>
           </div>
 
-          <button
-            class="btn btn-primary btn-lg flash-cta"
-            routerLink="/products"
-            [queryParams]="{ flashSale: true }">
-            Săn deal ngay
+          <!-- NexPoints card -->
+          <div class="hcard hcard-points">
+            <i class="bi bi-lightning-charge-fill hcard-points-icon"></i>
+            <div class="hcard-points-label">NexPoints của bạn</div>
+            <div class="hcard-points-value" *ngIf="profile">{{ profile.loyaltyPoints || 1250 | number }}</div>
+            <div class="hcard-points-value" *ngIf="!profile">1,250</div>
+            <div class="hcard-points-sub">≈ 125.000 ₫ giảm giá</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FLASH SALE BANNER ───────────────── -->
+  <section class="flash-section" id="home-flash-sale">
+    <div class="nx-container">
+      <div class="flash-banner">
+        <div class="flash-left-col">
+          <div class="flash-sale-badge">
+            <i class="bi bi-lightning-charge-fill"></i>
+            FLASH SALE
+          </div>
+          <h2 class="flash-title">{{ flashSale?.name || ('HOME.FLASH_SALE' | translate) }}</h2>
+          <p class="flash-sub">Ưu đãi có hạn — nhanh tay kẻo hết!</p>
+
+          <!-- Countdown -->
+          <div class="countdown-area" *ngIf="flashCountdown">
+            <span class="countdown-label">Kết thúc sau</span>
+            <div class="countdown-box">
+              <div class="time-unit">{{ flashParts.h }}</div>
+              <span class="colon">:</span>
+              <div class="time-unit">{{ flashParts.m }}</div>
+              <span class="colon">:</span>
+              <div class="time-unit">{{ flashParts.s }}</div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-lg" routerLink="/products" id="flash-cta-btn">
+            <i class="bi bi-bag-check"></i>
+            {{ 'PRODUCT.BUY_NOW' | translate }}
           </button>
         </div>
 
-        <div class="flash-right">
-          <div class="flash-tag">
-            <span class="percent">-50%</span>
-            <span class="text">Đồ gia dụng</span>
+        <div class="flash-right-col">
+          <!-- Real Flash Sale Items from API -->
+          <div class="flash-deals" *ngIf="flashSale?.items?.length > 0">
+            <div class="flash-deal-item" *ngFor="let item of flashSale.items; let i = index"
+                 [routerLink]="['/products', item.id]" style="cursor:pointer">
+              <div class="fdi-icon">
+                <img *ngIf="item.imageUrl" [src]="item.imageUrl" [alt]="item.name"
+                     style="width:36px;height:36px;object-fit:cover;border-radius:6px;">
+                <i *ngIf="!item.imageUrl" class="bi bi-box-seam"></i>
+              </div>
+              <div class="fdi-info">
+                <span class="fdi-name" style="max-width:140px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">{{ item.name }}</span>
+                <span class="fdi-discount">
+                  {{ item.price | number:'1.0-0' }}₫
+                  <del style="font-size:11px;opacity:.6;">{{ item.originalPrice | number:'1.0-0' }}₫</del>
+                </span>
+                <div style="width:100%;background:rgba(255,255,255,.15);border-radius:4px;height:4px;margin-top:4px;">
+                  <div [style.width.%]="(item.soldQuantity / item.totalQuantity) * 100"
+                       style="height:4px;border-radius:4px;background:#FFD700;transition:width .3s;"></div>
+                </div>
+                <span style="font-size:10px;opacity:.7;">{{ 'HOME.SOLD' | translate }} {{ item.soldQuantity }}/{{ item.totalQuantity }}</span>
+              </div>
+            </div>
           </div>
-          <div class="flash-tag">
-            <span class="percent">-40%</span>
-            <span class="text">Nhà bếp</span>
+
+          <!-- Fallback static deals when no flash sale API data -->
+          <div class="flash-deals" *ngIf="!flashSale?.items?.length">
+            <div class="flash-deal-item">
+              <div class="fdi-icon"><i class="bi bi-tv"></i></div>
+              <div class="fdi-info">
+                <span class="fdi-name">Điện tử</span>
+                <span class="fdi-discount">Giảm đến 60%</span>
+              </div>
+            </div>
+            <div class="flash-deal-item">
+              <div class="fdi-icon"><i class="bi bi-bag"></i></div>
+              <div class="fdi-info">
+                <span class="fdi-name">Thời trang</span>
+                <span class="fdi-discount">Giảm đến 50%</span>
+              </div>
+            </div>
+            <div class="flash-deal-item">
+              <div class="fdi-icon"><i class="bi bi-house"></i></div>
+              <div class="fdi-info">
+                <span class="fdi-name">Nhà bếp</span>
+                <span class="fdi-discount">Giảm đến 40%</span>
+              </div>
+            </div>
+            <div class="flash-deal-item">
+              <div class="fdi-icon"><i class="bi bi-stars"></i></div>
+              <div class="fdi-info">
+                <span class="fdi-name">Mỹ phẩm</span>
+                <span class="fdi-discount">Giảm đến 45%</span>
+              </div>
+            </div>
           </div>
-          <div class="flash-tag">
-            <span class="percent">-30%</span>
-            <span class="text">Thiết bị số</span>
+        </div>
+
+        <!-- Background decoration -->
+        <div class="flash-bg-orb"></div>
+        <div class="flash-bg-orb-2"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CATEGORIES GRID ─────────────────── -->
+  <section class="categories-section" id="home-categories">
+    <div class="nx-container">
+      <div class="section-header">
+        <h2 class="section-title">Danh mục nổi bật</h2>
+        <a routerLink="/products" class="section-link">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+      </div>
+
+      <div class="categories-grid stagger-children">
+        <a class="cat-card" [routerLink]="['/products']" [queryParams]="{q: 'Điện tử'}" id="cat-electronics">
+          <div class="cat-card-icon" style="background: linear-gradient(135deg,#6C63FF,#8B85FF)">
+            <i class="bi bi-phone"></i>
+          </div>
+          <span class="cat-card-name">Điện tử</span>
+          <span class="cat-card-count">12.4K+ sản phẩm</span>
+        </a>
+        <a class="cat-card" [routerLink]="['/products']" [queryParams]="{q: 'Thời trang'}" id="cat-fashion">
+          <div class="cat-card-icon" style="background: linear-gradient(135deg,#FF6584,#FF8FA3)">
+            <i class="bi bi-bag"></i>
+          </div>
+          <span class="cat-card-name">Thời trang</span>
+          <span class="cat-card-count">8.7K+ sản phẩm</span>
+        </a>
+        <a class="cat-card" [routerLink]="['/products']" [queryParams]="{q: 'Nhà bếp'}" id="cat-kitchen">
+          <div class="cat-card-icon" style="background: linear-gradient(135deg,#43D9AD,#3EC9A7)">
+            <i class="bi bi-house"></i>
+          </div>
+          <span class="cat-card-name">Nhà bếp</span>
+          <span class="cat-card-count">5.2K+ sản phẩm</span>
+        </a>
+        <a class="cat-card" [routerLink]="['/products']" [queryParams]="{q: 'Sách'}" id="cat-books">
+          <div class="cat-card-icon" style="background: linear-gradient(135deg,#FFB347,#FFA040)">
+            <i class="bi bi-book"></i>
+          </div>
+          <span class="cat-card-name">Sách</span>
+          <span class="cat-card-count">3.8K+ sản phẩm</span>
+        </a>
+        <a class="cat-card" [routerLink]="['/products']" [queryParams]="{q: 'Thể thao'}" id="cat-sport">
+          <div class="cat-card-icon" style="background: linear-gradient(135deg,#5DADE2,#3498DB)">
+            <i class="bi bi-bicycle"></i>
+          </div>
+          <span class="cat-card-name">Thể thao</span>
+          <span class="cat-card-count">4.1K+ sản phẩm</span>
+        </a>
+        <a class="cat-card" [routerLink]="['/products']" [queryParams]="{q: 'Mỹ phẩm'}" id="cat-beauty">
+          <div class="cat-card-icon" style="background: linear-gradient(135deg,#C39BD3,#9B59B6)">
+            <i class="bi bi-stars"></i>
+          </div>
+          <span class="cat-card-name">Mỹ phẩm</span>
+          <span class="cat-card-count">6.9K+ sản phẩm</span>
+        </a>
+        <a class="cat-card" [routerLink]="['/products']" [queryParams]="{q: 'Đồ chơi'}" id="cat-toys">
+          <div class="cat-card-icon" style="background: linear-gradient(135deg,#F1948A,#E74C3C)">
+            <i class="bi bi-controller"></i>
+          </div>
+          <span class="cat-card-name">Đồ chơi</span>
+          <span class="cat-card-count">2.3K+ sản phẩm</span>
+        </a>
+        <a class="cat-card cat-card-more" routerLink="/products" id="cat-more">
+          <div class="cat-card-icon cat-more-icon">
+            <i class="bi bi-grid-3x3-gap-fill"></i>
+          </div>
+          <span class="cat-card-name">Xem thêm</span>
+          <span class="cat-card-count">Tất cả danh mục</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── RECOMMENDATIONS ─────────────────── -->
+  <section class="reco-section" *ngIf="recommendations && recommendations.length > 0" id="home-recommendations">
+    <div class="nx-container">
+      <div class="section-header">
+        <h2 class="section-title">{{ 'HOME.RECOMMENDED_FOR_YOU' | translate }}</h2>
+        <a routerLink="/products" class="section-link">{{ 'HOME.VIEW_MORE' | translate }} <i class="bi bi-arrow-right"></i></a>
+      </div>
+
+      <div class="products-row stagger-children">
+        <div class="nx-product-card" *ngFor="let p of recommendations; let i = index"
+          [routerLink]="['/products', p.id]"
+          [id]="'reco-product-' + i">
+          <div class="product-img">
+            <img [src]="p.imageUrl || 'assets/placeholder-product.jpg'" [alt]="p.name" loading="lazy">
+            <div class="product-badges">
+              <span class="flash-sale-badge" style="font-size: 10px; padding: 3px 7px;" *ngIf="p.discount">-{{ p.discount }}%</span>
+            </div>
+            <button class="wishlist-btn" (click)="$event.stopPropagation(); toggleWishlist(p)" [class.active]="p.wished">
+              <i class="bi" [class]="p.wished ? 'bi-heart-fill' : 'bi-heart'"></i>
+            </button>
+          </div>
+          <div class="product-body">
+            <div class="product-seller"><i class="bi bi-shop"></i> {{ p.shopName || 'NexMart Store' }}</div>
+            <p class="product-name">{{ p.name }}</p>
+            <div class="product-rating">
+              <span class="stars">
+                <span *ngFor="let s of getStarArray(p.averageRating || 0)" class="star filled">★</span>
+                <span *ngFor="let s of getStarArray(5 - (p.averageRating || 0))" class="star">★</span>
+              </span>
+              <span class="count">({{ p.reviewCount || 0 }})</span>
+            </div>
+            <div class="product-pricing">
+              <span class="price-primary">{{ formatPrice(p.price) }}</span>
+              <span class="price-original" *ngIf="p.originalPrice">{{ formatPrice(p.originalPrice) }}</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Features Section -->
-  <div class="features-section">
-    <div class="container">
-      <h2 class="section-title">Tại sao chọn Tiki?</h2>
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">🚚</div>
-          <h3>Giao hàng nhanh</h3>
-          <p>Giao hàng trong 2 giờ tại TP.HCM và Hà Nội</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">💳</div>
-          <h3>Thanh toán an toàn</h3>
-          <p>Hỗ trợ nhiều phương thức thanh toán bảo mật</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🛡️</div>
-          <h3>Bảo hành chính hãng</h3>
-          <p>100% sản phẩm chính hãng với chế độ bảo hành tốt</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">📱</div>
-          <h3>Ứng dụng di động</h3>
-          <p>Mua sắm mọi lúc mọi nơi với ứng dụng Tiki</p>
+  <!-- ── TRENDING ────────────────────────── -->
+  <section class="trending-section" *ngIf="trending && trending.length > 0" id="home-trending">
+    <div class="nx-container">
+      <div class="section-header">
+        <h2 class="section-title">🔥 Đang hot nhất</h2>
+        <a routerLink="/products" class="section-link">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+      </div>
+
+      <div class="products-row stagger-children">
+        <div class="nx-product-card" *ngFor="let p of trending; let i = index"
+          [routerLink]="['/products', p.id]"
+          [id]="'trending-product-' + i">
+          <div class="product-img">
+            <img [src]="p.imageUrl || 'assets/placeholder-product.jpg'" [alt]="p.name" loading="lazy">
+            <div class="product-badges">
+              <span class="flash-sale-badge" style="font-size: 10px; padding: 3px 7px;">HOT</span>
+            </div>
+            <button class="wishlist-btn" (click)="$event.stopPropagation(); toggleWishlist(p)">
+              <i class="bi bi-heart"></i>
+            </button>
+          </div>
+          <div class="product-body">
+            <p class="product-name">{{ p.name }}</p>
+            <div class="product-rating">
+              <span class="stars">
+                <span *ngFor="let s of getStarArray(p.averageRating || 0)" class="star filled">★</span>
+                <span *ngFor="let s of getStarArray(5 - (p.averageRating || 0))" class="star">★</span>
+              </span>
+              <span class="count">({{ p.reviewCount || 0 }})</span>
+            </div>
+            <div class="product-pricing">
+              <span class="price-primary">{{ formatPrice(p.price) }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Stats Section -->
-  <div class="stats-section">
-    <div class="container">
-      <div class="stats-grid">
-        <div class="stat-item">
-          <div class="stat-number">10M+</div>
-          <div class="stat-label">Khách hàng</div>
+  <!-- ── TRUST SECTION ──────────────────── -->
+  <section class="trust-section" id="home-trust">
+    <div class="nx-container">
+      <div class="trust-grid">
+        <div class="trust-item" id="trust-ship">
+          <div class="trust-icon">🚀</div>
+          <div class="trust-content">
+            <h4>Giao siêu tốc 2H</h4>
+            <p>Giao hàng trong 2 giờ tại TP.HCM & Hà Nội</p>
+          </div>
         </div>
-        <div class="stat-item">
-          <div class="stat-number">1M+</div>
-          <div class="stat-label">Sản phẩm</div>
+        <div class="trust-divider hide-mobile"></div>
+        <div class="trust-item" id="trust-payment">
+          <div class="trust-icon">🔐</div>
+          <div class="trust-content">
+            <h4>Thanh toán bảo mật</h4>
+            <p>VNPay, COD, chuyển khoản — hoàn tiền 100%</p>
+          </div>
         </div>
-        <div class="stat-item">
-          <div class="stat-number">99.9%</div>
-          <div class="stat-label">Uptime</div>
+        <div class="trust-divider hide-mobile"></div>
+        <div class="trust-item" id="trust-warranty">
+          <div class="trust-icon">🛡️</div>
+          <div class="trust-content">
+            <h4>Hàng chính hãng</h4>
+            <p>100% chính hãng, bảo hành toàn quốc</p>
+          </div>
         </div>
-        <div class="stat-item">
-          <div class="stat-number">24/7</div>
-          <div class="stat-label">Hỗ trợ</div>
+        <div class="trust-divider hide-mobile"></div>
+        <div class="trust-item" id="trust-points">
+          <div class="trust-icon">⚡</div>
+          <div class="trust-content">
+            <h4>Tích NexPoints</h4>
+            <p>Mỗi đơn hàng tích điểm đổi quà cực chất</p>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- CTA Section -->
-  <div class="cta-section">
-    <div class="container">
-      <h2>Sẵn sàng bắt đầu mua sắm?</h2>
-      <p>Tham gia cùng hàng triệu khách hàng đã tin tưởng Tiki</p>
-      <button class="btn btn-primary btn-lg" routerLink="/register">Đăng ký ngay</button>
+  <!-- ── CTA SECTION ────────────────────── -->
+  <section class="cta-section" *ngIf="!profile" id="home-cta">
+    <div class="cta-inner">
+      <div class="cta-orb-1"></div>
+      <div class="cta-orb-2"></div>
+      <div class="cta-content">
+        <h2>Sẵn sàng trải nghiệm NexMart?</h2>
+        <p>Tham gia cùng 10 triệu khách hàng — nhận ngay 50.000₫ voucher chào mừng</p>
+        <div class="cta-actions">
+          <button class="btn btn-primary btn-xl" routerLink="/register" id="cta-register-btn">
+            <i class="bi bi-person-plus"></i>
+            Đăng ký miễn phí
+          </button>
+          <button class="btn btn-glass btn-lg" routerLink="/products" id="cta-browse-btn">
+            <i class="bi bi-bag"></i>
+            Xem sản phẩm
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
+
 </div>

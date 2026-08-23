@@ -2,9 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
-import { AuthService, UserProfile } from '../../services/auth.service';
+import { AuthService, UserProfile, UserAddress, LoyaltyTransaction } from '../../services/auth.service';
 import { ShopService } from '../../services/shop.service';
 import { SellerApplicationService, SellerApplication } from '../../services/seller-application.service';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-profile',
@@ -17,23 +18,32 @@ export class ProfileComponent implements OnInit {
   user: UserProfile | null = null;
   private original: UserProfile | null = null;
   isEditing = false;
+  addresses: UserAddress[] = [];
+  isAddingAddress = false;
+  newAddress: UserAddress = { receiverName: '', phoneNumber: '', address: '', isDefault: false };
   error = '';
   success = '';
   sellerStatus: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED' = 'NONE';
   isLoadingSeller = false;
   hasShop = false;
+  loyaltyHistory: LoyaltyTransaction[] = [];
+  isLoadingLoyalty = false;
+
 
   constructor(
     private authService: AuthService,
     private router: Router,
     private shopService: ShopService,
     private sellerAppService: SellerApplicationService,
-    private route: ActivatedRoute
-  ) {}
+    private route: ActivatedRoute,
+    private toastr: ToastrService
+  ) { }
 
   ngOnInit() {
     this.loadUserProfile();
     this.loadSellerState();
+    this.loadAddresses();
+    this.loadLoyaltyHistory();
 
     const path = this.route.snapshot.routeConfig?.path;
     if (path === 'profile/edit') {
@@ -42,25 +52,18 @@ export class ProfileComponent implements OnInit {
   }
 
   loadUserProfile() {
-    console.log('Loading user profile...');
     this.user = this.authService.getUser();
-    console.log('User from localStorage:', this.user);
-    
+
     if (!this.user) {
-      console.log('No user in localStorage, fetching from API...');
       this.authService.getProfile().subscribe({
         next: (profile: UserProfile) => {
-          console.log('Profile fetched from API:', profile);
           this.user = profile;
           this.authService.saveUser(profile);
           this.original = JSON.parse(JSON.stringify(profile));
         },
         error: (err: any) => {
-          console.error('Error loading profile:', err);
           this.error = 'Không thể tải thông tin cá nhân';
-          // If profile fetch fails, redirect to login
           if (err.status === 401 || err.status === 403) {
-            console.log('Unauthorized, redirecting to login...');
             this.authService.logout();
           }
         }
@@ -69,6 +72,70 @@ export class ProfileComponent implements OnInit {
     if (this.user && !this.original) {
       this.original = JSON.parse(JSON.stringify(this.user));
     }
+  }
+
+  loadAddresses() {
+    this.authService.getAddresses().subscribe({
+      next: (data) => this.addresses = data,
+      error: () => this.toastr.error('Không thể tải danh sách địa chỉ')
+    });
+  }
+
+  loadLoyaltyHistory() {
+    this.isLoadingLoyalty = true;
+    this.authService.getLoyaltyHistory(0, 10).subscribe({
+      next: (res) => {
+        this.loyaltyHistory = res.content || [];
+        this.isLoadingLoyalty = false;
+      },
+      error: () => {
+        this.isLoadingLoyalty = false;
+      }
+    });
+  }
+
+  toggleAddAddress() {
+    this.isAddingAddress = !this.isAddingAddress;
+    this.newAddress = { receiverName: this.user?.fullName || '', phoneNumber: this.user?.phoneNumber || '', address: '', isDefault: false };
+  }
+
+  saveNewAddress() {
+    if (!this.newAddress.receiverName || !this.newAddress.phoneNumber || !this.newAddress.address) {
+      this.toastr.warning('Vui lòng điền đầy đủ thông tin địa chỉ');
+      return;
+    }
+    this.authService.addAddress(this.newAddress).subscribe({
+      next: () => {
+        this.toastr.success('Thêm địa chỉ thành công');
+        this.isAddingAddress = false;
+        this.loadAddresses();
+      },
+      error: () => this.toastr.error('Thêm địa chỉ thất bại')
+    });
+  }
+
+  deleteAddress(id?: number) {
+    if (!id) return;
+    if (confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) {
+      this.authService.deleteAddress(id).subscribe({
+        next: () => {
+          this.toastr.success('Xóa địa chỉ thành công');
+          this.loadAddresses();
+        },
+        error: () => this.toastr.error('Xóa địa chỉ thất bại')
+      });
+    }
+  }
+
+  setDefaultAddress(id?: number) {
+    if (!id) return;
+    this.authService.setDefaultAddress(id).subscribe({
+      next: () => {
+        this.toastr.success('Đã đặt làm địa chỉ mặc định');
+        this.loadAddresses();
+      },
+      error: () => this.toastr.error('Thao tác thất bại')
+    });
   }
 
   toggleEdit() {
@@ -106,7 +173,6 @@ export class ProfileComponent implements OnInit {
       },
       error: (err: any) => {
         this.error = err?.error?.message || 'Cập nhật thất bại';
-        console.error('Error updating profile:', err);
       }
     });
   }
@@ -134,19 +200,14 @@ export class ProfileComponent implements OnInit {
   }
 
   goBack() {
-    const currentUrl = this.router.url;
-    if (currentUrl.startsWith('/admin')) {
-      this.router.navigate(['/admin/dashboard']);
-    } else {
-      this.router.navigate(['/products']);
-    }
+    this.router.navigate(['/dashboard']);
   }
 
   switchToSeller() {
     if (this.canGoToShop()) {
       this.router.navigate(['/seller/dashboard']);
     } else {
-      alert('Bạn chưa được duyệt bán hàng. Vui lòng đăng ký hoặc chờ admin duyệt.');
+      this.toastr.warning('Bạn chưa được duyệt bán hàng. Vui lòng đăng ký hoặc chờ admin duyệt.');
     }
   }
 

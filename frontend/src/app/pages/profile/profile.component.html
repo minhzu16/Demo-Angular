@@ -1,197 +1,283 @@
-<div class="profile-container">
-  <div class="profile-header">
-    <div class="header-left">
-      <button (click)="goBack()" class="btn btn-back">
-        <span class="back-icon">←</span> Quay lại
-      </button>
-      <h2>Thông tin cá nhân</h2>
+<div class="profile-page page-fade-in">
+  <div class="nx-container py-5">
+    
+    <div class="profile-layout">
+      
+      <!-- Sidebar -->
+      <div class="profile-sidebar">
+        <div class="user-card animate-float-up">
+          <div class="user-avatar">
+            <span>{{ user?.fullName?.charAt(0) || 'U' }}</span>
+          </div>
+          <h4 class="user-name">{{ user?.fullName || 'Người dùng' }}</h4>
+          <div class="mb-2">
+            <span class="badge" [ngClass]="{
+              'bg-secondary': user?.loyaltyTier === 'BRONZE',
+              'bg-info text-dark': user?.loyaltyTier === 'SILVER',
+              'bg-warning text-dark': user?.loyaltyTier === 'GOLD',
+              'bg-dark text-light border border-light': user?.loyaltyTier === 'PLATINUM'
+            }"><i class="bi bi-award-fill"></i> Hạng {{ user?.loyaltyTier || 'BRONZE' }}</span>
+          </div>
+          <p class="user-points"><i class="bi bi-lightning-charge-fill text-warning"></i> {{ user?.loyaltyPoints || 1250 | number }} <strong>NexPoints</strong></p>
+        </div>
+
+        <div class="sidebar-menu animate-float-up" style="animation-delay: 0.1s;">
+          <a routerLink="/profile" class="menu-item active"><i class="bi bi-person"></i> Hồ sơ của tôi</a>
+          <a routerLink="/orders" class="menu-item"><i class="bi bi-bag-check"></i> Lịch sử đơn hàng</a>
+          <a routerLink="/wishlist" class="menu-item"><i class="bi bi-heart"></i> Sản phẩm yêu thích</a>
+          <a routerLink="/wallet" class="menu-item"><i class="bi bi-wallet2"></i> Quản lý thanh toán</a>
+          <a routerLink="/address" class="menu-item"><i class="bi bi-geo-alt"></i> Sổ địa chỉ</a>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="profile-main">
+        
+        <div *ngIf="error" class="alert alert-danger mb-4"><i class="bi bi-exclamation-triangle"></i> {{ error }}</div>
+        <div *ngIf="success" class="alert alert-success mt-0 mb-4"><i class="bi bi-check-circle"></i> {{ success }}</div>
+
+        <!-- Info Card -->
+        <div class="main-card animate-float-up" style="animation-delay: 0.2s;" *ngIf="user">
+          <!-- ... same header and form ... -->
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Hồ sơ của tôi</h3>
+            <div class="header-actions">
+              <button *ngIf="!isEditing" (click)="isEditing = true" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Chỉnh sửa</button>
+              <button *ngIf="!isEditing && canGoToShop()" (click)="switchToSeller()" class="btn btn-primary btn-sm"><i class="bi bi-shop"></i> Cổng người bán</button>
+              <button *ngIf="!isEditing && canApplySeller()" (click)="applySeller()" class="btn btn-success btn-sm"><i class="bi bi-shop-window"></i> Đăng ký bán hàng</button>
+            </div>
+          </div>
+          <p class="card-desc mb-4">Quản lý thông tin hồ sơ để bảo mật tài khoản</p>
+
+          <!-- Edit Mode -->
+          <form *ngIf="isEditing; else viewMode" (ngSubmit)="saveProfile()" class="profile-form">
+            <div class="nx-form-group">
+              <label class="nx-form-label">Họ và tên</label>
+              <input type="text" class="nx-form-control" [(ngModel)]="user.fullName" name="fullName" required>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="nx-form-group">
+                  <label class="nx-form-label">Email</label>
+                  <input type="email" class="nx-form-control" [(ngModel)]="user.email" name="email" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="nx-form-group">
+                  <label class="nx-form-label">Số điện thoại</label>
+                  <input type="tel" class="nx-form-control" [(ngModel)]="user.phoneNumber" name="phoneNumber">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="nx-form-group">
+                  <label class="nx-form-label">Tuổi</label>
+                  <input type="number" class="nx-form-control" [(ngModel)]="user.age" name="age" min="1" max="120">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="nx-form-group">
+                  <label class="nx-form-label">Giới tính</label>
+                  <select class="nx-form-control custom-select" [(ngModel)]="user.gender" name="gender">
+                    <option value="MALE">Nam</option>
+                    <option value="FEMALE">Nữ</option>
+                    <option value="OTHER">Khác</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="nx-form-group">
+              <label class="nx-form-label">Địa chỉ hiển thị chính</label>
+              <textarea class="nx-form-control" [(ngModel)]="user.address" name="address" rows="1"></textarea>
+            </div>
+
+            <div class="nx-form-group">
+              <label class="nx-form-label">Nơi làm việc</label>
+              <input type="text" class="nx-form-control" [(ngModel)]="user.workplace" name="workplace">
+            </div>
+
+            <div class="form-actions mt-4 pt-3 border-top border-secondary">
+              <button type="submit" class="btn btn-primary" [disabled]="isUnchanged()">Lưu thay đổi</button>
+              <button type="button" (click)="cancelEdit()" class="btn btn-glass ms-2">Hủy</button>
+            </div>
+          </form>
+
+          <!-- View Mode -->
+          <ng-template #viewMode>
+            <div class="profile-info-grid">
+              <div class="info-group">
+                <label>Họ và tên</label>
+                <div class="val">{{ user.fullName }}</div>
+              </div>
+              <div class="info-group">
+                <label>Email</label>
+                <div class="val">{{ user.email }}</div>
+              </div>
+              <div class="info-group">
+                <label>Số điện thoại</label>
+                <div class="val">{{ user.phoneNumber || 'Chưa thiết lập' }}</div>
+              </div>
+              <div class="info-group">
+                <label>Tuổi</label>
+                <div class="val">{{ user.age || 'Chưa thiết lập' }}</div>
+              </div>
+              <div class="info-group">
+                <label>Giới tính</label>
+                <div class="val">{{ getGenderText(user.gender) }}</div>
+              </div>
+              <div class="info-group">
+                <label>Nơi làm việc</label>
+                <div class="val">{{ user.workplace || 'Chưa thiết lập' }}</div>
+              </div>
+              <div class="info-group full-width">
+                <label>Địa chỉ hiển thị chính</label>
+                <div class="val">{{ user.address || 'Chưa thiết lập' }}</div>
+              </div>
+              <div class="info-group status-box mt-3 full-width">
+                <label>Trạng thái bán hàng</label>
+                <div class="val text-primary" *ngIf="isLoadingSeller"><i class="bi bi-arrow-repeat spin"></i> Đang kiểm tra...</div>
+                <div class="val" *ngIf="!isLoadingSeller && sellerStatus === 'NONE'"><span class="badge bg-secondary text-light">Chưa đăng ký</span></div>
+                <div class="val" *ngIf="!isLoadingSeller && sellerStatus !== 'NONE'">
+                  <span class="badge" [ngClass]="{'bg-success': sellerStatus==='APPROVED', 'bg-warning text-dark': sellerStatus==='PENDING', 'bg-danger': sellerStatus==='REJECTED'}">
+                    {{ getSellerStatusText(sellerStatus) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </div>
+
+        <!-- ADDRESS MANAGEMENT SECTION -->
+        <div class="main-card mt-4 animate-float-up" style="animation-delay: 0.3s;" id="address-section">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Sổ địa chỉ</h3>
+            <button (click)="toggleAddAddress()" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Thêm địa chỉ mới</button>
+          </div>
+          
+          <div class="address-list mt-4">
+            <div *ngIf="isAddingAddress" class="address-item adding-form active mb-4">
+              <form (ngSubmit)="saveNewAddress()">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="nx-form-label">Tên người nhận</label>
+                    <input type="text" class="nx-form-control" [(ngModel)]="newAddress.receiverName" name="rName" required placeholder="Nguyễn Văn A">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="nx-form-label">Số điện thoại</label>
+                    <input type="tel" class="nx-form-control" [(ngModel)]="newAddress.phoneNumber" name="rPhone" required placeholder="09xxxxxxx">
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="nx-form-label">Địa chỉ chi tiết</label>
+                  <textarea class="nx-form-control" [(ngModel)]="newAddress.address" name="rAddr" rows="2" required placeholder="Số nhà, Tên đường, Phường/Xã..."></textarea>
+                </div>
+                <div class="mb-3 d-flex align-items-center">
+                  <input type="checkbox" id="isDef" [(ngModel)]="newAddress.isDefault" name="rDef" class="form-check-input me-2">
+                  <label for="isDef" class="nx-form-label mb-0">Đặt làm địa chỉ mặc định</label>
+                </div>
+                <div class="form-actions border-top border-secondary pt-3">
+                  <button type="submit" class="btn btn-primary">Lưu địa chỉ</button>
+                  <button type="button" (click)="toggleAddAddress()" class="btn btn-glass ms-2">Hủy</button>
+                </div>
+              </form>
+            </div>
+
+            <div *ngIf="addresses.length === 0 && !isAddingAddress" class="empty-address py-5 text-center">
+              <i class="bi bi-geo-alt text-muted" style="font-size: 3rem;"></i>
+              <p class="mt-3 text-muted">Bạn chưa lưu địa chỉ nào.</p>
+            </div>
+
+            <div *ngFor="let addr of addresses" class="address-item" [class.is-default]="addr.isDefault">
+              <div class="addr-header">
+                <div class="addr-name">
+                  {{ addr.receiverName }} 
+                  <span *ngIf="addr.isDefault" class="badge bg-primary ms-2"><i class="bi bi-check-circle-fill"></i> Mặc định</span>
+                </div>
+                <div class="addr-actions">
+                  <button (click)="setDefaultAddress(addr.id)" *ngIf="!addr.isDefault" class="btn-text" title="Đặt làm mặc định">Mặc định</button>
+                  <button (click)="deleteAddress(addr.id)" class="btn-text text-danger" title="Xóa địa chỉ"><i class="bi bi-trash"></i></button>
+                </div>
+              </div>
+              <div class="addr-phone"><i class="bi bi-telephone"></i> {{ addr.phoneNumber }}</div>
+              <div class="addr-text"><i class="bi bi-geo-alt"></i> {{ addr.address }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOYALTY HISTORY SECTION -->
+        <div class="main-card mt-4 animate-float-up" style="animation-delay: 0.4s;" id="loyalty-history-section">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Lịch sử tích điểm (NexPoints)</h3>
+          </div>
+          
+          <div class="loyalty-list mt-4">
+            <div *ngIf="isLoadingLoyalty" class="text-center py-4 text-primary">
+              <i class="bi bi-arrow-repeat spin" style="font-size: 2rem;"></i>
+              <p class="mt-2">Đang tải lịch sử...</p>
+            </div>
+
+            <div *ngIf="!isLoadingLoyalty && loyaltyHistory.length === 0" class="empty-state py-5 text-center">
+              <i class="bi bi-lightning-charge text-muted" style="font-size: 3rem;"></i>
+              <p class="mt-3 text-muted">Bạn chưa có lịch sử tích điểm nào.</p>
+            </div>
+
+            <div *ngIf="!isLoadingLoyalty && loyaltyHistory.length > 0" class="table-responsive">
+              <table class="table table-hover align-middle">
+                <thead>
+                  <tr>
+                    <th>Thời gian</th>
+                    <th>Hoạt động</th>
+                    <th>Thay đổi</th>
+                    <th>Số dư sau cùng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let tx of loyaltyHistory">
+                    <td>{{ tx.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td>
+                      <span *ngIf="tx.reason === 'ORDER_REWARD'">Nhận điểm từ đơn hàng <small class="text-muted" *ngIf="tx.referenceId">({{tx.referenceId}})</small></span>
+                      <span *ngIf="tx.reason === 'REDEMPTION'">Tiêu điểm <small class="text-muted" *ngIf="tx.referenceId">({{tx.referenceId}})</small></span>
+                      <span *ngIf="tx.reason !== 'ORDER_REWARD' && tx.reason !== 'REDEMPTION'">{{ tx.reason }}</span>
+                    </td>
+                    <td>
+                      <span [ngClass]="tx.pointsChange > 0 ? 'text-success fw-bold' : 'text-danger fw-bold'">
+                        {{ tx.pointsChange > 0 ? '+' : '' }}{{ tx.pointsChange | number }}
+                      </span>
+                    </td>
+                    <td><span class="fw-bold">{{ tx.balanceAfter | number }}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!isEditing" class="overview-cards animate-float-up" style="animation-delay: 0.5s;">
+          <div class="o-card">
+            <i class="bi bi-box-seam"></i>
+            <div>
+              <h5>Đơn hàng của tôi</h5>
+              <p>Theo dõi và quản lý</p>
+            </div>
+          </div>
+          <div class="o-card bg-highlight">
+            <i class="bi bi-gift text-warning"></i>
+            <div>
+              <h5>Mã giảm giá cá nhân</h5>
+              <p>5 voucher đang có</p>
+            </div>
+          </div>
+          <div class="o-card">
+            <i class="bi bi-headset"></i>
+            <div>
+              <h5>Trung tâm hỗ trợ</h5>
+              <p>Liên hệ NexMart</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
-    <button 
-      *ngIf="!isEditing" 
-      class="btn btn-primary"
-      [routerLink]="'/profile/edit'">
-      Chỉnh sửa
-    </button>
-    <button
-      *ngIf="!isEditing && canGoToShop()"
-      (click)="switchToSeller()"
-      class="btn btn-secondary">
-      Cửa hàng cá nhân
-    </button>
-    <button
-      *ngIf="!isEditing && canApplySeller()"
-      (click)="applySeller()"
-      class="btn btn-secondary">
-      Đăng ký bán hàng
-    </button>
-  </div>
-
-  <div *ngIf="error" class="alert alert-error">
-    {{ error }}
-  </div>
-
-  <div *ngIf="success" class="alert alert-success">
-    {{ success }}
-  </div>
-
-  <div *ngIf="user" class="profile-content">
-    <form *ngIf="isEditing; else viewMode" (ngSubmit)="saveProfile()">
-      <div class="form-group">
-        <label for="fullName">Họ và tên:</label>
-        <input 
-          type="text" 
-          id="fullName" 
-          [(ngModel)]="user.fullName" 
-          name="fullName"
-          required>
-      </div>
-
-      <div class="form-group">
-        <label for="age">Tuổi:</label>
-        <input 
-          type="number" 
-          id="age" 
-          [(ngModel)]="user.age" 
-          name="age"
-          min="1" 
-          max="120">
-      </div>
-
-      <div class="form-group">
-        <label for="email">Email:</label>
-        <input 
-          type="email" 
-          id="email" 
-          [(ngModel)]="user.email" 
-          name="email"
-          required>
-      </div>
-
-      <div class="form-group">
-        <label for="phoneNumber">Số điện thoại:</label>
-        <input 
-          type="tel" 
-          id="phoneNumber" 
-          [(ngModel)]="user.phoneNumber" 
-          name="phoneNumber">
-      </div>
-
-      <div class="form-group">
-        <label for="address">Địa chỉ:</label>
-        <textarea 
-          id="address" 
-          [(ngModel)]="user.address" 
-          name="address"
-          rows="3"></textarea>
-      </div>
-
-      <div class="form-group">
-        <label for="gender">Giới tính:</label>
-        <select id="gender" [(ngModel)]="user.gender" name="gender">
-          <option value="MALE">Nam</option>
-          <option value="FEMALE">Nữ</option>
-          <option value="OTHER">Khác</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="workplace">Nơi làm việc:</label>
-        <input 
-          type="text" 
-          id="workplace" 
-          [(ngModel)]="user.workplace" 
-          name="workplace">
-      </div>
-
-      <div class="form-actions">
-        <button type="submit" class="btn btn-success" [disabled]="isUnchanged()">Lưu</button>
-        <button type="button" (click)="cancelEdit()" class="btn btn-secondary">Hủy</button>
-      </div>
-    </form>
-
-    <ng-template #viewMode>
-      <div class="profile-info">
-        <div class="info-item">
-          <label>Họ và tên:</label>
-          <span>{{ user.fullName }}</span>
-        </div>
-
-        <div class="info-item">
-          <label>Tuổi:</label>
-          <span>{{ user.age || 'Chưa cập nhật' }}</span>
-        </div>
-
-        <div class="info-item">
-          <label>Email:</label>
-          <span>{{ user.email }}</span>
-        </div>
-
-        <div class="info-item">
-          <label>Số điện thoại:</label>
-          <span>{{ user.phoneNumber || 'Chưa cập nhật' }}</span>
-        </div>
-
-        <div class="info-item">
-          <label>Địa chỉ:</label>
-          <span>{{ user.address || 'Chưa cập nhật' }}</span>
-        </div>
-
-        <div class="info-item">
-          <label>Giới tính:</label>
-          <span>{{ getGenderText(user.gender) }}</span>
-        </div>
-
-        <div class="info-item">
-          <label>Nơi làm việc:</label>
-          <span>{{ user.workplace || 'Chưa cập nhật' }}</span>
-        </div>
-
-        <div class="info-item seller-status">
-          <label>Trạng thái bán hàng:</label>
-          <span *ngIf="isLoadingSeller">Đang kiểm tra...</span>
-          <span *ngIf="!isLoadingSeller && sellerStatus === 'NONE'">Chưa đăng ký bán hàng</span>
-          <span *ngIf="!isLoadingSeller && sellerStatus !== 'NONE'">{{ getSellerStatusText(sellerStatus) }}</span>
-        </div>
-      </div>
-
-      <div class="profile-quick-actions">
-        <h3>Trung tâm tài khoản</h3>
-        <div class="quick-actions-grid">
-          <a routerLink="/orders" class="quick-action-card">
-            <h4>Đơn hàng đã mua</h4>
-            <p>Xem và theo dõi các đơn hàng của bạn.</p>
-          </a>
-
-          <a routerLink="/profile/edit" class="quick-action-card">
-            <h4>Thông tin cá nhân</h4>
-            <p>Cập nhật họ tên, email, số điện thoại, địa chỉ.</p>
-          </a>
-
-          <a routerLink="/addresses" class="quick-action-card">
-            <h4>Địa chỉ giao hàng</h4>
-            <p>Quản lý và chọn địa chỉ giao hàng mặc định.</p>
-          </a>
-
-          <a routerLink="/wallets" class="quick-action-card">
-            <h4>Ví điện tử & thanh toán</h4>
-            <p>Liên kết ví điện tử / tài khoản ngân hàng để thanh toán nhanh.</p>
-          </a>
-
-          <a routerLink="/wishlist" class="quick-action-card">
-            <h4>Danh sách yêu thích</h4>
-            <p>Xem các sản phẩm bạn đã thêm vào wishlist.</p>
-          </a>
-
-          <a href="mailto:support@shopy.vn" class="quick-action-card">
-            <h4>Trung tâm hỗ trợ</h4>
-            <p>Liên hệ admin khi cần trợ giúp.</p>
-          </a>
-        </div>
-      </div>
-    </ng-template>
-  </div>
-
-  <div *ngIf="!user" class="loading">
-    Đang tải thông tin...
   </div>
 </div>

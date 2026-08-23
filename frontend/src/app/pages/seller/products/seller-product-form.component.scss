@@ -1,0 +1,36 @@
+.product-form-page {
+    padding: 1.5rem;
+    background-color: #f8f9fc;
+    min-height: 100vh;
+}
+
+.text-gray-800 {
+    color: #5a5c69 !important;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 .15rem 1.75rem 0 rgba(58, 59, 69, .15) !important;
+    border-radius: 0.35rem;
+
+    .card-header {
+        background-color: #f8f9fc;
+        border-bottom: 1px solid #e3e6f0;
+
+        h6 {
+            font-weight: 700;
+            color: #4e73df;
+        }
+    }
+}
+
+.form-label.required::after {
+    content: " *";
+    color: #e74a3b;
+}
+
+.image-preview {
+    background-color: #fff;
+    border-style: dashed !important;
+    border-color: #d1d3e2 !important;
+}

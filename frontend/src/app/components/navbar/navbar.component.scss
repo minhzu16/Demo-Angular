@@ -1,1 +1,5 @@
 // Navbar styles are handled in global styles.scss
+header.header {
+  position: relative;
+  z-index: var(--nx-z-header, 1000);
+}

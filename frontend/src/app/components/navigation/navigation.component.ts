@@ -13,7 +13,7 @@ import { AuthService } from '../../services/auth.service';
 export class NavigationComponent {
   @Input() collapsed: boolean = false;
   @Output() toggleCollapse = new EventEmitter<void>();
-  
+
   private router = inject(Router);
   private authService = inject(AuthService);
 
@@ -21,48 +21,48 @@ export class NavigationComponent {
     {
       label: 'Dashboard',
       icon: 'dashboard',
-      url: '/admin/dashboard',
+      url: '/dashboard',
       active: true
     },
     {
       label: 'Profile',
       icon: 'user',
-      url: '/admin/profile'
+      url: '/profile'
     },
     {
       label: 'Orders',
       icon: 'shopping-cart',
-      url: '/admin/orders',
+      url: '/orders',
       children: [
-        { label: 'All Orders', url: '/admin/orders' },
-        { label: 'Pending', url: '/admin/orders/pending' },
-        { label: 'Completed', url: '/admin/orders/completed' }
+        { label: 'All Orders', url: '/orders' },
+        { label: 'Pending', url: '/orders/pending' },
+        { label: 'Completed', url: '/orders/completed' }
       ]
     },
     {
       label: 'Products',
       icon: 'inbox',
-      url: '/admin/products',
+      url: '/products',
       children: [
-        { label: 'All Products', url: '/admin/products' },
-        { label: 'Categories', url: '/admin/products/categories' },
-        { label: 'Inventory', url: '/admin/products/inventory' }
+        { label: 'All Products', url: '/products' },
+        { label: 'Categories', url: '/products/categories' },
+        { label: 'Inventory', url: '/products/inventory' }
       ]
     },
     {
       label: 'Customers',
       icon: 'team',
-      url: '/admin/customers'
+      url: '/customers'
     },
     {
       label: 'Analytics',
       icon: 'bar-chart',
-      url: '/admin/analytics'
+      url: '/analytics'
     },
     {
       label: 'Settings',
       icon: 'setting',
-      url: '/admin/settings'
+      url: '/settings'
     }
   ];
 
@@ -71,13 +71,7 @@ export class NavigationComponent {
   }
 
   navigateTo(url: string) {
-    console.log('Navigation component navigating to:', url);
-    console.log('Current auth status:', this.authService.isAuthenticated());
-    console.log('Current token:', this.authService.getToken() ? 'exists' : 'null');
-    
-    this.router.navigate([url]).then(success => {
-      console.log('Navigation result:', success);
-    }).catch(err => {
+    this.router.navigate([url]).catch(err => {
       console.error('Navigation error:', err);
     });
   }

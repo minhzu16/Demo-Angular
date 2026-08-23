@@ -1,0 +1,201 @@
+<header class="nexmart-header" [class.scrolled]="isScrolled">
+  <!-- === TOP BAR === -->
+  <div class="header-top">
+    <div class="nx-container header-top-inner">
+      <!-- Logo -->
+      <a routerLink="/home" class="nexmart-logo" id="header-logo">
+        <div class="logo-icon">
+          <i class="bi bi-lightning-charge-fill"></i>
+        </div>
+        <div class="logo-text">
+          <span class="logo-nex">Nex</span><span class="logo-mart">Mart</span>
+        </div>
+        <div class="logo-tagline">Next-gen Marketplace</div>
+      </a>
+
+      <!-- Search Bar -->
+      <div class="header-search" id="header-search">
+        <div class="search-input-wrapper">
+          <i class="bi bi-search search-icon"></i>
+          <input
+            type="text"
+            class="search-input"
+            id="main-search-input"
+            placeholder="Tìm sản phẩm, thương hiệu, shop..."
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="onSearch()"
+            (focus)="searchFocused = true"
+            (blur)="onSearchBlur()"
+            autocomplete="off"
+          >
+          <button class="search-btn" id="main-search-btn" (click)="onSearch()">
+            <i class="bi bi-search"></i>
+            <span>Tìm</span>
+          </button>
+        </div>
+
+        <!-- Search suggestions dropdown -->
+        <div class="search-suggestions" *ngIf="searchFocused && recentSearches.length > 0">
+          <div class="suggestions-label">Tìm kiếm gần đây</div>
+          <div class="suggestion-item" *ngFor="let s of recentSearches" (mousedown)="selectSearch(s)">
+            <i class="bi bi-clock-history"></i>
+            <span>{{ s }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Actions -->
+      <div class="header-actions">
+
+        <!-- Wishlist -->
+        <a routerLink="/wishlist" class="action-item" id="header-wishlist" *ngIf="profile">
+          <i class="bi bi-heart"></i>
+          <span class="action-label">Yêu thích</span>
+        </a>
+
+        <!-- Notification Bell -->
+        <div class="action-item notif-trigger" id="header-notifications" *ngIf="profile" (click)="onNotificationToggle()" (clickOutside)="showNotificationsDropdown = false">
+          <div class="icon-wrapper">
+            <i class="bi bi-bell"></i>
+            <span class="notif-badge" *ngIf="unreadNotificationsCount > 0" [class.animate]="unreadNotificationsCount > 0">
+              {{ unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount }}
+            </span>
+          </div>
+          <span class="action-label">Thông báo</span>
+
+          <!-- Notification Panel -->
+          <div class="notif-panel" [class.show]="showNotificationsDropdown" (click)="$event.stopPropagation()">
+            <div class="notif-panel-header">
+              <h6>Thông báo</h6>
+              <button class="mark-all-btn" *ngIf="unreadNotificationsCount > 0" (click)="markAllRead()">
+                Đánh dấu đã đọc
+              </button>
+            </div>
+            <div class="notif-panel-body">
+              <div class="notif-empty" *ngIf="!notifications || notifications.length === 0">
+                <i class="bi bi-bell-slash"></i>
+                <p>Không có thông báo mới</p>
+              </div>
+              <a
+                *ngFor="let notif of notifications"
+                href="javascript:void(0)"
+                class="notif-item"
+                [class.unread]="!notif.isRead"
+                (click)="markAsRead(notif)"
+              >
+                <div class="notif-icon-wrap" [class]="'type-' + (notif.type.toLowerCase() || 'default')">
+                  <i class="bi" [class]="getNotifIcon(notif.type)"></i>
+                </div>
+                <div class="notif-content">
+                  <span class="notif-title">{{ notif.title }}</span>
+                  <span class="notif-msg">{{ notif.message }}</span>
+                  <span class="notif-time">{{ notif.createdAt | date:'HH:mm, dd/MM' }}</span>
+                </div>
+                <div class="unread-dot" *ngIf="!notif.isRead"></div>
+              </a>
+            </div>
+            <div class="notif-panel-footer">
+              <a routerLink="/notifications">Xem tất cả thông báo →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Menu -->
+        <div class="action-item user-menu-trigger" id="header-user" *ngIf="profile" (click)="showUserMenu = !showUserMenu" (clickOutside)="showUserMenu = false">
+          <div class="user-avatar">
+            <span>{{ getAvatarLetter() }}</span>
+          </div>
+          <div class="user-info hide-mobile">
+            <span class="user-greeting">Xin chào 👋</span>
+            <span class="user-name">{{ profile.fullName || profile.username }}</span>
+          </div>
+          <i class="bi bi-chevron-down chevron" [class.rotated]="showUserMenu"></i>
+
+          <div class="user-dropdown" [class.show]="showUserMenu" (click)="$event.stopPropagation()">
+            <div class="user-dropdown-header">
+              <div class="user-avatar-lg">{{ getAvatarLetter() }}</div>
+              <div>
+                <div class="udd-name">{{ profile.fullName || profile.username }}</div>
+                <div class="udd-email">{{ profile.email }}</div>
+              </div>
+            </div>
+            <div class="udd-nexpoints" *ngIf="profile" routerLink="/profile">
+              <i class="bi bi-lightning-charge-fill"></i>
+              <span>NexPoints: <strong>{{ profile.loyaltyPoints || 0 | number }}</strong></span>
+            </div>
+            <hr class="udd-divider">
+            <a class="udd-item" routerLink="/profile" (click)="showUserMenu = false">
+              <i class="bi bi-person-circle"></i> Tài khoản của tôi
+            </a>
+            <a class="udd-item" routerLink="/orders" (click)="showUserMenu = false">
+              <i class="bi bi-bag-check"></i> Đơn hàng
+            </a>
+            <a class="udd-item" routerLink="/wishlist" (click)="showUserMenu = false">
+              <i class="bi bi-heart"></i> Yêu thích
+            </a>
+            <a class="udd-item" routerLink="/seller/dashboard" *ngIf="profile.role === 'SELLER' || profile.role === 'ADMIN'" (click)="showUserMenu = false">
+              <i class="bi bi-shop"></i> Kênh người bán
+            </a>
+            <a class="udd-item" routerLink="/admin/dashboard" *ngIf="profile.role === 'ADMIN'" (click)="showUserMenu = false">
+              <i class="bi bi-gear"></i> Quản trị
+            </a>
+            <hr class="udd-divider">
+            <a class="udd-item logout" href="javascript:void(0)" (click)="logout()">
+              <i class="bi bi-box-arrow-right"></i> Đăng xuất
+            </a>
+          </div>
+        </div>
+
+        <!-- Guest Login -->
+        <a routerLink="/login" class="login-btn" id="header-login" *ngIf="!profile">
+          <i class="bi bi-person"></i>
+          <span>Đăng nhập</span>
+        </a>
+
+        <!-- Cart -->
+        <a routerLink="/cart" class="cart-btn" id="header-cart">
+          <div class="cart-icon-wrap">
+            <i class="bi bi-cart3"></i>
+            <span class="cart-badge" *ngIf="cartItemsCount > 0" [class.bounce]="cartBounce">
+              {{ cartItemsCount > 99 ? '99+' : cartItemsCount }}
+            </span>
+          </div>
+          <span class="action-label hide-mobile">Giỏ hàng</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- === CATEGORY STRIP === -->
+  <div class="category-strip">
+    <div class="nx-container cat-inner">
+      <a routerLink="/products" class="cat-item all-cat" id="cat-all">
+        <i class="bi bi-grid-3x3-gap-fill"></i>
+        <span>Tất cả</span>
+      </a>
+      <div class="cat-divider"></div>
+      <a
+        *ngFor="let cat of categories; let i = index"
+        [routerLink]="['/products']"
+        [queryParams]="{ q: cat.name || cat }"
+        class="cat-item"
+        [id]="'cat-' + i"
+      >
+        <i class="bi" [class]="cat.icon || 'bi-tag'"></i>
+        <span>{{ cat.name || cat }}</span>
+      </a>
+
+      <div class="cat-spacer"></div>
+
+      <a routerLink="/flash-sale" class="cat-item flash-cat" id="cat-flash">
+        <i class="bi bi-lightning-charge-fill"></i>
+        <span>Flash Sale</span>
+        <span class="live-dot"></span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- Click outside overlay for menus -->
+<div class="menu-overlay" *ngIf="showUserMenu || showNotificationsDropdown"
+  (click)="showUserMenu = false; showNotificationsDropdown = false"></div>
