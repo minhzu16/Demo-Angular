@@ -1,0 +1,81 @@
+<div class="admin-products">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 text-gray-800 m-0"><i class="bi bi-box-seam me-2"></i>Duyệt Sản Phẩm</h1>
+  </div>
+
+  <div class="card shadow mb-4">
+    <div class="card-body">
+      <div *ngIf="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+
+      <div class="table-responsive" *ngIf="!loading">
+        <table class="table table-hover table-bordered align-middle text-center">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Hình ảnh</th>
+              <th>Tên sản phẩm</th>
+              <th>SKU</th>
+              <th>Giá</th>
+              <th>Cửa hàng (Seller)</th>
+              <th>Trạng thái</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let product of products">
+              <td>#{{ product.id }}</td>
+              <td>
+                <img [src]="product.thumbnailUrl || 'assets/placeholder-product.jpg'" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+              </td>
+              <td class="text-start" style="max-width: 250px;">
+                <a [routerLink]="['/products', product.id]" target="_blank" class="text-decoration-none fw-bold text-dark">
+                  {{ product.name }}
+                </a>
+              </td>
+              <td>{{ product.sku }}</td>
+              <td>{{ product.price | number:'1.0-0' }}đ</td>
+              <td>Seller #{{ product.sellerId || 'N/A' }}</td>
+              <td>
+                <span class="badge" [ngClass]="getStatusBadgeClass(product.status || 'ACTIVE')">
+                  {{ product.status || 'ACTIVE' }}
+                </span>
+              </td>
+              <td>
+                <div class="dropdown">
+                  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Đổi trạng thái
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li><button class="dropdown-item text-success" (click)="updateStatus(product, 'ACTIVE')"><i class="bi bi-check-circle me-2"></i>Duyệt (ACTIVE)</button></li>
+                    <li><button class="dropdown-item text-warning" (click)="updateStatus(product, 'PENDING')"><i class="bi bi-clock me-2"></i>Chờ duyệt (PENDING)</button></li>
+                    <li><button class="dropdown-item text-danger" (click)="updateStatus(product, 'REJECTED')"><i class="bi bi-x-circle me-2"></i>Từ chối (REJECTED)</button></li>
+                  </ul>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="products.length === 0">
+              <td colspan="8" class="text-muted py-4">Không có sản phẩm nào.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-center mt-4" *ngIf="totalElements > 0">
+          <ul class="pagination">
+            <li class="page-item" [class.disabled]="page === 1">
+              <a class="page-link" (click)="onPageChange(page - 1)" style="cursor: pointer;">Trước</a>
+            </li>
+            <li class="page-item active">
+              <a class="page-link">{{ page }}</a>
+            </li>
+            <li class="page-item" [class.disabled]="page * size >= totalElements">
+              <a class="page-link" (click)="onPageChange(page + 1)" style="cursor: pointer;">Sau</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

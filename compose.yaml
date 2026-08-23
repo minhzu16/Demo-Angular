@@ -85,24 +85,33 @@ services:
   # Backend Gateway
   backend:
     build:
-      context: ./backend/gateway
-      dockerfile: Dockerfile.simple
+      context: ./backend
+      dockerfile: gateway/Dockerfile
     container_name: backend
     ports:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CONFIG_ADDITIONAL_LOCATION=/app/config/
       - DB_USERNAME=${MYSQL_USER:-sa}
       - DB_PASSWORD=${MYSQL_PASSWORD:-123}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=admin
+      - RABBITMQ_PASSWORD=admin123
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - tiki_net
+    volumes:
+      - ./backend/gateway/config:/app/config:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
       timeout: 10s
@@ -113,8 +122,8 @@ services:
   # Auth Service
   auth:
     build:
-      context: ./backend/auth
-      dockerfile: Dockerfile.simple
+      context: ./backend
+      dockerfile: auth/Dockerfile
     container_name: auth
     ports:
       - "8082:8082"
@@ -136,15 +145,14 @@ services:
   # Product Service
   product:
     build:
-      # context: ./backend
-      # dockerfile: product/Dockerfile
-      context: ./backend/product
-      dockerfile: Dockerfile.simple
+      context: ./backend
+      dockerfile: product/Dockerfile
     container_name: product
     ports:
       - "8081:8081"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_PORT=8081
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USERNAME=${MYSQL_USER:-sa}
@@ -177,7 +185,7 @@ services:
       dockerfile: order/Dockerfile
     container_name: order
     ports:
-      - "8083:8083"
+      - "8093:8083"  # Đổi cổng bên ngoài thành 8093 để tránh xung đột
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - DB_USERNAME=${MYSQL_USER:-sa}
@@ -192,8 +200,8 @@ services:
   # Cart Service
   cart:
     build:
-      context: ./backend
-      dockerfile: cart/Dockerfile
+      context: ./backend/cart
+      dockerfile: Dockerfile.fixed
     container_name: cart
     ports:
       - "8085:8085"
@@ -204,8 +212,14 @@ services:
       - DB_USERNAME=${MYSQL_USER:-sa}
       - DB_PASSWORD=${MYSQL_PASSWORD:-123}
       - PRODUCT_SERVICE_URL=http://product:8081
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=admin
+      - RABBITMQ_PASSWORD=admin123
     depends_on:
       mysql:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - tiki_net
@@ -269,6 +283,8 @@ services:
       - DB_PASSWORD=${MYSQL_PASSWORD:-123}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - SECURITY_USERNAME=admin
+      - SECURITY_PASSWORD=admin
     depends_on:
       mysql:
         condition: service_healthy
@@ -277,6 +293,12 @@ services:
     networks:
       - tiki_net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -u $$SECURITY_USERNAME:$$SECURITY_PASSWORD http://localhost:8086/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # Template Storage Service
   template-storage:
@@ -294,6 +316,8 @@ services:
       - DB_PASSWORD=${MYSQL_PASSWORD:-123}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - SECURITY_USERNAME=admin
+      - SECURITY_PASSWORD=admin
     depends_on:
       mysql:
         condition: service_healthy
@@ -302,6 +326,12 @@ services:
     networks:
       - tiki_net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -u $$SECURITY_USERNAME:$$SECURITY_PASSWORD http://localhost:8087/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # Notification Service
   notification:
@@ -319,12 +349,20 @@ services:
       - DB_PASSWORD=${MYSQL_PASSWORD:-123}
       - EMAIL_USERNAME=${EMAIL_USERNAME:-}
       - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
+      - SECURITY_USERNAME=admin
+      - SECURITY_PASSWORD=admin
     depends_on:
       mysql:
         condition: service_healthy
     networks:
       - tiki_net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -u $$SECURITY_USERNAME:$$SECURITY_PASSWORD http://localhost:8088/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # Review Service
   review:
@@ -343,12 +381,20 @@ services:
       - ORDER_SERVICE_URL=http://order:8083
       - PRODUCT_SERVICE_URL=http://product:8081
       - NOTIFICATION_SERVICE_URL=http://notification:8088
+      - SECURITY_USERNAME=admin
+      - SECURITY_PASSWORD=admin
     depends_on:
       mysql:
         condition: service_healthy
     networks:
       - tiki_net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -u $$SECURITY_USERNAME:$$SECURITY_PASSWORD http://localhost:8089/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # Frontend
   frontend:
@@ -357,7 +403,7 @@ services:
       dockerfile: Dockerfile
     container_name: frontend
     ports:
-      - "4200:80"
+      - "4201:80"
     depends_on:
       - backend
       - product

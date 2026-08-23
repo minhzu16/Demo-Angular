@@ -1,0 +1,96 @@
+<div class="order-detail-page page-fade-in">
+  <div class="page-header">
+    <div class="container">
+      <a routerLink="/orders" class="back-link"><i class="bi bi-arrow-left me-2"></i>Đơn hàng của tôi</a>
+      <h1 class="page-title" *ngIf="order">Đơn hàng #{{ order.id }}</h1>
+    </div>
+  </div>
+
+  <div class="container py-4">
+    <!-- Loading -->
+    <div *ngIf="loading" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Đang tải...</span>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="alert alert-danger">
+      <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+      <a routerLink="/orders" class="ms-3">Quay lại danh sách</a>
+    </div>
+
+    <div *ngIf="!loading && !error && order" class="row g-4">
+      <!-- Left column -->
+      <div class="col-lg-8">
+
+        <!-- Status Timeline -->
+        <div class="detail-card mb-4" *ngIf="order.status !== 'CANCELLED'">
+          <h5 class="card-heading"><i class="bi bi-map me-2"></i>Trạng thái đơn hàng</h5>
+          <div class="status-timeline">
+            <div *ngFor="let step of statusSteps; let i = index"
+                 class="timeline-step"
+                 [class.done]="i <= currentStepIndex()"
+                 [class.active]="i === currentStepIndex()">
+              <div class="step-dot"><i class="bi" [ngClass]="getStatusIcon(step)"></i></div>
+              <div class="step-label">{{ getStatusText(step) }}</div>
+              <div class="step-line" *ngIf="i < statusSteps.length - 1"></div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="order.status === 'CANCELLED'" class="alert alert-danger d-flex align-items-center">
+          <i class="bi bi-x-octagon-fill fs-4 me-3"></i>
+          <div><strong>Đơn hàng đã bị hủy</strong><br><small>Nếu bạn đã thanh toán, hoàn tiền sẽ được xử lý trong 3-5 ngày làm việc.</small></div>
+        </div>
+
+        <!-- Items -->
+        <div class="detail-card">
+          <h5 class="card-heading"><i class="bi bi-box-seam me-2"></i>Sản phẩm ({{ order.items ? order.items.length : 0 }})</h5>
+          <div class="order-items">
+            <div *ngFor="let item of order.items" class="order-item">
+              <img [src]="item.imageUrl || 'assets/placeholder-product.jpg'"
+                   [alt]="item.productName" loading="lazy" class="item-img">
+              <div class="item-info">
+                <div class="item-name">{{ item.productName }}</div>
+                <div class="item-qty">Số lượng: {{ item.quantity }}</div>
+              </div>
+              <div class="item-price">{{ formatPrice(item.price * item.quantity) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <div class="col-lg-4">
+        <!-- Summary -->
+        <div class="detail-card mb-3">
+          <h5 class="card-heading"><i class="bi bi-receipt me-2"></i>Tóm tắt</h5>
+          <div class="summary-row"><span>Tạm tính</span><span>{{ formatPrice(order.totalAmount) }}</span></div>
+          <div class="summary-row"><span>Phí vận chuyển</span><span class="text-success fw-bold">Miễn phí</span></div>
+          <div class="summary-divider"></div>
+          <div class="summary-total"><span>Tổng cộng</span><span class="total-amount">{{ formatPrice(order.totalAmount) }}</span></div>
+        </div>
+
+        <!-- Shipping info -->
+        <div class="detail-card mb-3">
+          <h5 class="card-heading"><i class="bi bi-geo-alt me-2"></i>Địa chỉ giao hàng</h5>
+          <p class="text-muted small mb-1">{{ order.shippingAddress || 'Chưa có thông tin' }}</p>
+        </div>
+
+        <!-- Payment -->
+        <div class="detail-card mb-3">
+          <h5 class="card-heading"><i class="bi bi-credit-card me-2"></i>Thanh toán</h5>
+          <p class="text-muted small mb-0">{{ order.paymentMethod || 'COD' }}</p>
+        </div>
+
+        <!-- Dates -->
+        <div class="detail-card">
+          <h5 class="card-heading"><i class="bi bi-calendar3 me-2"></i>Thời gian</h5>
+          <div class="summary-row"><span class="text-muted small">Đặt hàng</span><span class="small">{{ formatDate(order.createdAt) }}</span></div>
+          <div *ngIf="order.updatedAt" class="summary-row"><span class="text-muted small">Cập nhật</span><span class="small">{{ formatDate(order.updatedAt) }}</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

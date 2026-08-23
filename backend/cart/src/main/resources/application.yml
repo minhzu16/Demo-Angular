@@ -1,3 +1,7 @@
+server:
+  port: 8085
+  shutdown: graceful
+
 spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:docker}
@@ -5,22 +9,60 @@ spring:
     name: cart-service
   config:
     import: optional:classpath:application-resilience.yml
+  # Database configuration moved to profile-specific files
+  jpa:
+    open-in-view: false  # Tối ưu performance
+    properties:
+      hibernate:
+        jdbc.batch_size: 50
+        order_inserts: true
+        order_updates: true
+  # Redis configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: -1ms
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
 
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678}
   expiration: ${JWT_EXPIRATION:900000}
 
-# Service URLs
-product:
-  service:
-    url: ${PRODUCT_SERVICE_URL:http://localhost:8084}
-
+# Actuator Configuration
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true  # Kubernetes readiness/liveness
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+# Circuit Breaker & Retry Configuration moved to application-resilience.yml
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.tiki.templatestorage: ${LOG_LEVEL:INFO}
+    org.springframework.web: INFO
+    org.hibernate.SQL: ${HIBERNATE_LOG_LEVEL:INFO}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${HIBERNATE_LOG_LEVEL:INFO}

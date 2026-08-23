@@ -1,0 +1,40 @@
+-- Seed Categories (10 main categories + subcategories)
+INSERT IGNORE INTO categories (id, name, parent_id) VALUES
+(1, 'Điện Thoại - Máy Tính Bảng', NULL),
+(2, 'Điện Tử - Điện Lạnh', NULL),
+(3, 'Laptop - Thiết Bị IT', NULL),
+(4, 'Phụ Kiện - Thiết Bị Số', NULL),
+(5, 'Máy Ảnh - Quay Phim', NULL),
+(6, 'Apple', 1),
+(7, 'Samsung', 1),
+(8, 'Sony Tivi', 2),
+(9, 'LG Tủ Lạnh', 2),
+(10, 'Dell Laptop', 3);
+
+-- Seed Products (25 products for initial testing)
+INSERT IGNORE INTO products (id, sku, name, description, price, list_price, brand, category_id, thumbnail_url, seller_id, shop_id, stock, status, created_at) VALUES
+(1, 'IPHONE-15-PRO', 'iPhone 15 Pro Max 256GB Platinum', 'Siêu phẩm mới nhất từ Apple với khung Titanium', 32000000, 34990000, 'Apple', 6, 'https://salt.tikicdn.com/cache/750x750/ts/product/a5/6e/8b/a56e8b...jpg', 1, 1, 100, 'ACTIVE', NOW()),
+(2, 'IPHONE-14', 'iPhone 14 Plus 128GB Blue', 'Màn hình lớn cho trải nghiệm giải trí tuyệt vời', 19000000, 22500000, 'Apple', 6, 'https://salt.tikicdn.com/cache/750x750/ts/product/4b/3c/6e/4b3c6e...jpg', 1, 1, 200, 'ACTIVE', NOW()),
+(3, 'SAM-S24-ULTRA', 'Samsung Galaxy S24 Ultra Titanium Grey', 'Bút S-Pen quyền năng và AI thông minh tiên tiến nhất', 28000000, 31990000, 'Samsung', 7, 'https://salt.tikicdn.com/cache/750x750/ts/product/ea/4a/1b/ea4a1b...jpg', 2, 2, 85, 'ACTIVE', NOW()),
+(4, 'SAM-A54', 'Samsung Galaxy A54 5G Awesome White', 'Camera sắc nét, màn hình mượt mà cho phân khúc tầm trung', 8500000, 10490000, 'Samsung', 7, 'https://salt.tikicdn.com/cache/750x750/ts/product/b2/1c/5d/b21c5d...jpg', 2, 2, 110, 'ACTIVE', NOW()),
+(5, 'SONY-X80L-65', 'Android Tivi Sony 4K 65 inch KD-65X80L', 'Hình ảnh sắc nét với bộ xử lý X1 4K HDR', 18500000, 21900000, 'Sony', 8, 'https://salt.tikicdn.com/cache/750x750/ts/product/f3/2b/4e/f32b4e...jpg', 3, 3, 45, 'ACTIVE', NOW()),
+(6, 'LG-GR-B247JS', 'Tủ lạnh LG Inverter 613 lít Side by side', 'Công nghệ làm lạnh đa chiều, kháng khuẩn vượt trội', 15900000, 19500000, 'LG', 9, 'https://salt.tikicdn.com/cache/750x750/ts/product/e4/1a/3c/e41a3c...jpg', 4, 9, 30, 'ACTIVE', NOW()),
+(7, 'DELL-XPS-15-9530', 'Laptop Dell XPS 15 9530 i7-13700H', 'Hiệu suất đỉnh cao cho những nhà sáng tạo chuyên nghiệp', 48000000, 52900000, 'Dell', 10, 'https://salt.tikicdn.com/cache/750x750/ts/product/d1/5a/2c/d15a2c...jpg', 5, 4, 15, 'ACTIVE', NOW()),
+(8, 'WH-1000XM5', 'Tai nghe chống ồn Sony WH-1000XM5', 'Đỉnh cao của công nghệ chống ồn và âm thanh độ phân giải cao', 7900000, 9490000, 'Sony', 15, 'https://salt.tikicdn.com/cache/750x750/ts/product/b5/4d/3a/b54d3a...jpg', 3, 3, 60, 'ACTIVE', NOW()),
+(9, 'IPAD-PRO-M2', 'iPad Pro 11 inch M2 WiFi 128GB', 'Máy tính bảng mạnh nhất thế giới với chip M2', 21500000, 23990000, 'Apple', 6, 'https://salt.tikicdn.com/cache/750x750/ts/product/c3/1e/8f/c31e8f...jpg', 1, 1, 40, 'ACTIVE', NOW()),
+(10, 'MACBOOK-AIR-M2', 'Macbook Air M2 13 inch 8GB/256GB', 'Thiết kế mỏng nhẹ, pin cả ngày dài', 24500000, 28990000, 'Apple', 13, 'https://salt.tikicdn.com/cache/750x750/ts/product/f2/4c/9d/f24c9d...jpg', 1, 1, 55, 'ACTIVE', NOW()),
+(11, 'XIAOMI-14-ULTRA', 'Xiaomi 14 Ultra 5G', 'Ống kính Leica, cảm biến 1 inch đỉnh cao nhiếp ảnh', 22500000, 26990000, 'Xiaomi', 8, 'https://salt.tikicdn.com/cache/750x750/ts/product/a1/2b/3c/a12b3c...jpg', 6, 5, 25, 'ACTIVE', NOW()),
+(12, 'OPPO-FIND-X7', 'Oppo Find X7 Ultra', 'Camera Hasselblad 4 ống kính', 21900000, 24500000, 'Oppo', 20, 'https://salt.tikicdn.com/cache/750x750/ts/product/d2/3e/4f/d23e4f...jpg', 7, 6, 20, 'ACTIVE', NOW()),
+(13, 'PANASONIC-NA-V90', 'Máy giặt Panasonic Inverter 9kg', 'Công nghệ Blue Ag+ diệt khuẩn 99.9%', 9800000, 11500000, 'Panasonic', 11, 'https://salt.tikicdn.com/cache/750x750/ts/product/e5/6g/7h/e56g7h...jpg', 9, 8, 12, 'ACTIVE', NOW()),
+(14, 'HP-PAVILION-15', 'HP Pavilion 15 Core i5-12Gen', 'Laptop văn phòng mỏng nhẹ hiệu năng tốt', 14500000, 16900000, 'HP', 3, 'https://salt.tikicdn.com/cache/750x750/ts/product/h1/2j/3k/h12j3k...jpg', 12, 11, 35, 'ACTIVE', NOW()),
+(15, 'ASUS-ROG-STRIX', 'Laptop Gaming Asus ROG Strix G16', 'Chiến game cực đỉnh với RTX 4060', 35900000, 39900000, 'Asus', 3, 'https://salt.tikicdn.com/cache/750x750/ts/product/a2/3l/4m/a23l4m...jpg', 13, 12, 18, 'ACTIVE', NOW()),
+(16, 'LOGITECH-MX-MASTER-3S', 'Chuột không dây Logitech MX Master 3S', 'Chuột cao cấp cho công việc sáng tạo', 2250000, 2690000, 'Logitech', 14, 'https://salt.tikicdn.com/cache/750x750/ts/product/l1/2n/3o/l12n3o...jpg', 17, 16, 90, 'ACTIVE', NOW()),
+(17, 'RAZER-DEATHADDER-V3', 'Razer DeathAdder V3 Pro White', 'Chuột gaming nhẹ nhất thế giới', 3450000, 3990000, 'Razer', 14, 'https://salt.tikicdn.com/cache/750x750/ts/product/r1/2p/3q/r12p3q...jpg', 18, 17, 50, 'ACTIVE', NOW()),
+(18, 'CORSAIR-VENG-32GB', 'RAM Corsair Vengeance LPX 32GB DDR4', 'Nâng cấp hiệu năng PC vượt trội', 1850000, 2200000, 'Corsair', 3, 'https://salt.tikicdn.com/cache/750x750/ts/product/c1/2r/3s/c12r3s...jpg', 19, 18, 100, 'ACTIVE', NOW()),
+(19, 'WD-BLACK-SN850X', 'SSD WD Black SN850X 1TB NVMe', 'Tốc độ cực nhanh cho PS5 và PC', 2650000, 3100000, 'WD', 3, 'https://salt.tikicdn.com/cache/750x750/ts/product/w1/2t/3u/w12t3u...jpg', 21, 20, 75, 'ACTIVE', NOW()),
+(20, 'CANON-EOS-R6', 'Máy ảnh Canon EOS R6 Mark II', 'Ghi lại mọi khoảnh khắc với tốc độ siêu nhanh', 58000000, 64900000, 'Canon', 17, 'https://salt.tikicdn.com/cache/750x750/ts/product/c2/3v/4w/c23v4w...jpg', 1, 1, 5, 'ACTIVE', NOW()),
+(21, 'LENOVO-LEGION-5', 'Laptop Lenovo Legion 5 Pro i7-13Gen', 'Màn hình 2K, card đồ họa RTX 4070 mạnh mẽ', 38500000, 42900000, 'Lenovo', 3, 'https://salt.tikicdn.com/cache/750x750/ts/product/l2/4x/5y/l24x5y...jpg', 15, 14, 20, 'ACTIVE', NOW()),
+(22, 'APPLE-WATCH-ULTRA-2', 'Apple Watch Ultra 2 Ocean Band', 'Đồng hồ thông minh dành cho những người thích mạo hiểm', 19900000, 21990000, 'Apple', 6, 'https://salt.tikicdn.com/cache/750x750/ts/product/a3/5z/1a/a35z1a...jpg', 1, 1, 30, 'ACTIVE', NOW()),
+(23, 'SAMSUNG-WATCH-6', 'Samsung Galaxy Watch 6 Classic 43mm', 'Thiết kế sang trọng, tính năng theo dõi sức khỏe vượt trội', 7200000, 8990000, 'Samsung', 7, 'https://salt.tikicdn.com/cache/750x750/ts/product/s1/2b/3c/s12b3c...jpg', 2, 2, 45, 'ACTIVE', NOW()),
+(24, 'MSI-CYBORG-15', 'Laptop Gaming MSI Cyborg 15 i5-12Gen', 'Thiết kế tương lai, card rời RTX 4050 mạnh mẽ', 18900000, 21500000, 'MSI', 3, 'https://salt.tikicdn.com/cache/750x750/ts/product/m2/3d/4e/m23d4e...jpg', 16, 15, 22, 'ACTIVE', NOW()),
+(25, 'SONY-PS5-SLIM', 'Máy chơi game PlayStation 5 Slim 1TB', 'Thế hệ tiếp theo của trải nghiệm chơi game tại gia', 12500000, 14990000, 'Sony', 4, 'https://salt.tikicdn.com/cache/750x750/ts/product/p1/2f/3g/p12f3g...jpg', 3, 3, 50, 'ACTIVE', NOW());

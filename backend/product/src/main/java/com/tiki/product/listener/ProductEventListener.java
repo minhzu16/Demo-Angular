@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  * Listens to product events and updates Elasticsearch index
  */
 @Slf4j
-// @Component - Disabled: RabbitMQ queue setup issue, not critical for API tests
+@Component
 @RequiredArgsConstructor
 public class ProductEventListener {
     

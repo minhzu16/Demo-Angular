@@ -4,7 +4,10 @@ import com.tiki.auth.dto.AuthResponse;
 import com.tiki.auth.dto.LoginRequest;
 import com.tiki.auth.dto.RegisterRequest;
 import com.tiki.auth.entity.User;
+import com.tiki.auth.exception.InvalidCredentialsException;
 import com.tiki.auth.service.AuthService;
+import com.tiki.auth.service.LoginAttemptService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * Auth Controller - Handles authentication and user management
- * Refactored with Lombok for cleaner code
  */
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     
     private final AuthService authService;
+    private final LoginAttemptService loginAttemptService;
     
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -31,9 +34,25 @@ public class AuthController {
     }
     
     @PostMapping("/login")
-    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-        log.info("User login attempt: {}", request.getUsernameOrEmail());
-        return authService.login(request);
+    public AuthResponse login(@Valid @RequestBody LoginRequest request,
+                              HttpServletRequest httpRequest) {
+        // Brute-force protection — block after 5 failed attempts
+        String lockKey = request.getUsernameOrEmail();
+        if (loginAttemptService.isBlocked(lockKey)) {
+            long remaining = loginAttemptService.getRemainingLockoutSeconds(lockKey);
+            log.warn("SECURITY: Blocked login attempt for '{}' (locked for {}s)", lockKey, remaining);
+            throw new InvalidCredentialsException(
+                "Tài khoản tạm thời bị khóa do quá nhiều lần nhập sai. Vui lòng thử lại sau " + remaining + " giây.");
+        }
+
+        try {
+            AuthResponse response = authService.login(request);
+            loginAttemptService.loginSucceeded(lockKey);
+            return response;
+        } catch (Exception e) {
+            loginAttemptService.loginFailed(lockKey);
+            throw e;
+        }
     }
     
     @PostMapping("/refresh")

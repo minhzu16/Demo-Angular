@@ -16,10 +16,10 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/analytics/products")
+@RequiredArgsConstructor
 public class ProductAnalyticsController {
     
-    // Service temporarily disabled
-    // private final ProductAnalyticsService productAnalyticsService;
+    private final ProductAnalyticsService productAnalyticsService;
     
     /**
      * Get product performance
@@ -30,8 +30,8 @@ public class ProductAnalyticsController {
             @RequestParam(defaultValue = "30") int days) {
         
         log.info("GET /products/{}/performance - days: {}", productId, days);
-        // ProductPerformanceDTO performance = productAnalyticsService.getProductPerformance(productId, days);
-        return ResponseEntity.ok(Map.of("productId", productId, "views", 0, "sales", 0));
+        ProductPerformanceDTO performance = productAnalyticsService.getProductPerformance(productId, days);
+        return ResponseEntity.ok(performance);
     }
     
     /**
@@ -66,8 +66,8 @@ public class ProductAnalyticsController {
             @RequestParam(defaultValue = "30") int days) {
         
         log.info("GET /category-performance - shopId: {}, days: {}", shopId, days);
-        // List<Map<String, Object>> performance = productAnalyticsService.getCategoryPerformance(shopId, days);
-        return ResponseEntity.ok(List.of());
+        List<Map<String, Object>> performance = productAnalyticsService.getCategoryPerformance(shopId, days);
+        return ResponseEntity.ok(performance);
     }
     
     /**
@@ -79,7 +79,7 @@ public class ProductAnalyticsController {
             @RequestParam(defaultValue = "30") int days) {
         
         log.info("GET /wishlist-trends - shopId: {}, days: {}", shopId, days);
-        // Map<String, Object> trends = productAnalyticsService.getWishlistTrends(shopId, days);
-        return ResponseEntity.ok(Map.of("shopId", shopId, "trends", List.of()));
+        Map<String, Object> trends = productAnalyticsService.getWishlistTrends(shopId, days);
+        return ResponseEntity.ok(trends);
     }
 }

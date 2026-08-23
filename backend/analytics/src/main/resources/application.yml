@@ -1,26 +1,44 @@
 server:
   port: 8090
+  shutdown: graceful
 
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:docker}
   application:
     name: analytics-service
-  
+  config:
+    import: optional:classpath:application-resilience.yml
+  # Database configuration moved to profile-specific files
+  jpa:
+    open-in-view: false  # Tối ưu performance
+    properties:
+      hibernate:
+        jdbc.batch_size: 50
+        order_inserts: true
+        order_updates: true
+  # Redis configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: -1ms
   cache:
-    type: simple
-    cache-names:
-      - revenue
-      - topProducts
-      - orderStats
-      - aov
-      - conversion
-      - dashboard
-      - productPerformance
-      - categoryPerformance
-      - wishlistTrends
-      - customerAcquisition
-      - clvDistribution
-      - customerRetention
-      - purchasePatterns
+    type: simple  # Use simple in-memory cache instead of Redis
+    # type: redis
+    # redis:
+    #   time-to-live: 3600000
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678}
+  expiration: ${JWT_EXPIRATION:900000}
 
 # Actuator Configuration
 management:
@@ -31,9 +49,21 @@ management:
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true  # Kubernetes readiness/liveness
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
 
-# Logging
+# Circuit Breaker & Retry Configuration moved to application-resilience.yml
+
+# Logging Configuration
 logging:
   level:
-    com.tiki.analytics: DEBUG
+    root: INFO
+    com.tiki.templatestorage: ${LOG_LEVEL:INFO}
     org.springframework.web: INFO
+    org.hibernate.SQL: ${HIBERNATE_LOG_LEVEL:INFO}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${HIBERNATE_LOG_LEVEL:INFO}

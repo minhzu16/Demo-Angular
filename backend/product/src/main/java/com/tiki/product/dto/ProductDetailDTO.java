@@ -38,6 +38,11 @@ public class ProductDetailDTO {
 
     private String attributesJson;
     private List<ProductImageDTO> images;
+    private Double averageRating;
+    private Integer reviewCount;
+    private Long sellerId;
+    private Long shopId;
+    private Integer stock;
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
@@ -61,4 +66,17 @@ public class ProductDetailDTO {
     public void setAttributesJson(String attributesJson) { this.attributesJson = attributesJson; }
     public List<ProductImageDTO> getImages() { return images; }
     public void setImages(List<ProductImageDTO> images) { this.images = images; }
+    public Double getAverageRating() { return averageRating; }
+    public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }
+    public Integer getReviewCount() { return reviewCount; }
+    public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }
+    public Long getSellerId() { return sellerId; }
+    public void setSellerId(Long sellerId) { this.sellerId = sellerId; }
+    public Long getShopId() { return shopId; }
+    public void setShopId(Long shopId) { this.shopId = shopId; }
+    public Integer getStock() { return stock; }
+    public void setStock(Integer stock) { this.stock = stock; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    private String status;
 }

@@ -20,12 +20,12 @@
            style="cursor: pointer;">
           <i [class]="'anticon anticon-' + item.icon + ' me-3'"></i>
           <span [class.d-none]="collapsed">{{ item.label }}</span>
-          <i *ngIf="item.children && !collapsed" 
+          <i *ngIf="item?.children && !collapsed" 
              class="anticon anticon-right ms-auto"></i>
         </a>
         
         <!-- Submenu -->
-        <ul *ngIf="item.children && !collapsed" class="nav flex-column ms-4">
+        <ul *ngIf="item?.children && !collapsed" class="nav flex-column ms-4">
           <li *ngFor="let child of item.children" class="nav-item">
             <a class="nav-link py-2" (click)="navigateTo(child.url)" style="cursor: pointer;">
               {{ child.label }}

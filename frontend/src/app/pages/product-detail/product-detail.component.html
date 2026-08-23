@@ -1,0 +1,246 @@
+<div class="product-detail-page page-fade-in">
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="full-page-loading">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p>Đang tải thông tin sản phẩm...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="nx-container mt-5">
+    <div class="alert alert-danger mb-4">
+      <i class="bi bi-exclamation-triangle"></i><span>{{ error }}</span>
+    </div>
+    <button class="btn btn-outline-primary" (click)="goBack()"><i class="bi bi-arrow-left"></i> Về trang trước</button>
+  </div>
+
+  <div *ngIf="!loading && !error && product" class="nx-container py-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="nx-breadcrumb mb-4">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a routerLink="/home"><i class="bi bi-house"></i> Trang chủ</a></li>
+        <li class="breadcrumb-item"><a routerLink="/products">Sản phẩm</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+      </ol>
+    </nav>
+
+    <!-- Product Info Section -->
+    <div class="product-grid mb-5">
+      
+      <!-- Gallery Column -->
+      <div class="gallery-col animate-float-up" style="animation-delay: 0.1s;">
+        <div class="image-gallery-card">
+          <div class="main-image">
+            <!-- ✅ BUG 36 FIX: Load fallback placeholder when image URL fails to load -->
+            <img [src]="selectedImage" [alt]="product.name" (error)="selectedImage = 'assets/placeholder-product.jpg'">
+            <div class="flash-sale-badge" *ngIf="product.discount">
+              <i class="bi bi-lightning-fill"></i> Giảm {{ product.discount }}%
+            </div>
+            <button class="wishlist-btn-float"><i class="bi bi-heart"></i></button>
+          </div>
+          <div class="thumbnail-list" *ngIf="images && images.length > 1">
+            <div *ngFor="let img of images; let i = index" class="thumbnail" [class.active]="img === selectedImage" (click)="selectImage(img)">
+              <img [src]="img" [alt]="product.name" (error)="images[i] = 'assets/placeholder-product.jpg'">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Column -->
+      <div class="info-col animate-float-up" style="animation-delay: 0.2s;">
+        <div class="product-info-card">
+          <h1 class="product-title">{{ product.name }}</h1>
+
+          <div class="product-meta">
+            <div class="rating-box">
+              <span class="rating-num">{{ product.averageRating || 0 | number:'1.1-1' }}</span>
+              <div class="stars">
+                <span *ngFor="let star of getStarArray(product.averageRating || 0)" class="star filled">★</span>
+                <span *ngFor="let star of getStarArray(5 - (product.averageRating || 0))" class="star">★</span>
+              </div>
+            </div>
+            <div class="meta-divider"></div>
+            <div class="meta-item"><strong>{{ product.reviewCount || 0 }}</strong> Đánh giá</div>
+            <div class="meta-divider"></div>
+            <div class="meta-item"><strong>{{ product.soldCount || 0 }}</strong> Đã bán</div>
+          </div>
+
+          <div class="price-box mb-4">
+            <div class="price-main">{{ formatPrice(product.price) }}</div>
+            <div class="price-original" *ngIf="product.originalPrice">{{ formatPrice(product.originalPrice) }}</div>
+            <div class="loyalty-earn">
+              <i class="bi bi-lightning-charge-fill text-warning"></i> +{{ ((product.price)/10000) | number:'1.0-0' }} NexPoints
+            </div>
+          </div>
+
+          <!-- Variants -->
+          <div class="product-variants" *ngIf="variants && variants.length > 0">
+            <label>Phân loại sản phẩm</label>
+            <div class="variant-grid">
+              <button *ngFor="let variant of variants" class="variant-btn" 
+                      [class.active]="selectedVariant?.id === variant.id" (click)="selectVariant(variant)">
+                {{ variant.name }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Quantity -->
+          <div class="product-quantity">
+            <label>Số lượng</label>
+            <div class="qty-wrap">
+              <div class="qty-control">
+                <button class="qty-btn" (click)="decreaseQuantity()"><i class="bi bi-dash"></i></button>
+                <input type="number" class="qty-input" [(ngModel)]="quantity" min="1" [max]="product.stock || 99">
+                <button class="qty-btn" (click)="increaseQuantity()"><i class="bi bi-plus"></i></button>
+              </div>
+              <span class="stock-status text-muted">{{ product.stock || 0 }} sản phẩm có sẵn</span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="product-actions mt-4">
+            <button class="btn btn-primary btn-xl w-100 mb-3 btn-buy" (click)="buyNow()">
+              <i class="bi bi-lightning-charge-fill"></i> Mua ngay
+            </button>
+            <button class="btn btn-outline-primary btn-xl w-100 btn-cart" (click)="addToCart()" [disabled]="addingToCart">
+              <span *ngIf="addingToCart" class="spinner-border spinner-border-sm me-2"></span>
+              <i class="bi bi-cart-plus me-2" *ngIf="!addingToCart"></i> {{ addingToCart ? 'Đang thêm...' : 'Thêm vào giỏ hàng' }}
+            </button>
+          </div>
+
+          <div class="trust-features mt-4">
+            <div class="tf-item"><i class="bi bi-shield-check text-success"></i> Hàng chính hãng 100%</div>
+            <div class="tf-item"><i class="bi bi-arrow-counterclockwise text-primary"></i> 30 ngày đổi trả miễn phí</div>
+            <div class="tf-item"><i class="bi bi-truck text-warning"></i> Giao siêu tốc 2H</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Left content: Details & Reviews -->
+      <div class="col-lg-8 animate-float-up" style="animation-delay: 0.3s;">
+        <!-- Description Tabs Menu (Native CSS behavior) -->
+        <div class="content-card mb-4">
+          <div class="card-header border-bottom">
+            <h4 class="m-0"><i class="bi bi-file-text"></i> Mô tả sản phẩm</h4>
+          </div>
+          <div class="card-body">
+            <div class="product-description" [innerHTML]="product.description || 'Chưa có thông tin chi tiết.'"></div>
+          </div>
+        </div>
+
+        <!-- Reviews -->
+        <div class="content-card" id="reviews">
+          <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+            <h4 class="m-0"><i class="bi bi-star-half"></i> Khách hàng đánh giá ({{ totalReviews }})</h4>
+            <div class="avg-rating-badge" *ngIf="totalReviews > 0">
+              <span class="score">{{ averageRating | number:'1.1-1' }}</span> / 5
+            </div>
+          </div>
+          
+          <div class="card-body">
+            <!-- Add Review -->
+            <div class="review-form-box mb-4" *ngIf="isLoggedIn">
+              <h6 class="mb-3">Viết đánh giá của bạn</h6>
+              <div class="rating-select mb-3">
+                <span *ngFor="let i of [1,2,3,4,5]" (click)="newRating = i" [class.active]="newRating >= i" class="star"><i class="bi bi-star-fill"></i></span>
+              </div>
+              <textarea class="nx-form-control mb-3" rows="3" [(ngModel)]="newComment" placeholder="Sản phẩm này thế nào? Chia sẻ trải nghiệm của bạn nhé..."></textarea>
+              <input type="text" class="nx-form-control mb-3" [(ngModel)]="newMediaUrl" placeholder="Đính kèm link hình ảnh/video (cách nhau bằng dấu phẩy) - không bắt buộc" />
+              <button class="btn btn-primary" (click)="submitReview()" [disabled]="!newComment.trim()">Gửi đánh giá</button>
+            </div>
+
+            <div class="alert alert-info" *ngIf="!isLoggedIn">
+              <i class="bi bi-info-circle"></i> Xin vui lòng <a routerLink="/login" class="fw-bold">đăng nhập</a> để đánh giá.
+            </div>
+
+            <!-- Review List -->
+            <div class="review-list mt-4" *ngIf="!reviewsLoading">
+              <div *ngIf="reviews.length === 0" class="empty-reviews text-center py-5 text-muted">
+                <i class="bi bi-chat-heart display-1"></i>
+                <p class="mt-3">Sản phẩm chưa có đánh giá nào.</p>
+              </div>
+
+              <div *ngFor="let review of reviews" class="review-item">
+                <div class="reviewer-avatar">{{ review.userName ? review.userName.charAt(0).toUpperCase() : 'U' }}</div>
+                <div class="review-content">
+                  <div class="review-header">
+                    <span class="reviewer-name">{{ review.userName }}</span>
+                    <span class="review-date">{{ review.createdAt | date:'dd/MM/yyyy' }}</span>
+                  </div>
+                  <div class="review-stars text-warning" style="font-size: 12px; margin-bottom: 8px;">
+                     <span *ngFor="let star of getStarArray(review.rating)">★</span>
+                     <span *ngFor="let star of getStarArray(5 - review.rating)" class="opacity-25">★</span>
+                  </div>
+                  <div class="review-text">{{ review.comment }}</div>
+                  <div class="review-media mt-2" *ngIf="review.mediaUrls && review.mediaUrls.length > 0">
+                    <img *ngFor="let url of review.mediaUrls" [src]="url" class="review-img-thumbnail me-2" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;" alt="Review Image">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-center py-5" *ngIf="reviewsLoading">
+              <div class="spinner-border text-primary" role="status"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right content: Specs -->
+      <div class="col-lg-4 animate-float-up" style="animation-delay: 0.4s;" *ngIf="product.specifications">
+        <div class="content-card sticky-sidebar">
+          <div class="card-header border-bottom">
+            <h4 class="m-0"><i class="bi bi-sliders"></i> Thông số kỹ thuật</h4>
+          </div>
+          <div class="card-body p-0">
+            <table class="specs-table">
+              <tbody>
+                <tr *ngFor="let spec of product.specifications | keyvalue">
+                  <td class="spec-label">{{ spec.key }}</td>
+                  <td class="spec-value">{{ spec.value }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Recommendations -->
+    <div class="row mt-5" *ngIf="recommendations && recommendations.length > 0">
+      <div class="col-12">
+        <h4 class="mb-4"><i class="bi bi-stars text-warning"></i> Sản phẩm tương tự / Mua kèm</h4>
+        <div class="products-row stagger-children d-flex gap-3 overflow-auto pb-3">
+          <div class="nx-product-card" *ngFor="let p of recommendations; let i = index"
+            [routerLink]="['/products', p.id]" style="min-width: 250px;">
+            <div class="product-img">
+              <img [src]="p.imageUrl || 'assets/placeholder-product.jpg'" [alt]="p.name" loading="lazy">
+              <div class="product-badges">
+                <span class="flash-sale-badge" style="font-size: 10px; padding: 3px 7px;" *ngIf="p.discount">-{{ p.discount }}%</span>
+              </div>
+            </div>
+            <div class="product-body">
+              <div class="product-seller"><i class="bi bi-shop"></i> {{ p.shopName || 'NexMart Store' }}</div>
+              <p class="product-name">{{ p.name }}</p>
+              <div class="product-pricing">
+                <span class="price-primary">{{ formatPrice(p.price) }}</span>
+                <span class="price-original" *ngIf="p.originalPrice">{{ formatPrice(p.originalPrice) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Widget -->
+  <app-chat-widget
+    *ngIf="product && isLoggedIn"
+    [shopId]="product.shopId || product.sellerId || 1"
+    [shopName]="product.shopName || 'NexMart Store'">
+  </app-chat-widget>
+</div>

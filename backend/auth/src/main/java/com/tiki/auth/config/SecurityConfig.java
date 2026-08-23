@@ -10,17 +10,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
-    private final CorsConfig corsConfig;
+    private final CorsConfigurationSource corsConfigurationSource;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, CorsConfig corsConfig) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, CorsConfigurationSource corsConfigurationSource) {
         this.jwtAuthFilter = jwtAuthFilter;
-        this.corsConfig = corsConfig;
+        this.corsConfigurationSource = corsConfigurationSource;
     }
 
     @Bean
@@ -31,36 +32,35 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/v1/auth/login",
-                    "/api/v1/auth/register",
-                    "/api/v1/auth/refresh",
-                    "/api/v1/health",
-                    "/actuator/**",
-                    "/api/v1/otp/**",
-                    "/api/v1/password-recovery/**",
-                    "/api/v1/email-verification/**",
-                    "/api/v1/security-events/**",
-                    "/api/v1/auth/login-history",
-                    "/api/v1/users/me",
-                    "/api/v1/users/me/**"
-                ).permitAll()
-                .requestMatchers("/api/v1/auth/me").authenticated()
-                .requestMatchers("/api/v1/auth/logout*").authenticated()
-                .requestMatchers("/api/v1/addresses/**").authenticated()
-                .requestMatchers("/api/v1/seller-application/**").authenticated()
-                .requestMatchers("/api/v1/sessions/**").authenticated()
-                .requestMatchers("/api/v1/2fa/**").authenticated()
-                .anyRequest().authenticated()
-            )
-            .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-        
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/refresh",
+                                "/api/v1/health",
+                                "/actuator/**",
+                                "/api/v1/otp/**",
+                                "/api/v1/password-recovery/**",
+                                "/api/v1/email-verification/**",
+                                "/api/v1/security-events/**",
+                                "/api/v1/auth/login-history",
+                                "/api/v1/users/me",
+                                "/api/v1/users/me/**",
+                                "/api/v1/users/*/role",
+                                "/api/v1/users/*/points")
+                        .permitAll()
+                        .requestMatchers("/api/v1/auth/me").authenticated()
+                        .requestMatchers("/api/v1/auth/logout*").authenticated()
+                        .requestMatchers("/api/v1/addresses/**").authenticated()
+                        .requestMatchers("/api/v1/seller-application/**").authenticated()
+                        .requestMatchers("/api/v1/sessions/**").authenticated()
+                        .requestMatchers("/api/v1/2fa/**").authenticated()
+                        .anyRequest().authenticated())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 }

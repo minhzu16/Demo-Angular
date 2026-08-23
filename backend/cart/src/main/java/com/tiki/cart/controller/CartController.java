@@ -35,10 +35,12 @@ public class CartController {
 
     /** Get or create cart */
     @GetMapping
-    public CartDto getCart(@RequestParam(required = false) Integer userId,
+    public CartDto getCart(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+                           @RequestParam(required = false) Integer userId,
                            @RequestParam(required = false) String sessionId){
-        log.debug("Getting cart for userId: {}, sessionId: {}", userId, sessionId);
-        return cartService.getCart(userId, sessionId);
+        Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
+        log.debug("Getting cart for userId: {}, sessionId: {}", finalUserId, sessionId);
+        return cartService.getCart(finalUserId, sessionId);
     }
 
     /** Get cart by user ID */
@@ -58,7 +60,7 @@ public class CartController {
     @ResponseStatus(HttpStatus.CREATED)
     public CartDto addItemSimple(
             @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
-            @RequestBody AddItemRequest req){
+            @Valid @RequestBody AddItemRequest req){
         Integer userId = userIdHeader != null ? userIdHeader.intValue() : req.getUserId();
         Integer productId = req.getProductId();
         Integer quantity = req.getQuantity() != null ? req.getQuantity() : 1;
@@ -72,44 +74,54 @@ public class CartController {
 
     /** Add item to cart (legacy) */
     @PostMapping("/items")
-    public ResponseEntity<CartDto> addItem(@RequestParam(required = false) Integer userId,
+    public ResponseEntity<CartDto> addItem(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+                                           @RequestParam(required = false) Integer userId,
                                            @RequestParam(required = false) String sessionId,
                                            @Valid @RequestBody AddItemRequest req){
+        Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
         // ✅ SECURITY FIX: Fetch giá từ ProductService
         Double price = fetchProductPrice(req.getProductId());
         log.info("Legacy endpoint: Fetched price {} for product {}", price, req.getProductId());
-        return ResponseEntity.ok(cartService.addItem(userId,sessionId,req.getProductId(),req.getQuantity(),price));
+        return ResponseEntity.ok(cartService.addItem(finalUserId,sessionId,req.getProductId(),req.getQuantity(),price));
     }
 
     /** Update quantity */
     @PutMapping("/items/{productId}")
-    public ResponseEntity<CartDto> updateQty(@RequestParam(required = false) Integer userId,
+    public ResponseEntity<CartDto> updateQty(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+                                             @RequestParam(required = false) Integer userId,
                                              @RequestParam(required = false) String sessionId,
                                              @PathVariable Integer productId,
                                              @Valid @RequestBody UpdateQtyRequest req){
-        return ResponseEntity.ok(cartService.updateQty(userId,sessionId,productId,req.getQuantity()));
+        Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
+        return ResponseEntity.ok(cartService.updateQty(finalUserId,sessionId,productId,req.getQuantity()));
     }
 
     /** Remove item */
     @DeleteMapping("/items/{productId}")
-    public ResponseEntity<CartDto> remove(@RequestParam(required = false) Integer userId,
+    public ResponseEntity<CartDto> remove(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+                                          @RequestParam(required = false) Integer userId,
                                           @RequestParam(required = false) String sessionId,
                                           @PathVariable Integer productId){
-        return ResponseEntity.ok(cartService.removeItem(userId,sessionId,productId));
+        Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
+        return ResponseEntity.ok(cartService.removeItem(finalUserId,sessionId,productId));
     }
 
     /** Count items */
     @GetMapping("/count")
-    public ResponseEntity<Integer> count(@RequestParam(required = false) Integer userId,
+    public ResponseEntity<Integer> count(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+                                         @RequestParam(required = false) Integer userId,
                                          @RequestParam(required = false) String sessionId){
-        return ResponseEntity.ok(cartService.getCart(userId,sessionId).getTotalItems());
+        Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
+        return ResponseEntity.ok(cartService.getCart(finalUserId,sessionId).getTotalItems());
     }
 
     /** Total amount */
     @GetMapping("/total")
-    public ResponseEntity<Double> total(@RequestParam(required = false) Integer userId,
+    public ResponseEntity<Double> total(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+                                        @RequestParam(required = false) Integer userId,
                                         @RequestParam(required = false) String sessionId){
-        return ResponseEntity.ok(cartService.getCart(userId,sessionId).getTotalAmount());
+        Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
+        return ResponseEntity.ok(cartService.getCart(finalUserId,sessionId).getTotalAmount());
     }
 
     /** Merge guest cart to user cart */

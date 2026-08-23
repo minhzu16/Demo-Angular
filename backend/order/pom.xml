@@ -32,14 +32,8 @@
 			<groupId>tiki</groupId>
 			<artifactId>common</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>tiki</groupId>
-			<artifactId>auth</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>tiki</groupId>
-			<artifactId>product</artifactId>
-		</dependency>
+
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>

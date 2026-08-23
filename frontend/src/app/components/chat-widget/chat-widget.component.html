@@ -1,0 +1,70 @@
+<!-- Floating Chat Button -->
+<button class="chat-fab" (click)="toggleChat()" *ngIf="!isOpen" id="chat-fab-btn">
+  <i class="bi bi-chat-dots-fill"></i>
+  <span class="chat-fab-label">Chat với Shop</span>
+</button>
+
+<!-- Chat Window -->
+<div class="chat-window" *ngIf="isOpen" id="chat-window">
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="chat-header-info">
+      <div class="chat-avatar">
+        <i class="bi bi-shop"></i>
+      </div>
+      <div>
+        <div class="chat-shop-name">{{ shopName }}</div>
+        <div class="chat-status" [class.online]="isConnected">
+          <span class="status-dot"></span>
+          {{ isConnected ? 'Đang hoạt động' : 'Đang kết nối...' }}
+        </div>
+      </div>
+    </div>
+    <button class="chat-close-btn" (click)="closeChat()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <!-- Messages -->
+  <div class="chat-messages" #messagesContainer>
+    <div class="chat-welcome" *ngIf="messages.length === 0">
+      <i class="bi bi-chat-heart"></i>
+      <p>Xin chào! Bạn cần hỗ trợ gì?</p>
+    </div>
+
+    <div *ngFor="let msg of messages"
+         class="message-wrapper"
+         [class.own]="isOwnMessage(msg)"
+         [class.system]="msg.type === 'JOIN' || msg.type === 'LEAVE'">
+
+      <!-- System Message -->
+      <div class="system-message" *ngIf="msg.type === 'JOIN' || msg.type === 'LEAVE'">
+        <span>{{ msg.content }}</span>
+      </div>
+
+      <!-- Chat Bubble -->
+      <div class="chat-bubble" *ngIf="msg.type === 'CHAT'">
+        <div class="bubble-sender" *ngIf="!isOwnMessage(msg)">{{ msg.sender }}</div>
+        <div class="bubble-content">{{ msg.content }}</div>
+        <div class="bubble-time">{{ formatTime(msg.timestamp) }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="chat-input-wrapper">
+    <input type="text"
+           class="chat-input"
+           [(ngModel)]="newMessage"
+           (keydown)="onKeyDown($event)"
+           placeholder="Nhập tin nhắn..."
+           [disabled]="!isConnected"
+           id="chat-input">
+    <button class="chat-send-btn"
+            (click)="sendMessage()"
+            [disabled]="!newMessage.trim() || !isConnected"
+            id="chat-send-btn">
+      <i class="bi bi-send-fill"></i>
+    </button>
+  </div>
+</div>

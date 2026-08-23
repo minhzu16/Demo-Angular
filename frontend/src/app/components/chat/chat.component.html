@@ -1,0 +1,36 @@
+<div class="chat-widget" *ngIf="currentUser">
+  <!-- Chat Bubble Button -->
+  <button class="chat-bubble" (click)="toggleChat()" *ngIf="!isOpen">
+    <i class="bi bi-chat-dots-fill"></i> Chat
+  </button>
+
+  <!-- Chat Window -->
+  <div class="chat-window" *ngIf="isOpen">
+    <div class="chat-header">
+      <span>Chat với ID: <input type="number" [(ngModel)]="receiverId" class="receiver-input" /></span>
+      <button class="close-btn" (click)="toggleChat()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    
+    <div class="chat-body">
+      <div *ngIf="messages.length === 0" class="empty-chat">
+        Bắt đầu trò chuyện!
+      </div>
+      <div *ngFor="let msg of messages" 
+           class="chat-message" 
+           [ngClass]="{'my-message': msg.senderId === currentUser.id, 'other-message': msg.senderId !== currentUser.id}">
+        <div class="msg-sender">{{ msg.senderName }}</div>
+        <div class="msg-content">{{ msg.content }}</div>
+        <div class="msg-time">{{ msg.timestamp | date:'shortTime' }}</div>
+      </div>
+    </div>
+    
+    <div class="chat-footer">
+      <input type="text" 
+             [(ngModel)]="newMessage" 
+             (keyup.enter)="sendMessage()" 
+             placeholder="Nhập tin nhắn..." 
+             class="chat-input" />
+      <button (click)="sendMessage()" class="send-btn"><i class="bi bi-send-fill"></i></button>
+    </div>
+  </div>
+</div>

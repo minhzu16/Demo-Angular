@@ -25,7 +25,21 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/**", "/api/v1/health", "/api/v1/products/**").permitAll()
+                .requestMatchers(
+                    "/actuator/**", 
+                    "/api/v1/health", 
+                    "/products/**",
+                    "/api/v1/products", 
+                    "/api/v1/products/**", 
+                    "/api/v1/categories/**",
+                    "/categories/**",
+                    "/api/v1/brands/**",
+                    "/brands/**",
+                    "/api/v1/wishlist/**",
+                    "/api/v1/wishlists/**",
+                    "/api/v1/flash-sales/**",
+                    "/flash-sales/**"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> 

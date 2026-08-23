@@ -1,5 +1,6 @@
 server:
   port: 8083
+  shutdown: graceful
 
 spring:
   profiles:
@@ -8,46 +9,37 @@ spring:
     name: order-service
   config:
     import: optional:classpath:application-resilience.yml
-  datasource:
-    url: jdbc:mysql://mysql:3306/order_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
-    username: ${DB_USERNAME:sa}
-    password: ${DB_PASSWORD:123}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+  # Database configuration moved to profile-specific files
   jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+    open-in-view: false  # Tối ưu performance
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
+        jdbc.batch_size: 50
+        order_inserts: true
+        order_updates: true
+  # Redis configuration
   data:
     redis:
       host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
-  mail:
-    host: ${MAIL_HOST:}
-    port: ${MAIL_PORT:}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: -1ms
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
 
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678}
-  expiration: 86400000  # 24 hours
+  expiration: ${JWT_EXPIRATION:900000}
 
-# Stripe Configuration
-stripe:
-  secret-key: ${STRIPE_SECRET_KEY:sk_test_51234567890}
-  publishable-key: ${STRIPE_PUBLISHABLE_KEY:pk_test_51234567890}
-  webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_1234567890}
-
-# Actuator Configuration for Health Checks & Metrics
+# Actuator Configuration
 management:
   endpoints:
     web:
@@ -56,3 +48,31 @@ management:
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true  # Kubernetes readiness/liveness
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+# Circuit Breaker & Retry Configuration moved to application-resilience.yml
+# ✅ BUG 41 & 45 FIX: Enable Feign CircuitBreaker and add timeouts
+feign:
+  circuitbreaker:
+    enabled: true
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: BASIC
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.tiki.templatestorage: ${LOG_LEVEL:INFO}
+    org.springframework.web: INFO
+    org.hibernate.SQL: ${HIBERNATE_LOG_LEVEL:INFO}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${HIBERNATE_LOG_LEVEL:INFO}

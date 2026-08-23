@@ -21,11 +21,15 @@ public class RabbitMQConfig {
     public static final String ORDER_EXCHANGE = "order.exchange";
     public static final String PRODUCT_EXCHANGE = "product.exchange";
     public static final String NOTIFICATION_EXCHANGE = "notification.exchange";
+    public static final String REVIEW_EXCHANGE = "review.exchange";
     
     // Queue names
     public static final String ORDER_CREATED_QUEUE = "order.created.queue";
     public static final String ORDER_UPDATED_QUEUE = "order.updated.queue";
     public static final String PRODUCT_UPDATED_QUEUE = "product.updated.queue";
+    public static final String PRODUCT_ORDER_QUEUE = "product.order.queue";
+    public static final String REVIEW_CREATED_QUEUE = "review.created.queue";
+    public static final String REVIEW_DELETED_QUEUE = "review.deleted.queue";
     public static final String NOTIFICATION_EMAIL_QUEUE = "notification.email.queue";
     public static final String NOTIFICATION_SMS_QUEUE = "notification.sms.queue";
     
@@ -33,6 +37,8 @@ public class RabbitMQConfig {
     public static final String ORDER_CREATED_KEY = "order.created";
     public static final String ORDER_UPDATED_KEY = "order.updated";
     public static final String PRODUCT_UPDATED_KEY = "product.updated";
+    public static final String REVIEW_CREATED_KEY = "review.created";
+    public static final String REVIEW_DELETED_KEY = "review.deleted";
     public static final String NOTIFICATION_EMAIL_KEY = "notification.email";
     public static final String NOTIFICATION_SMS_KEY = "notification.sms";
     
@@ -113,6 +119,50 @@ public class RabbitMQConfig {
             .with(PRODUCT_UPDATED_KEY);
     }
     
+    @Bean
+    public Queue productOrderQueue() {
+        return QueueBuilder.durable(PRODUCT_ORDER_QUEUE).build();
+    }
+    
+    @Bean
+    public Binding productOrderBinding() {
+        return BindingBuilder
+            .bind(productOrderQueue())
+            .to(orderExchange())
+            .with(ORDER_CREATED_KEY);
+    }
+    
+    @Bean
+    public TopicExchange reviewExchange() {
+        return new TopicExchange(REVIEW_EXCHANGE);
+    }
+
+    @Bean
+    public Queue reviewCreatedQueue() {
+        return QueueBuilder.durable(REVIEW_CREATED_QUEUE).build();
+    }
+
+    @Bean
+    public Binding reviewCreatedBinding() {
+        return BindingBuilder
+            .bind(reviewCreatedQueue())
+            .to(reviewExchange())
+            .with(REVIEW_CREATED_KEY);
+    }
+
+    @Bean
+    public Queue reviewDeletedQueue() {
+        return QueueBuilder.durable(REVIEW_DELETED_QUEUE).build();
+    }
+
+    @Bean
+    public Binding reviewDeletedBinding() {
+        return BindingBuilder
+            .bind(reviewDeletedQueue())
+            .to(reviewExchange())
+            .with(REVIEW_DELETED_KEY);
+    }
+
     // ==================== NOTIFICATION EXCHANGE & QUEUES ====================
     
     @Bean

@@ -35,6 +35,7 @@
         <module>notification</module>
         <module>review</module>
         <module>analytics</module>
+        <module>chat</module>
 	</modules>
 	
     <dependencyManagement>

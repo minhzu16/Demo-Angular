@@ -1,7 +1,7 @@
 package com.tiki.order.config;
 
 import com.tiki.common.filter.JwtAuthenticationFilter;
-import lombok.RequiredArgsConstructor;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -19,17 +19,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
-@RequiredArgsConstructor
 public class SecurityConfig {
-    
-    private final JwtAuthenticationFilter jwtAuthFilter;
     
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/**", "/api/v1/health").permitAll()
+                .requestMatchers("/actuator/**", "/api/v1/health", "/error").permitAll()
+                .requestMatchers("/api/v1/orders/internal/**").permitAll() // Internal calls
+                .requestMatchers("/api/vouchers/valid", "/api/vouchers/validate").permitAll() // Public voucher endpoints
+                .requestMatchers("/api/shipping/zones", "/api/shipping/calculate", "/api/shipping/provinces", "/api/shipping/check").permitAll() // Public shipping endpoints
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> 
@@ -49,7 +49,7 @@ public class SecurityConfig {
                     response.getWriter().write("{\"error\":\"Forbidden\",\"message\":\"Insufficient permissions\"}");
                 })
             )
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(new JwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         
         return http.build();
     }

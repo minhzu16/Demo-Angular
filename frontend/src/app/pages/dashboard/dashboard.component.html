@@ -1,5 +1,5 @@
 <div class="dashboard">
-  <!-- Statistics Cards -->
+  <!-- Statistics Cards - Thống kê tổng quan -->
   <div class="row mb-4">
     <div class="col-lg-3 col-md-6 mb-3" *ngFor="let stat of stats">
       <app-card
@@ -14,46 +14,46 @@
     </div>
   </div>
 
-  <!-- Charts Row -->
+  <!-- Charts Row - Biểu đồ -->
   <div class="row mb-4">
     <!-- Monthly Chart -->
     <div class="col-lg-8 mb-3">
       <app-bar-chart 
-        title="Monthly Revenue"
-        [data]="[12000, 19000, 15000, 25000, 22000, 30000]"
-        [labels]="['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']">
+        title="Doanh thu 7 ngày gần nhất"
+        [data]="revenueData"
+        [labels]="revenueLabels">
       </app-bar-chart>
     </div>
     
     <!-- Income Overview -->
     <div class="col-lg-4 mb-3">
       <app-pie-chart 
-        title="Income Overview"
-        [data]="[45, 25, 20, 10]"
-        [labels]="['Online', 'Retail', 'Wholesale', 'Other']">
+        title="Trạng thái đơn hàng"
+        [data]="statusData" 
+        [labels]="statusLabels">
       </app-pie-chart>
     </div>
   </div>
 
   <!-- Tables and Sidebar Row -->
   <div class="row">
-    <!-- Recent Orders -->
+    <!-- Recent Orders - Đơn hàng gần đây -->
     <div class="col-lg-8 mb-3">
       <div class="table-container">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="mb-0">Recent Orders</h5>
-          <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+          <h5 class="mb-0">Đơn hàng gần đây</h5>
+          <a routerLink="/dashboard" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
         </div>
         
         <div class="table-responsive">
           <table class="table table-hover">
             <thead>
               <tr>
-                <th>Order ID</th>
-                <th>Customer</th>
-                <th>Product</th>
-                <th>Amount</th>
-                <th>Status</th>
+                <th>Mã đơn</th>
+                <th>Khách hàng</th>
+                <th>Sản phẩm</th>
+                <th>Tổng tiền</th>
+                <th>Trạng thái</th>
               </tr>
             </thead>
             <tbody>
@@ -73,11 +73,11 @@
       </div>
     </div>
     
-    <!-- Right Sidebar -->
+    <!-- Right Sidebar - Bên phải -->
     <div class="col-lg-4">
       <!-- Transaction History -->
       <div class="table-container mb-3">
-        <h5 class="mb-3">Transaction History</h5>
+        <h5 class="mb-3">Lịch sử giao dịch (demo)</h5>
         
         <div class="transaction-list">
           <div class="transaction-item" *ngFor="let transaction of transactions">
@@ -96,9 +96,9 @@
         </div>
       </div>
       
-      <!-- Help & Support -->
+      <!-- Help & Support - Trợ giúp -->
       <div class="table-container">
-        <h5 class="mb-3">Help & Support</h5>
+        <h5 class="mb-3">Trợ giúp & Hỗ trợ</h5>
         
         <div class="support-team mb-3">
           <div class="d-flex align-items-center mb-2">
@@ -117,15 +117,15 @@
         <div class="d-grid gap-2">
           <button class="btn btn-primary" (click)="goToProfile()">
             <i class="anticon anticon-user me-2"></i>
-            Go to Profile
+            Tới trang tài khoản
           </button>
           <button class="btn btn-primary">
             <i class="anticon anticon-customer-service me-2"></i>
-            Contact Support
+            Liên hệ hỗ trợ
           </button>
           <button class="btn btn-outline-secondary">
             <i class="anticon anticon-question-circle me-2"></i>
-            Help Center
+            Trung tâm trợ giúp
           </button>
         </div>
       </div>

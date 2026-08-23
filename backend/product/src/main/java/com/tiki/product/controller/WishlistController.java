@@ -20,7 +20,6 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class WishlistController {
     
     private final WishlistService wishlistService;

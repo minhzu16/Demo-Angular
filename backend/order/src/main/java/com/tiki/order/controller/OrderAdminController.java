@@ -2,7 +2,7 @@ package com.tiki.order.controller;
 
 import com.tiki.order.dto.OrderDto;
 import com.tiki.order.entity.OrderEntity;
-import com.tiki.order.service.OrderService;
+import com.tiki.order.service.OrderStatusService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -20,7 +20,7 @@ import java.util.Map;
 public class OrderAdminController {
 
     @Autowired
-    private OrderService orderService;
+    private OrderStatusService orderStatusService;
 
     @PutMapping("/{orderId}/status/{status}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -34,7 +34,7 @@ public class OrderAdminController {
         log.warn("ADMIN ACTION: User {} ({}) updating order {} status to {}", 
             adminUsername != null ? adminUsername : "unknown", adminId, orderId, status);
         
-        OrderDto dto = orderService.updateStatus(orderId, status);
+        OrderDto dto = orderStatusService.updateStatus(orderId, status);
         return ResponseEntity.ok(dto);
     }
     

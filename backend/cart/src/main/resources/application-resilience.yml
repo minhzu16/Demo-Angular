@@ -1,112 +1,49 @@
-# Resilience4j Circuit Breaker Configuration
-# Applied to all Feign clients for fault tolerance
-
 resilience4j:
   circuitbreaker:
     configs:
       default:
-        # Circuit breaker opens after 50% failure rate
+        slidingWindowSize: 100
         failureRateThreshold: 50
-        # Minimum 5 calls before calculating failure rate
-        minimumNumberOfCalls: 5
-        # Wait 10 seconds before trying again (half-open state)
         waitDurationInOpenState: 10000
-        # Allow 3 calls in half-open state to test
-        permittedNumberOfCallsInHalfOpenState: 3
-        # Sliding window of 10 calls
-        slidingWindowSize: 10
-        # Time-based sliding window
-        slidingWindowType: COUNT_BASED
-        # Record these exceptions as failures
-        recordExceptions:
-          - java.net.ConnectException
-          - java.io.IOException
-          - java.util.concurrent.TimeoutException
-        
+        permittedNumberOfCallsInHalfOpenState: 10
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        slowCallRateThreshold: 80
+        slowCallDurationThreshold: 2000
     instances:
-      # Shop Service Circuit Breaker
-      shop-service:
+      warehouseService:
         baseConfig: default
-        failureRateThreshold: 50
-        waitDurationInOpenState: 15000
-        
-      # Auth Service Circuit Breaker
-      auth-service:
+      shopService:
         baseConfig: default
-        failureRateThreshold: 60
-        waitDurationInOpenState: 10000
-        
-      # Order Service Circuit Breaker
-      order-service:
-        baseConfig: default
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10000
-        
-      # Review Service Circuit Breaker
-      review-service:
-        baseConfig: default
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10000
-
-  # Retry configuration
+  
   retry:
     configs:
       default:
         maxAttempts: 3
         waitDuration: 1000
-        retryExceptions:
-          - java.net.ConnectException
-          - java.io.IOException
-          - java.util.concurrent.TimeoutException
-          
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
     instances:
-      shop-service:
-        maxAttempts: 3
-        waitDuration: 500
-        
-      auth-service:
-        maxAttempts: 2
-        waitDuration: 1000
+      warehouseService:
+        baseConfig: default
+      shopService:
+        baseConfig: default
 
-  # Bulkhead (rate limiting per service)
-  bulkhead:
+  ratelimiter:
     configs:
       default:
-        maxConcurrentCalls: 10
-        maxWaitDuration: 1000
-        
+        limitForPeriod: 50
+        limitRefreshPeriod: 1s
+        timeoutDuration: 3s
     instances:
-      shop-service:
-        maxConcurrentCalls: 5
-      auth-service:
-        maxConcurrentCalls: 10
+      apiRateLimit:
+        baseConfig: default
 
-  # Time limiter (timeout)
   timelimiter:
     configs:
       default:
-        timeoutDuration: 3s
-        cancelRunningFuture: true
-        
+        timeoutDuration: 5s
     instances:
-      shop-service:
-        timeoutDuration: 2s
-      auth-service:
-        timeoutDuration: 3s
-
-# Monitoring endpoints for circuit breakers
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,circuitbreakers,circuitbreakerevents
-  endpoint:
-    health:
-      show-details: always
-  health:
-    circuitbreakers:
-      enabled: true
-  metrics:
-    distribution:
-      percentiles-histogram:
-        resilience4j.circuitbreaker.calls: true
+      warehouseService:
+        baseConfig: default
+      shopService:
+        baseConfig: default

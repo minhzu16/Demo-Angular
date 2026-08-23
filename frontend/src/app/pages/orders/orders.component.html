@@ -1,0 +1,91 @@
+<div class="orders-page page-fade-in">
+  <!-- Header -->
+  <div class="orders-header">
+    <div class="nx-container">
+      <h1 class="page-title"><i class="bi bi-clock-history"></i> Lịch Sử Đơn Hàng</h1>
+      <p class="page-subtitle">Theo dõi trạng thái và lịch sử mua sắm của bạn trên NexMart</p>
+    </div>
+  </div>
+
+  <div class="nx-container py-5">
+    <!-- Loading -->
+    <div *ngIf="loading" class="orders-loading">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p>Đang tải lịch sử đơn hàng...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="alert alert-danger mx-auto" style="max-width: 600px;">
+      <i class="bi bi-exclamation-triangle"></i><span>{{ error }}</span>
+    </div>
+
+    <!-- Empty -->
+    <div *ngIf="!loading && !error && orders.length === 0" class="empty-orders animate-float-up">
+      <div class="empty-icon"><i class="bi bi-inbox"></i></div>
+      <h3>Chưa có đơn hàng nào</h3>
+      <p>Bạn chưa thực hiện giao dịch nào trên NexMart. Hãy khám phá hàng ngàn sản phẩm đang chờ bạn!</p>
+      <a routerLink="/products" class="btn btn-primary btn-xl">
+        <i class="bi bi-shop me-2"></i> Mua sắm ngay
+      </a>
+    </div>
+
+    <!-- Order List -->
+    <div *ngIf="!loading && orders.length > 0" class="order-list">
+      <div *ngFor="let order of orders; let i = index" class="order-card animate-float-up" [style.animation-delay]="(i * 0.1) + 's'">
+        
+        <div class="order-header">
+          <div class="header-left">
+            <span class="order-id">#{{ order.id }}</span>
+            <span class="order-date"><i class="bi bi-calendar3"></i> {{ formatDate(order.createdAt) }}</span>
+          </div>
+          <div class="header-right">
+            <!-- Timeline Status Indicator -->
+            <div class="order-status-timeline">
+               <div class="timeline-step" [class.active]="order.status !== 'CANCELLED'" [class.cancelled]="order.status === 'CANCELLED'">
+                 <div class="dot"></div><span>Đặt hàng</span>
+               </div>
+               <div class="timeline-line" [class.active]="order.status === 'SHIPPING' || order.status === 'DELIVERED'"></div>
+               <div class="timeline-step" [class.active]="order.status === 'SHIPPING' || order.status === 'DELIVERED'">
+                 <div class="dot"></div><span>Đang giao</span>
+               </div>
+               <div class="timeline-line" [class.active]="order.status === 'DELIVERED'"></div>
+               <div class="timeline-step" [class.active]="order.status === 'DELIVERED'">
+                 <div class="dot"></div><span>Nhận hàng</span>
+               </div>
+            </div>
+            <div class="status-badge" [ngClass]="getStatusBadgeClass(order.status)">
+              {{ getStatusText(order.status) }}
+            </div>
+          </div>
+        </div>
+
+        <div class="order-items">
+          <div *ngFor="let item of order.items" class="order-item">
+            <div class="item-img">
+              <img [src]="item.imageUrl || 'assets/placeholder-product.jpg'" [alt]="item.productName">
+            </div>
+            <div class="item-info">
+              <h6 class="item-name">{{ item.productName }}</h6>
+              <div class="item-meta">
+                <span class="item-qty">x{{ item.quantity }}</span>
+                <span class="item-price">{{ formatPrice(item.price) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="order-footer">
+          <div class="total-section">
+            <span class="total-label">Tổng cộng:</span>
+            <span class="total-val">{{ formatPrice(order.totalAmount) }}</span>
+            <span class="points-earned mt-1" *ngIf="order.status === 'DELIVERED'"><i class="bi bi-lightning-charge-fill text-warning"></i> Đã nhận {{ (order.totalAmount / 10000) | number:'1.0-0' }} NexPoints</span>
+          </div>
+          <div class="action-buttons">
+            <button class="btn btn-outline-primary" routerLink="/products"><i class="bi bi-arrow-repeat"></i> Mua lại</button>
+            <button class="btn btn-primary" [routerLink]="['/orders', order.id]">Chi tiết</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

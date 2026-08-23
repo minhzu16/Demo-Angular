@@ -31,6 +31,17 @@ public class AdminProductImageController {
     @PostMapping
     @Transactional
     public ResponseEntity<?> upload(@PathVariable Integer id, @RequestParam("file") MultipartFile file) throws IOException {
+        // ✅ BUG 12 FIX: Kiểm tra dung lượng file (tối đa 5MB)
+        if (file.getSize() > 5 * 1024 * 1024) {
+            return ResponseEntity.badRequest().body("Dung lượng ảnh không được vượt quá 5MB");
+        }
+        
+        // ✅ BUG 49 FIX: Kiểm tra định dạng file ảnh (tránh upload script)
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return ResponseEntity.badRequest().body("Chỉ chấp nhận định dạng ảnh (jpg, png, webp,...)");
+        }
+
         ProductEntity product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found: " + id));
         String url = fileStorageService.save(file);

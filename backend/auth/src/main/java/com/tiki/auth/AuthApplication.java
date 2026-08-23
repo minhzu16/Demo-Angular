@@ -9,11 +9,11 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import com.tiki.auth.config.JwtProperties;
 
 // Only scan auth package for components (controllers, services, etc.)
-// Common package is only used for entities (no component scanning)
+// Common package is used cho entity dùng chung, repository sẽ được định nghĩa lại ở từng service nếu cần
 @SpringBootApplication(scanBasePackages = "com.tiki.auth")
 @EnableConfigurationProperties(JwtProperties.class)
 @EnableFeignClients(basePackages = "com.tiki.auth.client")
-// Only enable auth repositories (no common repositories to avoid conflicts)
+// Chỉ enable repository trong module auth (UserRepository, AddressRepository, ...)
 @EnableJpaRepositories(basePackages = "com.tiki.auth.repository")
 @EntityScan(basePackages = {"com.tiki.auth.entity", "com.tiki.common.entity"})
 public class AuthApplication {

@@ -3,7 +3,7 @@ package com.tiki.order.controller;
 import com.tiki.order.dto.PaymentInfoDTO;
 import com.tiki.order.dto.PaymentRequestDto;
 import com.tiki.order.dto.PaymentResponseDto;
-import com.tiki.order.service.OrderService;
+import com.tiki.order.service.OrderPaymentService;
 import com.tiki.order.service.StripePaymentService;
 import com.tiki.order.exception.BadRequestException;
 import jakarta.validation.Valid;
@@ -20,7 +20,7 @@ public class PaymentController {
     private StripePaymentService stripePaymentService;
     
     @Autowired
-    private OrderService orderService;
+    private OrderPaymentService orderPaymentService;
     
     @PostMapping("/create")
     public ResponseEntity<PaymentResponseDto> createPayment(@Valid @RequestBody PaymentRequestDto request) {
@@ -80,7 +80,7 @@ public class PaymentController {
     @GetMapping("/order/{orderId}")
     public ResponseEntity<PaymentInfoDTO> getOrderPaymentInfo(@PathVariable Integer orderId) {
         try {
-            PaymentInfoDTO paymentInfo = orderService.getPaymentInfo(orderId);
+            PaymentInfoDTO paymentInfo = orderPaymentService.getPaymentInfo(orderId);
             return ResponseEntity.ok(paymentInfo);
         } catch (Exception e) {
             throw new BadRequestException("Failed to get payment info: " + e.getMessage());
@@ -94,7 +94,7 @@ public class PaymentController {
     @PutMapping("/order/{orderId}/confirm-cod")
     public ResponseEntity<PaymentInfoDTO> confirmCODPayment(@PathVariable Integer orderId) {
         try {
-            PaymentInfoDTO paymentInfo = orderService.confirmCODPayment(orderId);
+            PaymentInfoDTO paymentInfo = orderPaymentService.confirmCODPayment(orderId);
             return ResponseEntity.ok(paymentInfo);
         } catch (IllegalArgumentException e) {
             throw new BadRequestException(e.getMessage());
@@ -114,7 +114,7 @@ public class PaymentController {
             @RequestParam(required = false) String transactionId) {
         try {
             com.tiki.order.enums.PaymentStatus status = com.tiki.order.enums.PaymentStatus.valueOf(paymentStatus);
-            PaymentInfoDTO paymentInfo = orderService.updatePaymentStatus(orderId, status, transactionId);
+            PaymentInfoDTO paymentInfo = orderPaymentService.updatePaymentStatus(orderId, status, transactionId);
             return ResponseEntity.ok(paymentInfo);
         } catch (IllegalArgumentException e) {
             throw new BadRequestException("Invalid payment status: " + paymentStatus);

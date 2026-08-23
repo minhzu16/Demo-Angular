@@ -1,0 +1,167 @@
+.seller-chat-page {
+  min-height: 100vh;
+  background: #f4f6f9;
+}
+
+.chat-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.chat-page-header h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dc3545;
+}
+
+.connection-status.online .status-dot {
+  background: #43e97b;
+  box-shadow: 0 0 8px #43e97b;
+}
+
+/* Chat Container */
+.seller-chat-container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.chat-panel {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 160px);
+}
+
+.shop-info-bar {
+  padding: 0.75rem 1.25rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  font-weight: 600;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Messages */
+.chat-messages-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.empty-chat {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #adb5bd;
+}
+
+.empty-chat i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.empty-chat h5 {
+  color: #6c757d;
+}
+
+/* Messages */
+.msg-row {
+  display: flex;
+  margin-bottom: 0.75rem;
+}
+
+.msg-row.own {
+  justify-content: flex-end;
+}
+
+.msg-row.system {
+  justify-content: center;
+}
+
+.system-msg {
+  background: #e9ecef;
+  color: #6c757d;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+.msg-bubble {
+  max-width: 70%;
+  padding: 0.6rem 1rem;
+  border-radius: 16px;
+}
+
+.msg-row:not(.own) .msg-bubble {
+  background: #f0f2f5;
+  border-bottom-left-radius: 4px;
+}
+
+.msg-row.own .msg-bubble {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.msg-sender {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 2px;
+}
+
+.msg-text {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.msg-time {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  text-align: right;
+  margin-top: 4px;
+}
+
+/* Input Bar */
+.chat-input-bar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #e0e0e0;
+  background: #fff;
+}
+
+.chat-input {
+  border-radius: 24px;
+}
+
+.send-btn {
+  border-radius: 24px;
+  padding: 0.5rem 1.25rem;
+  white-space: nowrap;
+}

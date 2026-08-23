@@ -7,7 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -16,6 +18,14 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 public class User {
+    
+    public enum LoyaltyTier {
+        BRONZE, SILVER, GOLD, PLATINUM
+    }
+    
+    public enum UserStatus {
+        ACTIVE, BANNED
+    }
     
     public enum Role { 
         BUYER,
@@ -79,6 +89,35 @@ public class User {
 
     @Column(name = "email_verified_at")
     private LocalDateTime emailVerifiedAt;
+
+    @Column(name = "full_name")
+    private String fullName;
+
+    private Integer age;
+
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
+    private String address;
+
+    private String gender;
+
+    private String workplace;
+
+    @Column(name = "loyalty_points")
+    private Integer loyaltyPoints = 0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "loyalty_tier")
+    private LoyaltyTier loyaltyTier = LoyaltyTier.BRONZE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status = UserStatus.ACTIVE;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserAddress> addresses = new ArrayList<>();
 
     // Multi-role helper methods
     public Set<Role> getRoles() {

@@ -18,10 +18,9 @@ import java.util.List;
 
 /**
  * Product Search Controller using Elasticsearch
- * DISABLED: Elasticsearch not configured, using JPA search in ProductController instead
  */
 @Slf4j
-//@RestController
+@RestController
 @RequestMapping("/api/v1/products/search")
 @RequiredArgsConstructor
 public class ProductSearchController {
@@ -66,7 +65,7 @@ public class ProductSearchController {
             log.warn("Elasticsearch unavailable, falling back to JPA search: {}", e.getMessage());
             // Fallback to JPA search
             String sortParam = sortField + "," + (direction == Sort.Direction.DESC ? "desc" : "asc");
-            PageResponseDTO<ProductListDTO> jpaResults = productService.search(searchQuery, category, brand, minPrice, maxPrice, sortParam, page, size);
+            PageResponseDTO<ProductListDTO> jpaResults = productService.search(searchQuery, category, brand, minPrice, maxPrice, sortParam, page, size, null);
             // Convert PageResponseDTO to Page
             org.springframework.data.domain.PageImpl<ProductListDTO> pageResults = 
                 new org.springframework.data.domain.PageImpl<>(jpaResults.getContent(), pageable, jpaResults.getTotalElements());

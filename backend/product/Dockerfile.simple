@@ -1,7 +1,26 @@
-# Simple Dockerfile using pre-built JAR
+# Optimized Simple Dockerfile using pre-built JAR
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
+
+# Thêm timezone và các packages cần thiết
+RUN apk add --no-cache tzdata curl && \
+    cp /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime && \
+    echo "Asia/Ho_Chi_Minh" > /etc/timezone && \
+    apk del tzdata
+
+# Cổng service
 EXPOSE 8081
-ENV JAVA_OPTS=""
+
+# Biến môi trường mặc định
+ENV SPRING_PROFILES_ACTIVE=docker \
+    JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication"
+
+# Copy JAR file
 COPY target/*.jar /app/app.jar
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8081/actuator/health || exit 1
+
+# Entrypoint
 ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar /app/app.jar"]

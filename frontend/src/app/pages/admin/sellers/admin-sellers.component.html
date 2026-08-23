@@ -1,0 +1,108 @@
+<div class="admin-sellers">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold text-dark mb-1">Quản lý Người bán</h2>
+      <p class="text-secondary mb-0">Duyệt và quản lý các đơn đăng ký trở thành người bán (Seller)</p>
+    </div>
+  </div>
+
+  <!-- Applications Table -->
+  <div class="card border-0 shadow-sm overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="bg-light">
+          <tr>
+            <th class="ps-4">Thông tin Shop</th>
+            <th>Thông tin Liên hệ</th>
+            <th>Ngày đăng ký</th>
+            <th>Trạng thái</th>
+            <th class="text-end pe-4">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let app of applications">
+            <td class="ps-4">
+              <div class="d-flex align-items-center">
+                <div class="shop-avatar me-3">{{app.shopName.charAt(0)}}</div>
+                <div>
+                  <div class="fw-bold text-dark">{{app.shopName}}</div>
+                  <small class="text-secondary d-block text-truncate" style="max-width: 200px;">{{app.shopDescription}}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex flex-column">
+                <small class="text-dark"><i class="bi bi-person me-1"></i> User ID: {{app.userId}}</small>
+                <small class="text-dark"><i class="bi bi-telephone me-1"></i> {{app.phoneNumber}}</small>
+                <small class="text-muted"><i class="bi bi-geo-alt me-1"></i> {{app.address}}</small>
+              </div>
+            </td>
+            <td>
+              <small class="text-secondary">{{app.createdAt | date:'dd/MM/yyyy HH:mm'}}</small>
+            </td>
+            <td>
+              <span [class]="getStatusClass(app.status)">{{app.status}}</span>
+            </td>
+            <td class="text-end pe-4">
+              <button class="btn btn-primary btn-sm px-3" *ngIf="app.status === 'PENDING'" (click)="openReviewModal(app)">
+                Xem & Duyệt
+              </button>
+              <div class="text-secondary small" *ngIf="app.status !== 'PENDING'">
+                Đã xử lý
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="applications.length === 0">
+            <td colspan="5" class="text-center py-5">
+              <div class="text-secondary">Chưa có đơn đăng ký nào</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Review Modal -->
+  <div class="modal-backdrop" *ngIf="showReviewModal" (click)="closeModal()"></div>
+  <div class="custom-modal shadow" *ngIf="showReviewModal">
+    <div class="modal-header d-flex justify-content-between align-items-center p-4 border-bottom">
+      <h5 class="modal-title fw-bold">Chi tiết đơn đăng ký</h5>
+      <button type="button" class="btn-close" (click)="closeModal()"></button>
+    </div>
+    
+    <div class="modal-body p-4" *ngIf="selectedApp">
+      <div class="row g-4">
+        <div class="col-md-12">
+          <label class="text-uppercase small fw-bold text-secondary mb-2 d-block">Thông tin cửa hàng</label>
+          <div class="p-3 bg-light rounded">
+            <h6 class="fw-bold mb-1">{{selectedApp.shopName}}</h6>
+            <p class="mb-2 text-secondary">{{selectedApp.shopDescription}}</p>
+            <div class="small">
+              <div class="mb-1"><strong>Mã số thuế:</strong> {{selectedApp.taxCode}}</div>
+              <div><strong>Giấy phép:</strong> {{selectedApp.businessLicense}}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-12">
+          <label class="text-uppercase small fw-bold text-secondary mb-2 d-block">Quyết định của Admin</label>
+          <div class="mb-3">
+            <textarea class="form-control" [(ngModel)]="rejectionReason" rows="3" placeholder="Lý do từ chối (nếu có)"></textarea>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <button class="btn btn-outline-danger w-100 py-2" (click)="reject()">
+                <i class="bi bi-x-circle me-2"></i> Từ chối
+              </button>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-success w-100 py-2" (click)="approve()">
+                <i class="bi bi-check-circle me-2"></i> Phê duyệt
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

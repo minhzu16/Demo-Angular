@@ -1,0 +1,370 @@
+/* ═══════════════════════════════════════════
+   NexMart Auth Page Styles
+   ═══════════════════════════════════════════ */
+
+.auth-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background: var(--nx-bg);
+  overflow: hidden;
+
+  @media (max-width: 992px) { flex-direction: column; }
+}
+
+/* ── Brand Panel ─────────────────────────── */
+.auth-brand {
+  position: relative;
+  flex: 1;
+  background: linear-gradient(135deg, rgba(13,13,26,0.9), rgba(13,13,26,0.95)), 
+              url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80') center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  overflow: hidden;
+  border-right: 1px solid var(--nx-border);
+
+  @media (max-width: 992px) {
+    flex: none;
+    padding: 60px 30px;
+    border-right: none;
+    border-bottom: 1px solid var(--nx-border);
+  }
+}
+
+.auth-brand-bg-orb {
+  position: absolute;
+  width: 500px; height: 500px;
+  background: rgba(108,99,255,0.15);
+  filter: blur(80px);
+  border-radius: 50%;
+  top: -100px; left: -100px;
+}
+
+.auth-brand-bg-orb-2 {
+  position: absolute;
+  width: 400px; height: 400px;
+  background: rgba(255,101,132,0.1);
+  filter: blur(80px);
+  border-radius: 50%;
+  bottom: -50px; right: -50px;
+}
+
+.brand-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 440px;
+  text-align: center;
+}
+
+.brand-logo {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, #6C63FF, #FF6584);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: white;
+  margin: 0 auto 24px;
+  box-shadow: 0 12px 32px rgba(108,99,255,0.4);
+}
+
+.brand-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 42px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  .logo-nex { color: #6C63FF; }
+  .logo-mart { color: white; }
+}
+
+.brand-tagline {
+  font-size: 16px;
+  color: var(--nx-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.brand-features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 24px;
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
+
+.bf-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--nx-text);
+
+  i {
+    width: 32px; height: 32px;
+    background: rgba(108,99,255,0.15);
+    color: var(--nx-primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+}
+
+/* ── Form Panel ──────────────────────────── */
+.auth-form-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  position: relative;
+  background: var(--nx-bg);
+
+  @media (max-width: 576px) { padding: 32px 20px; }
+}
+
+.back-home-btn {
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--nx-text-muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+
+  i { font-size: 14px; }
+  &:hover { color: var(--nx-text); transform: translateX(-3px); }
+  @media (max-width: 768px) { top: -40px; left: 10px; color: white; }
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  padding: 48px;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+
+  @media (max-width: 576px) {
+    padding: 32px 24px;
+    border-radius: 20px;
+  }
+}
+
+.auth-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--nx-text);
+  margin-bottom: 8px;
+}
+
+.auth-subtitle {
+  font-size: 14px;
+  color: var(--nx-text-muted);
+}
+
+/* Form Styles Override for Auth */
+.nx-form-group {
+  margin-bottom: 20px;
+}
+
+.nx-form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--nx-text-secondary);
+  margin-bottom: 8px;
+}
+
+.nx-input-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  > i:first-child {
+    position: absolute;
+    left: 16px;
+    color: var(--nx-text-muted);
+    font-size: 16px;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .nx-form-control {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--nx-border);
+    border-radius: 12px;
+    padding: 12px 16px 12px 42px;
+    color: var(--nx-text);
+    font-size: 14px;
+    transition: all 0.2s;
+
+    &:focus {
+      background: rgba(108,99,255,0.05);
+      border-color: var(--nx-primary);
+      box-shadow: 0 0 0 4px rgba(108,99,255,0.1);
+      outline: none;
+    }
+
+    &::placeholder { color: rgba(255,255,255,0.3); }
+
+    &.is-invalid {
+      border-color: var(--nx-danger);
+      background: rgba(255,71,87,0.05);
+    }
+  }
+
+  /* Eye button */
+  .nx-btn-icon {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--nx-text-muted);
+    width: 32px; height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+
+    &:hover { color: var(--nx-text); background: rgba(255,255,255,0.08); }
+  }
+}
+
+.nx-error-text {
+  font-size: 12px;
+  color: var(--nx-danger);
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &::before {
+    content: '\F33A'; /* bi-exclamation-circle */
+    font-family: "bootstrap-icons";
+  }
+}
+
+/* Checkbox */
+.nx-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  input[type="checkbox"] {
+    appearance: none;
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--nx-text-muted);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+
+    &:checked {
+      background: var(--nx-primary);
+      border-color: var(--nx-primary);
+
+      &::after {
+        content: '';
+        position: absolute;
+        left: 4px; top: 1px;
+        width: 6px; height: 10px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+    }
+  }
+
+  label {
+    font-size: 13px;
+    color: var(--nx-text-secondary);
+    cursor: pointer;
+  }
+}
+
+.nx-link-sm {
+  font-size: 13px;
+  color: var(--nx-primary-light);
+  text-decoration: none;
+  font-weight: 500;
+  &:hover { color: var(--nx-primary); text-decoration: underline; }
+}
+
+.alert {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &.alert-danger {
+    background: rgba(255,71,87,0.1);
+    border: 1px solid rgba(255,71,87,0.2);
+    color: #FF4757;
+  }
+}
+
+/* Social Login */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 24px 0;
+  color: var(--nx-text-muted);
+  font-size: 12px;
+
+  &::before, &::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--nx-border);
+  }
+
+  span { padding: 0 14px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+}
+
+.auth-social {
+  display: flex;
+  gap: 12px;
+
+  .btn-social {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    border: 1px solid var(--nx-border);
+    color: var(--nx-text-secondary);
+
+    &:hover { background: rgba(255,255,255,0.05); color: var(--nx-text); }
+  }
+}
+
+.nx-link {
+  color: var(--nx-primary-light);
+  text-decoration: none;
+  &:hover { color: var(--nx-primary); text-decoration: underline; }
+}

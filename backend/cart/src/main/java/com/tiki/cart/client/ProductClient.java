@@ -1,5 +1,6 @@
 package com.tiki.cart.client;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,8 +17,18 @@ public interface ProductClient {
     /**
      * Lấy thông tin sản phẩm
      */
+    @CircuitBreaker(name = "product-service", fallbackMethod = "getProductFallback")
     @GetMapping("/api/v1/products/{id}")
     ProductDTO getProduct(@PathVariable("id") Integer id);
+
+    default ProductDTO getProductFallback(Integer id, Throwable t) {
+        ProductDTO fallback = new ProductDTO();
+        fallback.setId(id);
+        fallback.setName("Sản phẩm (Đang cập nhật)");
+        fallback.setPrice(BigDecimal.ZERO);
+        fallback.setIsActive(true);
+        return fallback;
+    }
     
     /**
      * DTO cho Product response

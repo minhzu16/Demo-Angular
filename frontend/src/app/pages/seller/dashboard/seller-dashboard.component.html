@@ -1,0 +1,217 @@
+<div class="seller-dashboard">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Tổng quan cửa hàng</h1>
+            <p class="text-muted" *ngIf="shop">Chào mừng trở lại, {{ shop.name }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" routerLink="/seller/products/new">
+                <i class="bi bi-plus-lg me-2"></i>Thêm sản phẩm
+            </button>
+            <button class="btn btn-outline-secondary" routerLink="/seller/settings">
+                <i class="bi bi-gear me-2"></i>Cài đặt
+            </button>
+        </div>
+    </div>
+
+    <div *ngIf="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Đang tải...</span>
+        </div>
+    </div>
+
+    <div *ngIf="error" class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        {{ error }}
+        <div class="mt-2">
+            <button class="btn btn-sm btn-primary" routerLink="/profile">Đăng ký bán hàng ngay</button>
+        </div>
+    </div>
+
+    <div *ngIf="!loading && !error && shop">
+        <!-- Low Stock Alert -->
+        <div *ngIf="warehouseStats?.lowStockProducts > 0" class="alert alert-warning d-flex align-items-center mb-4 shadow-sm border-left-warning">
+            <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-warning"></i>
+            <div>
+                <h6 class="mb-1 fw-bold text-gray-800">Cảnh báo tồn kho</h6>
+                <p class="mb-0 text-muted">Có <strong>{{ warehouseStats.lowStockProducts }}</strong> sản phẩm sắp hết hàng. <a routerLink="/seller/products" class="text-warning fw-bold text-decoration-none">Kiểm tra ngay</a></p>
+            </div>
+        </div>
+
+        <!-- Out of Stock Alert -->
+        <div *ngIf="warehouseStats?.outOfStockProducts > 0" class="alert alert-danger d-flex align-items-center mb-4 shadow-sm border-left-danger">
+            <i class="bi bi-x-circle-fill fs-3 me-3 text-danger"></i>
+            <div>
+                <h6 class="mb-1 fw-bold text-gray-800">Sản phẩm hết hàng</h6>
+                <p class="mb-0 text-muted">Có <strong>{{ warehouseStats.outOfStockProducts }}</strong> sản phẩm đã hết hàng. <a routerLink="/seller/products" class="text-danger fw-bold text-decoration-none">Cập nhật kho</a></p>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Doanh thu (Tháng
+                                    này)</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ formatPrice(stats?.monthlyRevenue
+                                    || 0) }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-currency-dollar fs-2 text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Đơn hàng mới
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats?.newOrders || 0 }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-bag-check fs-2 text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Sản phẩm đang bán
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats?.totalProducts || 0 }}
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-box-seam fs-2 text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Đánh giá trung
+                                    bình</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats?.averageRating || 0 }}/5
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-star-fill fs-2 text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Recent Orders -->
+            <div class="col-lg-8 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Biểu đồ doanh thu (7 ngày qua)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area" style="position: relative; height:320px; width:100%">
+                            <canvas baseChart
+                                    [data]="lineChartData"
+                                    [options]="lineChartOptions"
+                                    [type]="'line'">
+                            </canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Đơn hàng gần đây</h6>
+                        <div class="dropdown no-arrow">
+                            <a class="dropdown-toggle" role="button" routerLink="/seller/orders">Xem tất cả</a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" *ngIf="recentOrders.length > 0">
+                                <thead>
+                                    <tr>
+                                        <th>Mã đơn</th>
+                                        <th>Khách hàng</th>
+                                        <th>Tổng tiền</th>
+                                        <th>Trạng thái</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let order of recentOrders">
+                                        <td>#{{ order.id }}</td>
+                                        <td>{{ order.customerName || 'Khách lẻ' }}</td>
+                                        <td>{{ formatPrice(order.totalAmount) }}</td>
+                                        <td>
+                                            <span class="badge" [ngClass]="getStatusBadgeClass(order.status)">
+                                                {{ getStatusText(order.status) }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                [routerLink]="['/seller/orders', order.id]">
+                                                Chi tiết
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div *ngIf="recentOrders.length === 0" class="text-center py-3 text-muted">
+                                Chưa có đơn hàng nào
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Products -->
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Sản phẩm bán chạy</h6>
+                    </div>
+                    <div class="card-body">
+                        <div *ngIf="topProducts.length === 0" class="text-center py-5 text-muted">
+                            Đang cập nhật...
+                        </div>
+                        <div *ngIf="topProducts.length > 0">
+                            <div class="d-flex align-items-center border-bottom pb-2 mb-2" *ngFor="let prod of topProducts; let i = index">
+                                <div class="me-3 font-weight-bold" [ngClass]="{'text-warning': i === 0, 'text-secondary': i === 1, 'text-danger': i === 2}">
+                                    #{{i+1}}
+                                </div>
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <div class="text-truncate fw-bold">{{ prod.productName }}</div>
+                                    <div class="small text-muted">{{ prod.totalQuantitySold }} đã bán</div>
+                                </div>
+                                <div class="font-weight-bold text-primary ms-2">
+                                    {{ formatPrice(prod.revenue) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

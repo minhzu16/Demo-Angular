@@ -27,7 +27,12 @@ public enum PaymentMethod {
     /**
      * ZaloPay - Ví điện tử ZaloPay
      */
-    ZALOPAY("ZaloPay");
+    ZALOPAY("ZaloPay"),
+    
+    /**
+     * SePay - Chuyển khoản qua SePay QR
+     */
+    SEPAY("SePay");
     
     private final String displayName;
     
@@ -43,7 +48,7 @@ public enum PaymentMethod {
      * Check if payment method requires online payment
      */
     public boolean isOnlinePayment() {
-        return this == VNPAY || this == MOMO || this == ZALOPAY;
+        return this == VNPAY || this == MOMO || this == ZALOPAY || this == SEPAY;
     }
     
     /**

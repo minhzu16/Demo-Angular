@@ -1,36 +1,43 @@
 server:
   port: 8082
+  shutdown: graceful
 
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:docker}
   application:
     name: auth-service
-  datasource:
-    url: jdbc:mysql://mysql:3306/user_db?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
-    username: ${DB_USERNAME:sa}
-    password: ${DB_PASSWORD:123}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+  config:
+    import: optional:classpath:application-resilience.yml
+  # Database configuration moved to profile-specific files
   jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+    open-in-view: false  # Tối ưu performance
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
+        jdbc.batch_size: 50
+        order_inserts: true
+        order_updates: true
+  # Redis configuration
   data:
     redis:
       host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: -1ms
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
 
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678}
-  expiration: 86400000  # 24 hours in milliseconds
-  refreshExpiration: 604800000  # 7 days in milliseconds
-
-# External Services Configuration
-services:
-  notification:
-    url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8088}
+  expiration: ${JWT_EXPIRATION:900000}
 
 # Actuator Configuration
 management:
@@ -41,3 +48,21 @@ management:
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true  # Kubernetes readiness/liveness
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+# Circuit Breaker & Retry Configuration moved to application-resilience.yml
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.tiki.templatestorage: ${LOG_LEVEL:INFO}
+    org.springframework.web: INFO
+    org.hibernate.SQL: ${HIBERNATE_LOG_LEVEL:INFO}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${HIBERNATE_LOG_LEVEL:INFO}

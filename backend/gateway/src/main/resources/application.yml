@@ -1,0 +1,104 @@
+server:
+  port: ${SERVICE_PORT:8080}
+  shutdown: graceful
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: gateway-service
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cloud:
+    gateway:
+      x-forwarded:
+        enabled: true
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+      # ✅ BUG 40 & 41 FIX: Global HTTP client timeout prevents gateway from hanging
+      # when a downstream service is unresponsive (fail-fast instead of cascading failure)
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 10s
+      routes:
+        - id: auth
+          uri: http://${AUTH_HOST:auth}:${AUTH_PORT:8082}
+          predicates:
+            - Path=/api/v1/auth/**, /api/v1/users/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                key-resolver: "#{@remoteAddrKeyResolver}"
+        - id: product
+          uri: http://${PRODUCT_HOST:product}:${PRODUCT_PORT:8081}
+          predicates:
+            - Path=/api/v1/products/**, /api/v1/categories/**, /api/v1/wishlists/**, /api/v1/wishlist/**, /api/v1/flash-sales/**
+        - id: order
+          uri: http://${ORDER_HOST:order}:${ORDER_PORT:8083}
+          predicates:
+            - Path=/api/v1/orders/**, /api/v1/invoices/**, /api/v1/admin/orders/**, /api/v1/shipping/**, /api/v1/shipping-methods/**, /api/v1/vouchers/**, /api/v1/tracking/**, /api/vouchers/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 5
+                redis-rate-limiter.burstCapacity: 10
+                key-resolver: "#{@remoteAddrKeyResolver}"
+        - id: payment
+          uri: http://${PAYMENT_HOST:payment}:${PAYMENT_PORT:8084}
+          predicates:
+            - Path=/api/v1/payments/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 3
+                redis-rate-limiter.burstCapacity: 5
+                key-resolver: "#{@remoteAddrKeyResolver}"
+        - id: cart
+          uri: http://${CART_HOST:cart}:${CART_PORT:8085}
+          predicates:
+            - Path=/api/v1/cart/**
+        - id: shop
+          uri: http://${SHOP_HOST:shop}:${SHOP_PORT:8086}
+          predicates:
+            - Path=/api/v1/shops/**, /api/v1/seller-applications/**
+        - id: warehouse
+          uri: http://${WAREHOUSE_HOST:warehouse}:${WAREHOUSE_PORT:8092}
+          predicates:
+            - Path=/api/v1/warehouse/**
+        - id: notification
+          uri: http://${NOTIFICATION_HOST:notification}:${NOTIFICATION_PORT:8088}
+          predicates:
+            - Path=/api/v1/notifications/**, /ws-notifications/**
+        - id: review
+          uri: http://${REVIEW_HOST:review}:${REVIEW_PORT:8089}
+          predicates:
+            - Path=/api/v1/reviews/**
+        - id: analytics
+          uri: http://${ANALYTICS_HOST:analytics}:${ANALYTICS_PORT:8090}
+          predicates:
+            - Path=/api/v1/analytics/**
+        - id: chat-ws
+          uri: ws://${CHAT_HOST:chat}:${CHAT_PORT:8091}
+          predicates:
+            - Path=/ws/chat/**
+        - id: chat
+          uri: http://${CHAT_HOST:chat}:${CHAT_PORT:8091}
+          predicates:
+            - Path=/api/v1/chat/**
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG

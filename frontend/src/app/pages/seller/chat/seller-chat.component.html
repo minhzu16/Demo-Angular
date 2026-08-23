@@ -1,0 +1,81 @@
+<div class="seller-chat-page">
+  <!-- Header -->
+  <div class="chat-page-header">
+    <div class="d-flex align-items-center gap-3">
+      <a routerLink="/seller/dashboard" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-arrow-left"></i> Dashboard
+      </a>
+      <h2 class="mb-0">
+        <i class="bi bi-chat-dots"></i> Live Chat
+      </h2>
+    </div>
+    <div class="connection-status" [class.online]="isConnected">
+      <span class="status-dot"></span>
+      {{ isConnected ? 'Đang kết nối' : 'Mất kết nối' }}
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="text-center py-5" *ngIf="loading">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2">Đang tải...</p>
+  </div>
+
+  <!-- Error -->
+  <div class="alert alert-warning m-4" *ngIf="error">
+    <i class="bi bi-exclamation-triangle"></i> {{ error }}
+  </div>
+
+  <!-- Chat Area -->
+  <div class="seller-chat-container" *ngIf="!loading && shop">
+    <div class="chat-panel">
+      <!-- Shop Info -->
+      <div class="shop-info-bar">
+        <i class="bi bi-shop"></i>
+        <span>{{ shop.name }} — Chat với khách hàng</span>
+      </div>
+
+      <!-- Messages -->
+      <div class="chat-messages-area" #messagesContainer>
+        <div class="empty-chat" *ngIf="messages.length === 0">
+          <i class="bi bi-chat-text"></i>
+          <h5>Chưa có tin nhắn nào</h5>
+          <p>Khi khách hàng nhắn tin cho cửa hàng, tin nhắn sẽ hiển thị ở đây.</p>
+        </div>
+
+        <div *ngFor="let msg of messages"
+             class="msg-row"
+             [class.own]="isOwnMessage(msg)"
+             [class.system]="msg.type === 'JOIN' || msg.type === 'LEAVE'">
+
+          <div class="system-msg" *ngIf="msg.type === 'JOIN' || msg.type === 'LEAVE'">
+            {{ msg.content }}
+          </div>
+
+          <div class="msg-bubble" *ngIf="msg.type === 'CHAT'">
+            <div class="msg-sender" *ngIf="!isOwnMessage(msg)">
+              <i class="bi bi-person-circle"></i> {{ msg.sender }}
+            </div>
+            <div class="msg-text">{{ msg.content }}</div>
+            <div class="msg-time">{{ formatTime(msg.timestamp) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="chat-input-bar">
+        <input type="text"
+               class="form-control chat-input"
+               [(ngModel)]="newMessage"
+               (keydown)="onKeyDown($event)"
+               placeholder="Nhập tin nhắn phản hồi..."
+               [disabled]="!isConnected">
+        <button class="btn btn-primary send-btn"
+                (click)="sendMessage()"
+                [disabled]="!newMessage.trim() || !isConnected">
+          <i class="bi bi-send-fill"></i> Gửi
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

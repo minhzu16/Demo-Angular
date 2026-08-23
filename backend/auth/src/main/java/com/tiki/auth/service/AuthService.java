@@ -39,6 +39,10 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
         log.info("Attempting to register user: {}", request.getUsername());
         
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            request.setEmail(request.getUsername());
+        }
+        
         if (userRepository.existsByUsername(request.getUsername())) {
             log.warn("Registration failed - username already exists: {}", request.getUsername());
             throw new UserAlreadyExistsException("Username already exists");
@@ -91,14 +95,29 @@ public class AuthService {
     }
 
     public AuthResponse refreshToken(String refreshToken) {
+        // ✅ BUG 27 FIX: Check if token was explicitly revoked (blacklisted in Redis)
+        String tokenKey = REFRESH_TOKEN_PREFIX + refreshToken;
+        String storedUserId = redisTemplate.opsForValue().get(tokenKey);
+        if (storedUserId == null) {
+            log.warn("Refresh token not found in Redis (already logged out or expired)");
+            throw new InvalidCredentialsException("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        }
+
         String username = jwtService.extractUsername(refreshToken);
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         if (!jwtService.isTokenValid(refreshToken, username)) {
+            redisTemplate.delete(tokenKey); // clean up expired entry
             throw new InvalidCredentialsException("Invalid refresh token");
         }
 
+        // Rotate: revoke old token, issue new one
+        redisTemplate.delete(tokenKey);
+        String userTokensKey = USER_TOKENS_PREFIX + user.getId();
+        redisTemplate.opsForSet().remove(userTokensKey, refreshToken);
+
+        userService.loadUserRoles(user);
         return buildAuthResponse(user);
     }
 
@@ -170,27 +189,24 @@ public class AuthService {
      * Get current authenticated user from Security Context
      * Sprint 14 - Implemented with SecurityContext
      */
+    /**
+     * Get current authenticated user from Security Context.
+     *
+     * ✅ BUG 26 FIX: Removed dangerous hardcoded fallback (user id=1).
+     * If SecurityContext has no authenticated user, throw an exception — never silently
+     * return a fake admin-level user that could bypass access control checks.
+     */
     public User getCurrentUser() {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            
-            if (authentication == null || !authentication.isAuthenticated()) {
-                throw new RuntimeException("No authenticated user found");
-            }
-            
-            String username = authentication.getName();
-            return userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("User not found: " + username));
-        } catch (Exception e) {
-            log.warn("Failed to get current user from SecurityContext: {}", e.getMessage());
-            // Fallback for development/testing
-            User u = new User();
-            u.setId(1L);
-            u.setUsername("user");
-            u.setEmail("user@example.com");
-            u.setRole(User.Role.BUYER);
-            return u;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new RuntimeException("No authenticated user found in SecurityContext");
         }
+
+        String username = authentication.getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
     }
     
     /**
@@ -226,10 +242,20 @@ public class AuthService {
         // Store refresh token in Redis for session management
         storeRefreshToken(user.getId(), refreshToken);
         
+        AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(user.getId(), user.getUsername(), user.getEmail(), rolesString);
+        userInfo.setFullName(user.getFullName());
+        userInfo.setAge(user.getAge());
+        userInfo.setPhoneNumber(user.getPhoneNumber());
+        userInfo.setAddress(user.getAddress());
+        userInfo.setGender(user.getGender());
+        userInfo.setWorkplace(user.getWorkplace());
+        userInfo.setLoyaltyPoints(user.getLoyaltyPoints());
+        userInfo.setLoyaltyTier(user.getLoyaltyTier() != null ? user.getLoyaltyTier().name() : "BRONZE");
+        
         return new AuthResponse(
                 accessToken, 
                 refreshToken,
-                new AuthResponse.UserInfo(user.getId(), user.getUsername(), user.getEmail(), rolesString)
+                userInfo
         );
     }
 }

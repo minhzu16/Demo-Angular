@@ -15,8 +15,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -32,24 +34,52 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final ProductImageRepository productImageRepository;
 
-    @Cacheable(cacheNames = "products-page", key = "T(java.util.Objects).hash(#q,#categoryId,#brand,#minPrice,#maxPrice,#sort,#page,#size)", unless = "#result == null")
+    @Cacheable(cacheNames = "products-page", key = "T(java.util.Objects).hash(#q,#categoryId,#brand,#minPrice,#maxPrice,#sort,#page,#size,#sellerId)", unless = "#result == null")
     public PageResponseDTO<ProductListDTO> search(String q,
-                                                  Integer categoryId,
-                                                  String brand,
-                                                  BigDecimal minPrice,
-                                                  BigDecimal maxPrice,
-                                                  String sort,
-                                                  int page,
-                                                  int size) {
+            Integer categoryId,
+            String brand,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            String sort,
+            int page,
+            int size,
+            Long sellerId) {
+            
+        // Escape SQL wildcards to prevent wildcard DoS injections
+        if (q != null) {
+            q = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        }
+
         Sort sortSpec = Sort.by("id");
         if (sort != null && !sort.isBlank()) {
-            String[] parts = sort.split(",");
-            String field = parts[0];
-            boolean desc = parts.length > 1 && parts[1].equalsIgnoreCase("desc");
+            String field;
+            boolean desc;
+            if (sort.contains(",")) {
+                String[] parts = sort.split(",");
+                field = parts[0].trim();
+                desc = parts.length > 1 && parts[1].trim().equalsIgnoreCase("desc");
+            } else if (sort.endsWith("_desc")) {
+                field = sort.substring(0, sort.lastIndexOf("_desc"));
+                desc = true;
+            } else if (sort.endsWith("_asc")) {
+                field = sort.substring(0, sort.lastIndexOf("_asc"));
+                desc = false;
+            } else {
+                field = sort.trim();
+                desc = false;
+            }
+            field = switch (field) {
+                case "price" -> "price";
+                case "name" -> "name";
+                case "createdAt", "created" -> "id";
+                case "rating" -> "averageRating"; 
+                default -> "id";
+            };
             sortSpec = desc ? Sort.by(field).descending() : Sort.by(field).ascending();
         }
         Pageable pageable = PageRequest.of(page, size, sortSpec);
-        Page<ProductEntity> p = productRepository.search(q, categoryId, brand, minPrice, maxPrice, pageable);
+        // We need a search method that also filters by sellerId
+        Page<ProductEntity> p = productRepository.searchWithSeller(q, categoryId, brand, minPrice, maxPrice, sellerId, pageable);
         List<ProductListDTO> list = p.getContent().stream().map(this::toListDTO).collect(Collectors.toList());
         return new PageResponseDTO<>(list, p.getNumber(), p.getSize(), p.getTotalElements(), p.getTotalPages());
     }
@@ -66,13 +96,16 @@ public class ProductService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = {"product-detail", "products-page"}, allEntries = true)
-    public ProductDetailDTO create(ProductDetailDTO request) {
+    @CacheEvict(cacheNames = { "product-detail", "products-page" }, allEntries = true)
+    public ProductDetailDTO create(ProductDetailDTO request, Long sellerId) {
         if (productRepository.existsBySkuIgnoreCase(request.getSku())) {
             throw new BadRequestException("SKU already exists");
         }
         ProductEntity entity = new ProductEntity();
         applyDetailToEntity(request, entity);
+        entity.setSellerId(sellerId);
+        entity.setShopId(request.getShopId());
+        
         if (request.getCategoryId() != null) {
             Optional<CategoryEntity> cat = categoryRepository.findById(request.getCategoryId());
             cat.ifPresent(entity::setCategory);
@@ -82,11 +115,18 @@ public class ProductService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = {"product-detail", "products-page"}, allEntries = true)
-    public ProductDetailDTO update(Integer id, ProductDetailDTO request) {
+    @CacheEvict(cacheNames = { "product-detail", "products-page" }, allEntries = true)
+    public ProductDetailDTO update(Integer id, ProductDetailDTO request, Long sellerId) {
         ProductEntity entity = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
-        if (!entity.getSku().equalsIgnoreCase(request.getSku()) && productRepository.existsBySkuIgnoreCase(request.getSku())) {
+        
+        // Ensure seller owns the product (if sellerId is provided)
+        if (sellerId != null && !sellerId.equals(entity.getSellerId())) {
+            throw new BadRequestException("You don't have permission to update this product");
+        }
+
+        if (!entity.getSku().equalsIgnoreCase(request.getSku())
+                && productRepository.existsBySkuIgnoreCase(request.getSku())) {
             throw new BadRequestException("SKU already exists");
         }
         applyDetailToEntity(request, entity);
@@ -101,23 +141,44 @@ public class ProductService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = {"product-detail", "products-page"}, allEntries = true)
-    public void delete(Integer id) {
-        if (!productRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Product not found: " + id);
+    @CacheEvict(cacheNames = { "product-detail", "products-page" }, allEntries = true)
+    public void delete(Integer id, Long sellerId) {
+        ProductEntity entity = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
+        
+        if (sellerId != null && !sellerId.equals(entity.getSellerId())) {
+            throw new BadRequestException("You don't have permission to delete this product");
         }
+        
         productRepository.deleteById(id);
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = { "product-detail", "products-page" }, allEntries = true)
+    public void updateStatus(Integer id, String status) {
+        ProductEntity entity = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
+        entity.setStatus(status.toUpperCase());
+        productRepository.save(entity);
     }
 
     private void applyDetailToEntity(ProductDetailDTO req, ProductEntity e) {
         e.setSku(req.getSku());
-        e.setName(req.getName());
-        e.setDescription(req.getDescription());
+        
+        // Basic XSS prevention (escaping HTML tags)
+        if (req.getName() != null) {
+            e.setName(req.getName().replace("<", "&lt;").replace(">", "&gt;"));
+        }
+        if (req.getDescription() != null) {
+            e.setDescription(req.getDescription().replace("<", "&lt;").replace(">", "&gt;"));
+        }
+        
         e.setPrice(req.getPrice());
         e.setListPrice(req.getListPrice());
         e.setBrand(req.getBrand());
         e.setThumbnailUrl(req.getThumbnailUrl());
         e.setAttributesJson(req.getAttributesJson());
+        e.setStock(req.getStock());
     }
 
     private ProductListDTO toListDTO(ProductEntity e) {
@@ -130,6 +191,9 @@ public class ProductService {
         dto.setBrand(e.getBrand());
         dto.setThumbnailUrl(e.getThumbnailUrl());
         dto.setCategoryId(e.getCategory() != null ? e.getCategory().getId() : null);
+        dto.setAverageRating(e.getAverageRating());
+        dto.setReviewCount(e.getReviewCount());
+        dto.setStatus(e.getStatus());
         return dto;
     }
 
@@ -145,6 +209,12 @@ public class ProductService {
         dto.setThumbnailUrl(e.getThumbnailUrl());
         dto.setAttributesJson(e.getAttributesJson());
         dto.setCategoryId(e.getCategory() != null ? e.getCategory().getId() : null);
+        dto.setAverageRating(e.getAverageRating());
+        dto.setReviewCount(e.getReviewCount());
+        dto.setSellerId(e.getSellerId());
+        dto.setShopId(e.getShopId());
+        dto.setStock(e.getStock());
+        dto.setStatus(e.getStatus());
         return dto;
     }
 
@@ -157,10 +227,15 @@ public class ProductService {
     }
 
     public static class ResourceNotFoundException extends RuntimeException {
-        public ResourceNotFoundException(String message) { super(message); }
+        public ResourceNotFoundException(String message) {
+            super(message);
+        }
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public static class BadRequestException extends RuntimeException {
-        public BadRequestException(String message) { super(message); }
+        public BadRequestException(String message) {
+            super(message);
+        }
     }
 }

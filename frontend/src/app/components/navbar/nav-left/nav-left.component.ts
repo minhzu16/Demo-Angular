@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './nav-left.component.html',
-  styleUrl: './nav-left.component.scss'
+  styleUrls: ['./nav-left.component.scss']
 })
 export class NavLeftComponent {
   @Input() collapsed: boolean = false;

@@ -1,0 +1,20 @@
+server:
+  port: ${SERVICE_PORT:8091}
+
+spring:
+  application:
+    name: chat-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.tiki.chat: DEBUG

@@ -1,0 +1,19 @@
+{
+  "HEADER": {
+    "SEARCH_PLACEHOLDER": "Freeship đến 30k",
+    "HOME": "Trang chủ",
+    "MY_ACCOUNT": "Tài khoản",
+    "SELLER_CHANNEL": "Kênh người bán"
+  },
+  "HOME": {
+    "FLASH_SALE": "Giá Sốc Hôm Nay",
+    "RECOMMENDED_FOR_YOU": "Gợi ý cho bạn",
+    "VIEW_MORE": "Xem thêm",
+    "SOLD": "Đã bán"
+  },
+  "PRODUCT": {
+    "ADD_TO_CART": "Thêm vào giỏ",
+    "BUY_NOW": "Mua ngay",
+    "COMPARE": "So sánh"
+  }
+}
