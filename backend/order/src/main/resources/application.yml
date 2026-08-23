@@ -57,6 +57,16 @@ management:
       enabled: true
 
 # Circuit Breaker & Retry Configuration moved to application-resilience.yml
+# ✅ BUG 41 & 45 FIX: Enable Feign CircuitBreaker and add timeouts
+feign:
+  circuitbreaker:
+    enabled: true
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: BASIC
 
 # Logging Configuration
 logging:

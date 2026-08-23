@@ -56,7 +56,8 @@ public class AdminProductController {
                         null,
                         null,
                         page,
-                        size
+                        size,
+                        null
                 );
 
         return ResponseEntity.ok(result);
@@ -99,17 +100,26 @@ public class AdminProductController {
 
     @PostMapping
     public ResponseEntity<ProductDetailDTO> create(@Valid @RequestBody ProductDetailDTO request) {
-        return ResponseEntity.ok(productService.create(request));
+        return ResponseEntity.ok(productService.create(request, null));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ProductDetailDTO> update(@PathVariable Integer id, @Valid @RequestBody ProductDetailDTO request) {
-        return ResponseEntity.ok(productService.update(id, request));
+        return ResponseEntity.ok(productService.update(id, request, null));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
-        productService.delete(id);
+        productService.delete(id, null);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/status")
+    public ResponseEntity<Map<String, String>> updateProductStatus(
+            @PathVariable Integer id,
+            @RequestParam String status) {
+        log.info("Admin updating product {} status to {}", id, status);
+        productService.updateStatus(id, status);
+        return ResponseEntity.ok(Map.of("message", "Product status updated successfully"));
     }
 }

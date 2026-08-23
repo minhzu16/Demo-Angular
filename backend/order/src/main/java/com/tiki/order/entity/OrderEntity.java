@@ -9,6 +9,8 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -27,6 +29,14 @@ public class OrderEntity {
     @Column(name = "order_number", unique = true, length = 50)
     private String orderNumber;
 
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItemEntity> items = new ArrayList<>();
+
+    public void addItem(OrderItemEntity item) {
+        items.add(item);
+        item.setOrder(this);
+    }
+
     // Order Status (SPRINT 4)
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -44,6 +54,12 @@ public class OrderEntity {
 
     @Column(name = "shipping_fee", precision = 10, scale = 2)
     private BigDecimal shippingFee = BigDecimal.ZERO;
+
+    @Column(name = "use_points")
+    private Integer usePoints = 0;
+
+    @Column(name = "points_discount", precision = 10, scale = 2)
+    private BigDecimal pointsDiscount = BigDecimal.ZERO;
 
     @Column(name = "total_amount", precision = 10, scale = 2, nullable = false)
     private BigDecimal totalAmount;
@@ -115,6 +131,7 @@ public class OrderEntity {
     public void calculateTotal() {
         this.totalAmount = subtotal
                 .subtract(voucherDiscount != null ? voucherDiscount : BigDecimal.ZERO)
+                .subtract(pointsDiscount != null ? pointsDiscount : BigDecimal.ZERO)
                 .add(shippingFee != null ? shippingFee : BigDecimal.ZERO);
     }
 

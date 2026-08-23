@@ -14,6 +14,10 @@ public class OrderDto {
     private BigDecimal totalAmount;
     private BigDecimal subtotal;
     private BigDecimal shippingFee;
+    private Integer usePoints;
+    private BigDecimal pointsDiscount;
+    private String voucherCode;
+    private BigDecimal voucherDiscount;
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime paidAt;
@@ -27,6 +31,7 @@ public class OrderDto {
         private String productName;
         private Integer quantity;
         private BigDecimal unitPrice;
+        private String imageUrl;
 
         public Integer getProductId() { return productId; }
         public void setProductId(Integer productId) { this.productId = productId; }
@@ -36,6 +41,8 @@ public class OrderDto {
         public void setQuantity(Integer quantity) { this.quantity = quantity; }
         public BigDecimal getUnitPrice() { return unitPrice; }
         public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
+        public String getImageUrl() { return imageUrl; }
+        public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     }
 
     public static class ShippingAddress {
@@ -72,6 +79,14 @@ public class OrderDto {
     public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
     public BigDecimal getShippingFee() { return shippingFee; }
     public void setShippingFee(BigDecimal shippingFee) { this.shippingFee = shippingFee; }
+    public Integer getUsePoints() { return usePoints; }
+    public void setUsePoints(Integer usePoints) { this.usePoints = usePoints; }
+    public BigDecimal getPointsDiscount() { return pointsDiscount; }
+    public void setPointsDiscount(BigDecimal pointsDiscount) { this.pointsDiscount = pointsDiscount; }
+    public String getVoucherCode() { return voucherCode; }
+    public void setVoucherCode(String voucherCode) { this.voucherCode = voucherCode; }
+    public BigDecimal getVoucherDiscount() { return voucherDiscount; }
+    public void setVoucherDiscount(BigDecimal voucherDiscount) { this.voucherDiscount = voucherDiscount; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public LocalDateTime getCreatedAt() { return createdAt; }

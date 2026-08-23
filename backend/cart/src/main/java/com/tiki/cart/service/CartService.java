@@ -6,14 +6,10 @@ import com.tiki.cart.entity.CartEntity;
 import com.tiki.cart.entity.CartItemEntity;
 import com.tiki.cart.repository.CartItemRepository;
 import com.tiki.cart.repository.CartRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.http.ResponseEntity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,15 +17,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class CartService {
 
-    @Autowired
-    private CartRepository cartRepo;
-    @Autowired
-    private CartItemRepository itemRepo;
-    
-    @Value("${PRODUCT_SERVICE_URL:http://localhost:8081}")
-    private String productServiceUrl;
+    private final CartRepository cartRepo;
+    private final CartItemRepository itemRepo;
     
     private CartDto toDto(CartEntity e){
         CartDto d = new CartDto();
@@ -83,9 +76,9 @@ public class CartService {
     }
 
     public CartDto getCart(Integer userId,String sessionId){
-        System.out.println("getCart called with userId=" + userId + ", sessionId=" + sessionId);
+        log.info("getCart called with userId={}, sessionId={}", userId, sessionId);
         CartEntity cart = getOrCreate(userId,sessionId);
-        System.out.println("Cart found/created: id=" + cart.getId() + ", items=" + (cart.getItems() != null ? cart.getItems().size() : 0));
+        log.info("Cart found/created: id={}, items={}", cart.getId(), (cart.getItems() != null ? cart.getItems().size() : 0));
         return toDto(cart);
     }
 

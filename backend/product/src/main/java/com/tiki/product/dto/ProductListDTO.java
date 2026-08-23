@@ -11,6 +11,8 @@ public class ProductListDTO {
     private String brand;
     private Integer categoryId;
     private String thumbnailUrl;
+    private Double averageRating;
+    private Integer reviewCount;
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
@@ -28,4 +30,11 @@ public class ProductListDTO {
     public void setCategoryId(Integer categoryId) { this.categoryId = categoryId; }
     public String getThumbnailUrl() { return thumbnailUrl; }
     public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+    public Double getAverageRating() { return averageRating; }
+    public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }
+    public Integer getReviewCount() { return reviewCount; }
+    public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    private String status;
 }

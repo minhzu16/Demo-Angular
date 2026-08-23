@@ -20,14 +20,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
- * Integration tests for OrderService payment methods
+ * Integration tests for OrderPaymentService payment methods
  * Sprint 10 - COD Payment
  */
 @ExtendWith(MockitoExtension.class)
-class OrderServicePaymentTest {
+class OrderPaymentServiceTest {
 
     @InjectMocks
-    private OrderService orderService;
+    private OrderPaymentService OrderPaymentService;
 
     @Mock
     private OrderRepository orderRepository;
@@ -55,7 +55,7 @@ class OrderServicePaymentTest {
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(codPendingOrder));
 
         // When
-        PaymentInfoDTO paymentInfo = orderService.getPaymentInfo(orderId);
+        PaymentInfoDTO paymentInfo = OrderPaymentService.getPaymentInfo(orderId);
 
         // Then
         assertNotNull(paymentInfo);
@@ -73,7 +73,7 @@ class OrderServicePaymentTest {
         when(orderRepository.save(any(OrderEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        PaymentInfoDTO paymentInfo = orderService.confirmCODPayment(orderId);
+        PaymentInfoDTO paymentInfo = OrderPaymentService.confirmCODPayment(orderId);
 
         // Then
         assertNotNull(paymentInfo);
@@ -88,7 +88,7 @@ class OrderServicePaymentTest {
     void testValidatePaymentMethod_COD_Success() {
         // Should not throw exception
         assertDoesNotThrow(() -> 
-            orderService.validatePaymentMethod(PaymentMethod.COD)
+            OrderPaymentService.validatePaymentMethod(PaymentMethod.COD)
         );
     }
 
@@ -97,7 +97,7 @@ class OrderServicePaymentTest {
         // When & Then
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
-            () -> orderService.validatePaymentMethod(null)
+            () -> OrderPaymentService.validatePaymentMethod(null)
         );
         
         assertEquals("Phương thức thanh toán là bắt buộc", exception.getMessage());
@@ -108,7 +108,7 @@ class OrderServicePaymentTest {
         // When & Then
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
-            () -> orderService.validatePaymentMethod(PaymentMethod.VNPAY)
+            () -> OrderPaymentService.validatePaymentMethod(PaymentMethod.VNPAY)
         );
         
         assertTrue(exception.getMessage().contains("chưa được hỗ trợ"));
@@ -119,7 +119,7 @@ class OrderServicePaymentTest {
         // When & Then
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
-            () -> orderService.validatePaymentMethod(PaymentMethod.MOMO)
+            () -> OrderPaymentService.validatePaymentMethod(PaymentMethod.MOMO)
         );
         
         assertTrue(exception.getMessage().contains("chưa được hỗ trợ"));
@@ -130,7 +130,7 @@ class OrderServicePaymentTest {
         // When & Then
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
-            () -> orderService.validatePaymentMethod(PaymentMethod.BANK_TRANSFER)
+            () -> OrderPaymentService.validatePaymentMethod(PaymentMethod.BANK_TRANSFER)
         );
         
         assertTrue(exception.getMessage().contains("chưa được hỗ trợ"));

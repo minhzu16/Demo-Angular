@@ -32,28 +32,8 @@
 			<groupId>tiki</groupId>
 			<artifactId>common</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>tiki</groupId>
-			<artifactId>auth</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>tiki</groupId>
-			<artifactId>product</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-starter-data-elasticsearch</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.springframework.data</groupId>
-					<artifactId>spring-data-elasticsearch</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.elasticsearch.client</groupId>
-					<artifactId>elasticsearch-rest-client</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
+
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>

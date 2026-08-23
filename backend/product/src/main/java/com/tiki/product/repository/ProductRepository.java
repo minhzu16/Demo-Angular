@@ -14,7 +14,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Integer>
 
     @Query("SELECT p FROM ProductEntity p " +
             "LEFT JOIN p.category c " +
-            "WHERE (:q IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :q, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :q, '%'))) " +
+            "WHERE (:q IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :q, '%')) ESCAPE '\\' OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :q, '%')) ESCAPE '\\') " +
             "AND (:categoryId IS NULL OR c.id = :categoryId OR (c.parent IS NOT NULL AND c.parent.id = :categoryId)) " +
             "AND (:brand IS NULL OR LOWER(p.brand) = LOWER(:brand)) " +
             "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
@@ -25,6 +25,24 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Integer>
             @Param("brand") String brand,
             @Param("minPrice") java.math.BigDecimal minPrice,
             @Param("maxPrice") java.math.BigDecimal maxPrice,
+            Pageable pageable
+    );
+
+    @Query("SELECT p FROM ProductEntity p " +
+            "LEFT JOIN p.category c " +
+            "WHERE (:q IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :q, '%')) ESCAPE '\\' OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :q, '%')) ESCAPE '\\') " +
+            "AND (:categoryId IS NULL OR c.id = :categoryId OR (c.parent IS NOT NULL AND c.parent.id = :categoryId)) " +
+            "AND (:brand IS NULL OR LOWER(p.brand) = LOWER(:brand)) " +
+            "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
+            "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
+            "AND (:sellerId IS NULL OR p.sellerId = :sellerId)")
+    Page<ProductEntity> searchWithSeller(
+            @Param("q") String q,
+            @Param("categoryId") Integer categoryId,
+            @Param("brand") String brand,
+            @Param("minPrice") java.math.BigDecimal minPrice,
+            @Param("maxPrice") java.math.BigDecimal maxPrice,
+            @Param("sellerId") Long sellerId,
             Pageable pageable
     );
 }

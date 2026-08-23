@@ -7,6 +7,8 @@ import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * Feign client for Auth Service with Resilience4j protection
@@ -20,11 +22,19 @@ public interface UserClient {
     @GetMapping("/api/v1/users/{id}")
     UserDto getUser(@PathVariable("id") Long id);
     
+    @CircuitBreaker(name = "auth-service", fallbackMethod = "updatePointsFallback")
+    @PostMapping("/api/v1/users/{id}/points")
+    void updatePoints(@PathVariable("id") Long id, @RequestParam("points") int points);
+    
     default UserDto getUserFallback(Long id, Exception e) {
         UserDto fallback = new UserDto();
         fallback.setId(id);
         fallback.setUsername("Unknown User");
         fallback.setEmail("unknown@example.com");
         return fallback;
+    }
+    
+    default void updatePointsFallback(Long id, int points, Exception e) {
+        System.err.println("Failed to update points for user " + id + ", points: " + points + " due to auth-service down.");
     }
 }

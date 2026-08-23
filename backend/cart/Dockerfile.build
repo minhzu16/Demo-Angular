@@ -1,0 +1,59 @@
+# Build stage
+FROM maven:3.9.5-eclipse-temurin-17 AS builder
+WORKDIR /build
+
+RUN mkdir -p /root/.m2
+COPY settings.xml* /root/.m2/
+
+# Copy root pom và trim tất cả module không được copy
+COPY pom.xml ./pom.xml
+RUN sed -i \
+    -e '/<module>gateway<\/module>/d' \
+    -e '/<module>auth<\/module>/d' \
+    -e '/<module>product<\/module>/d' \
+    -e '/<module>order<\/module>/d' \
+    -e '/<module>payment<\/module>/d' \
+    -e '/<module>warehouse<\/module>/d' \
+    -e '/<module>shop<\/module>/d' \
+    -e '/<module>template_storage<\/module>/d' \
+    -e '/<module>notification<\/module>/d' \
+    -e '/<module>review<\/module>/d' \
+    -e '/<module>analytics<\/module>/d' \
+    pom.xml
+
+# Copy pom của các module được dùng
+COPY common/pom.xml ./common/pom.xml
+COPY cart/pom.xml   ./cart/pom.xml
+
+# Copy source
+COPY common ./common
+COPY cart   ./cart
+
+# Build: common -> cart
+RUN mvn -B -DskipTests -Dmaven.wagon.http.ssl.insecure=true \
+    -Dmaven.wagon.http.ssl.allowall=true \
+    -pl cart -am package
+
+# ---- Runtime ----
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+
+RUN apk add --no-cache curl tzdata && \
+    cp /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime && \
+    echo "Asia/Ho_Chi_Minh" > /etc/timezone && \
+    apk del tzdata
+
+EXPOSE 8085
+
+ENV SPRING_PROFILES_ACTIVE=docker \
+    JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
+
+COPY --from=builder /build/cart/target/*.jar /app/app.jar
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=5 \
+    CMD curl -f http://localhost:8085/actuator/health || exit 1
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar /app/app.jar"]

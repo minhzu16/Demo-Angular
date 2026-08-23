@@ -26,7 +26,13 @@ public class FileStorageService {
     }
 
     public String save(MultipartFile file) throws IOException {
-        String ext = extractExtension(file.getOriginalFilename());
+        String ext = extractExtension(file.getOriginalFilename()).toLowerCase();
+        
+        // ✅ BUG 49 FIX: Prevent dangerous file uploads (only allow images)
+        if (!ext.matches("^(jpg|jpeg|png|gif|webp)$")) {
+            throw new IllegalArgumentException("Invalid file format. Only images (JPG, PNG, GIF, WEBP) are allowed.");
+        }
+        
         String filename = UUID.randomUUID().toString() + (ext.isEmpty() ? "" : ("." + ext));
         Path target = root.resolve(filename);
         Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);

@@ -24,27 +24,23 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
-            // .authorizeHttpRequests(auth -> auth
-                // // Cho phép guest truy cập các public endpoints
-                // .requestMatchers(
-                //     "/actuator/**", 
-                //     "/api/v1/health", 
-                //     "/products/**",
-                //     "/api/v1/products", 
-                //     "/api/v1/products/**", 
-                //     "/api/v1/categories/**",
-                //     "/categories/**",
-                //     "/api/v1/brands/**",
-                //     "/brands/**",
-                //     // Wishlist endpoints: kiểm soát bằng X-User-Id + authGuard FE
-                //     "/api/v1/wishlist/**",
-                //     "/api/v1/wishlists/**"
-                // ).permitAll()
-                // .anyRequest().authenticated()
-                    // TẠM THỜI cho phép tất cả endpoint không cần xác thực
             .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll()
-            
+                .requestMatchers(
+                    "/actuator/**", 
+                    "/api/v1/health", 
+                    "/products/**",
+                    "/api/v1/products", 
+                    "/api/v1/products/**", 
+                    "/api/v1/categories/**",
+                    "/categories/**",
+                    "/api/v1/brands/**",
+                    "/brands/**",
+                    "/api/v1/wishlist/**",
+                    "/api/v1/wishlists/**",
+                    "/api/v1/flash-sales/**",
+                    "/flash-sales/**"
+                ).permitAll()
+                .anyRequest().authenticated()
             )
             .sessionManagement(session -> 
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)

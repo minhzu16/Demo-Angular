@@ -51,6 +51,12 @@ public class ProductEntity {
 
     @Column(name = "status", length = 20)
     private String status = "ACTIVE";
+    
+    @Column(name = "average_rating")
+    private Double averageRating = 0.0;
+    
+    @Column(name = "review_count")
+    private Integer reviewCount = 0;
 
     @Column(name = "attributes", columnDefinition = "JSON")
     private String attributesJson;
@@ -198,6 +204,22 @@ public class ProductEntity {
 
     public void setVariants(List<ProductVariantEntity> variants) {
         this.variants = variants;
+    }
+
+    public Double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(Double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public Integer getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(Integer reviewCount) {
+        this.reviewCount = reviewCount;
     }
 
     /**

@@ -45,3 +45,15 @@ services:
     url: ${WAREHOUSE_SERVICE_URL:http://warehouse:8092}
   shop:
     url: ${SHOP_SERVICE_URL:http://shop:8086}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      product-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+      auth-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s

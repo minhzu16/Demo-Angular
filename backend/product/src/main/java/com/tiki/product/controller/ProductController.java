@@ -6,8 +6,13 @@ import com.tiki.product.dto.ProductListDTO;
 import com.tiki.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,11 +41,44 @@ public class ProductController {
             @RequestParam(value = "maxPrice", required = false) BigDecimal maxPrice,
             @RequestParam(value = "sort", required = false) String sort,
             @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size
+            @RequestParam(value = "size", defaultValue = "20") int size,
+            @RequestParam(value = "sellerId", required = false) Long sellerId
     ) {
         String searchQuery = q != null ? q : keyword;
-        log.debug("Listing products - page: {}, size: {}, query: {}, keyword: {}", page, size, q, keyword);
-        return productService.search(searchQuery, categoryId, brand, minPrice, maxPrice, sort, page, size);
+        // ✅ BUG 47 FIX: Prevent OOM by clamping pagination size
+        if (size > 100) size = 100;
+        if (size < 1) size = 10;
+        
+        log.debug("Listing products - page: {}, size: {}, query: {}, sellerId: {}", page, size, searchQuery, sellerId);
+        return productService.search(searchQuery, categoryId, brand, minPrice, maxPrice, sort, page, size, sellerId);
+    }
+
+    @PostMapping
+    public ProductDetailDTO create(
+            @RequestBody ProductDetailDTO request,
+            @RequestHeader(value = "X-User-Id", required = false) Long sellerId
+    ) {
+        log.debug("Creating product for seller: {}", sellerId);
+        return productService.create(request, sellerId);
+    }
+
+    @PutMapping("/{id}")
+    public ProductDetailDTO update(
+            @PathVariable Integer id,
+            @RequestBody ProductDetailDTO request,
+            @RequestHeader(value = "X-User-Id", required = false) Long sellerId
+    ) {
+        log.debug("Updating product {} for seller: {}", id, sellerId);
+        return productService.update(id, request, sellerId);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(
+            @PathVariable Integer id,
+            @RequestHeader(value = "X-User-Id", required = false) Long sellerId
+    ) {
+        log.debug("Deleting product {} for seller: {}", id, sellerId);
+        productService.delete(id, sellerId);
     }
 
     @GetMapping("/{id}")
@@ -58,22 +96,7 @@ public class ProductController {
         return productService.getDetail(id);
     }
     
-    /**
-     * Search products (dedicated search endpoint)
-     */
-    @GetMapping("/search")
-    public PageResponseDTO<ProductListDTO> search(
-            @RequestParam(value = "keyword", required = false) String keyword,
-            @RequestParam(value = "q", required = false) String q,
-            @RequestParam(value = "category", required = false) Integer categoryId,
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size
-    ) {
-        String searchQuery = keyword != null ? keyword : q;
-        log.debug("Searching products with keyword: {}", searchQuery);
-        return productService.search(searchQuery, categoryId, null, null, null, null, page, size);
-    }
-    
+
     /**
      * Get product variants
      */

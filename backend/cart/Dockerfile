@@ -9,18 +9,14 @@ COPY pom.xml ./pom.xml
 COPY common/pom.xml ./common/pom.xml
 COPY cart/pom.xml ./cart/pom.xml
 
-# 2. Pre-fetch dependencies (chạy offline) với các tham số tối ưu
-RUN mvn -B -U -DskipTests -f pom.xml -N install && \
-    mvn -B -U -DskipTests -f common/pom.xml dependency:go-offline && \
-    mvn -B -U -DskipTests -f cart/pom.xml dependency:go-offline \
-    -Dmaven.wagon.http.retryHandler.count=3 \
-    -Dmaven.wagon.http.connectionTimeout=30000
+# 2. Install parent POM và build common trước (không dùng go-offline, cần install để có artifact)
+RUN mvn -B -DskipTests -f pom.xml -N install
 
 # 3. Copy source code
 COPY common ./common
 COPY cart ./cart
 
-# 4. Build modules với một lệnh đơn giản
+# 4. Build: install common trước để cart có thể resolve dependency, sau đó package cart
 RUN mvn -B -DskipTests -f common/pom.xml install && \
     mvn -B -DskipTests -f cart/pom.xml package
 
@@ -44,7 +40,7 @@ COPY --from=builder /build/cart/target/*.jar /app/app.jar
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8085/actuator/health || exit 1
+    CMD curl -f http://localhost:8085/actuator/health || exit 1
 
 # Tạo non-root user để tăng security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

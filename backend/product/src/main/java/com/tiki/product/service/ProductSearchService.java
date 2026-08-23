@@ -185,18 +185,9 @@ public class ProductSearchService {
             }
         }
         
-        // Get review statistics from Review Service
-        Double rating = 0.0;
-        Integer reviewCount = 0;
-        try {
-            ProductReviewStatsDTO reviewStats = reviewClient.getProductReviewStats(entity.getId().longValue());
-            if (reviewStats != null) {
-                rating = reviewStats.getAverageRating() != null ? reviewStats.getAverageRating() : 0.0;
-                reviewCount = reviewStats.getReviewCount() != null ? reviewStats.getReviewCount() : 0;
-            }
-        } catch (Exception e) {
-            log.warn("Failed to fetch review stats for productId {}: {}", entity.getId(), e.getMessage());
-        }
+        // Get review statistics (now cached in ProductEntity)
+        Double rating = entity.getAverageRating() != null ? entity.getAverageRating() : 0.0;
+        Integer reviewCount = entity.getReviewCount() != null ? entity.getReviewCount() : 0;
         
         // Get sold count from Order Service
         Integer soldCount = 0;
@@ -242,6 +233,8 @@ public class ProductSearchService {
         dto.setBrand(doc.getBrand());
         dto.setThumbnailUrl(doc.getThumbnailUrl());
         dto.setCategoryId(doc.getCategoryId());
+        dto.setAverageRating(doc.getRating());
+        dto.setReviewCount(doc.getReviewCount());
         return dto;
     }
 }
