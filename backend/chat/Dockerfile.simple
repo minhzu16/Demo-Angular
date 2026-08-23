@@ -1,0 +1,18 @@
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+
+RUN apk add --no-cache tzdata curl && \
+    cp /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime && \
+    echo "Asia/Ho_Chi_Minh" > /etc/timezone && \
+    apk del tzdata
+
+EXPOSE 8091
+ENV SPRING_PROFILES_ACTIVE=docker \
+    JAVA_OPTS="-Xms128m -Xmx256m -XX:+UseG1GC"
+
+COPY chat/target/*.jar /app/app.jar
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD curl -fsS http://localhost:8091/actuator/health || exit 1
+
+ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar /app/app.jar"]

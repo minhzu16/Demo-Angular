@@ -1,5 +1,5 @@
 server:
-  port: 8095
+  port: 8090
   shutdown: graceful
 
 spring:
@@ -30,9 +30,10 @@ spring:
           min-idle: 2
           max-wait: -1ms
   cache:
-    type: redis
-    redis:
-      time-to-live: 3600000
+    type: simple  # Use simple in-memory cache instead of Redis
+    # type: redis
+    # redis:
+    #   time-to-live: 3600000
 
 # JWT Configuration
 jwt:

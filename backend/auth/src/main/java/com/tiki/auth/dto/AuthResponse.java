@@ -22,6 +22,15 @@ public class AuthResponse {
         private String role;
         private String sellerApplicationStatus; // PENDING, APPROVED, REJECTED, or null
         
+        private String fullName;
+        private Integer age;
+        private String phoneNumber;
+        private String address;
+        private String gender;
+        private String workplace;
+        private Integer loyaltyPoints;
+        private String loyaltyTier;
+        
         public UserInfo(Long id, String username, String email, String role) {
             this.id = id;
             this.username = username;

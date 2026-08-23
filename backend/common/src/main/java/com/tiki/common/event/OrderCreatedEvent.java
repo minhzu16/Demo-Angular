@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Order Created Event
@@ -29,4 +30,5 @@ public class OrderCreatedEvent implements Serializable {
     private String userEmail;
     private String userPhone;
     private LocalDateTime createdAt;
+    private List<OrderItemDto> items;
 }

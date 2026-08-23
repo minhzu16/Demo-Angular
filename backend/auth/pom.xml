@@ -128,6 +128,11 @@
 			<scope>test</scope>
 		</dependency>
 		<!-- H2 removed from runtime: using MySQL in production, H2 for tests -->
+		<!-- MySQL Driver -->
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

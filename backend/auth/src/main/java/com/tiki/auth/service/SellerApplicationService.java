@@ -151,7 +151,7 @@ public class SellerApplicationService {
                     .orElseThrow(() -> new UserNotFoundException("User not found"));
             
             // Add SELLER role to user (multi-role support)
-            userService.addRoleToUser(user.getId(), User.Role.SELLER, admin.getId());
+            userService.addRoleToUser(user.getId(), User.Role.SELLER);
             log.info("Added SELLER role to user {} by admin {}", user.getId(), admin.getId());
             
         } else {

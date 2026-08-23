@@ -21,10 +21,10 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/analytics/sales")
+@RequiredArgsConstructor
 public class SalesAnalyticsController {
     
-    // Service temporarily disabled to avoid timeout
-    // private final SalesAnalyticsService salesAnalyticsService;
+    private final SalesAnalyticsService salesAnalyticsService;
         
     /**
      * Get sales overview
@@ -89,8 +89,8 @@ public class SalesAnalyticsController {
             @RequestParam(defaultValue = "daily") String period) {
         
         log.info("GET /revenue - shopId: {}, start: {}, end: {}, period: {}", shopId, start, end, period);
-        // List<RevenueDTO> revenue = salesAnalyticsService.getRevenueByPeriod(shopId, start, end, period);
-        return ResponseEntity.ok(List.of());
+        List<RevenueDTO> revenue = salesAnalyticsService.getRevenueByPeriod(shopId, start, end, period);
+        return ResponseEntity.ok(revenue);
     }
     
     /**
@@ -109,8 +109,8 @@ public class SalesAnalyticsController {
             return ResponseEntity.ok(List.of());
         }
         
-        // List<TopProductDTO> products = salesAnalyticsService.getTopProducts(shopId, limit, days);
-        return ResponseEntity.ok(List.of());
+        List<TopProductDTO> products = salesAnalyticsService.getTopProducts(shopId, limit, days);
+        return ResponseEntity.ok(products);
     }
     
     /**
@@ -122,8 +122,8 @@ public class SalesAnalyticsController {
             @RequestParam(defaultValue = "30") int days) {
         
         log.info("GET /statistics - shopId: {}, days: {}", shopId, days);
-        // Map<String, Object> stats = salesAnalyticsService.getOrderStatistics(shopId, days);
-        return ResponseEntity.ok(Map.of("totalOrders", 0, "totalRevenue", 0));
+        Map<String, Object> stats = salesAnalyticsService.getOrderStatistics(shopId, days);
+        return ResponseEntity.ok(stats);
     }
     
     /**
@@ -135,11 +135,11 @@ public class SalesAnalyticsController {
             @RequestParam(defaultValue = "30") int days) {
         
         log.info("GET /aov - shopId: {}, days: {}", shopId, days);
-        // BigDecimal aov = salesAnalyticsService.getAverageOrderValue(shopId, days);
+        BigDecimal aov = salesAnalyticsService.getAverageOrderValue(shopId, days);
         return ResponseEntity.ok(Map.of(
                 "shopId", shopId,
                 "days", days,
-                "averageOrderValue", 0
+                "averageOrderValue", aov
         ));
     }
     
@@ -152,11 +152,11 @@ public class SalesAnalyticsController {
             @RequestParam(defaultValue = "30") int days) {
         
         log.info("GET /conversion - shopId: {}, days: {}", shopId, days);
-        // Double rate = salesAnalyticsService.getConversionRate(shopId, days);
+        Double rate = salesAnalyticsService.getConversionRate(shopId, days);
         return ResponseEntity.ok(Map.of(
                 "shopId", shopId,
                 "days", days,
-                "conversionRate", 0.0
+                "conversionRate", rate
         ));
     }
     
@@ -166,7 +166,7 @@ public class SalesAnalyticsController {
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> getDashboard(@RequestParam Long shopId) {
         log.info("GET /dashboard - shopId: {}", shopId);
-        // Map<String, Object> dashboard = salesAnalyticsService.getDashboardSummary(shopId);
-        return ResponseEntity.ok(Map.of("shopId", shopId, "summary", "Mock data"));
+        Map<String, Object> dashboard = salesAnalyticsService.getDashboardSummary(shopId);
+        return ResponseEntity.ok(dashboard);
     }
 }
