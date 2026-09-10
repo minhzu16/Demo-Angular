@@ -25,6 +25,20 @@ public interface UserClient {
     @CircuitBreaker(name = "auth-service", fallbackMethod = "updatePointsFallback")
     @PostMapping("/api/v1/users/{id}/points")
     void updatePoints(@PathVariable("id") Long id, @RequestParam("points") int points);
+
+    @GetMapping("/api/v1/membership/check/{userId}")
+    default com.tiki.order.dto.MembershipBenefitCheckDto checkMemberBenefits(@PathVariable("userId") Long userId) {
+        return com.tiki.order.dto.MembershipBenefitCheckDto.builder()
+                .isMember(false)
+                .pointsMultiplier(1.0)
+                .freeShipping(false)
+                .build();
+    }
+
+    @PostMapping("/api/v1/membership/use-freeship/{userId}")
+    default Boolean useFreeShip(@PathVariable("userId") Long userId) {
+        return false;
+    }
     
     default UserDto getUserFallback(Long id, Exception e) {
         UserDto fallback = new UserDto();

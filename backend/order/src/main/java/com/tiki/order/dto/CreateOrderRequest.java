@@ -48,6 +48,18 @@ public class CreateOrderRequest {
     public Long getShopId() { return shopId; }
     public void setShopId(Long shopId) { this.shopId = shopId; }
 
+    private String giftCardCode;
+    public String getGiftCardCode() { return giftCardCode; }
+    public void setGiftCardCode(String giftCardCode) { this.giftCardCode = giftCardCode; }
+
+    private Boolean useStoreCredit;
+    public Boolean getUseStoreCredit() { return useStoreCredit; }
+    public void setUseStoreCredit(Boolean useStoreCredit) { this.useStoreCredit = useStoreCredit; }
+
+    private BigDecimal storeCreditAmount;
+    public BigDecimal getStoreCreditAmount() { return storeCreditAmount; }
+    public void setStoreCreditAmount(BigDecimal storeCreditAmount) { this.storeCreditAmount = storeCreditAmount; }
+
     public static class OrderItemDto {
         @NotNull(message = "Product ID is required")
         private Integer productId;

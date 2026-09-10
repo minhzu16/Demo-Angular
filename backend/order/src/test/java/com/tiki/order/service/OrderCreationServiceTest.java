@@ -52,6 +52,9 @@ public class OrderCreationServiceTest {
     @Mock
     private FraudDetectionService fraudDetectionService;
 
+    @Mock
+    private com.tiki.order.client.PaymentClient paymentClient;
+
     @InjectMocks
     private OrderCreationService orderCreationService;
 

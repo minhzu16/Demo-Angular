@@ -36,6 +36,9 @@
         <module>review</module>
         <module>analytics</module>
         <module>chat</module>
+        <module>settlement</module>
+        <module>b2b</module>
+        <module>live</module>
 	</modules>
 	
     <dependencyManagement>

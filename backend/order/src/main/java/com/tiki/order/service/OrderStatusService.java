@@ -24,6 +24,7 @@ public class OrderStatusService {
     private final VoucherService voucherService;
     private final OrderMapper orderMapper;
     private final com.tiki.order.client.PaymentClient paymentClient;
+    private final com.tiki.order.client.SettlementClient settlementClient;
 
     public OrderDto cancelOrder(Integer orderId) {
         return updateStatus(orderId, OrderEntity.OrderStatus.CANCELLED);
@@ -64,13 +65,23 @@ public class OrderStatusService {
         // Track status update
         orderTrackingRepository.save(new OrderTrackingEntity(saved.getId(), newStatus, "Cập nhật trạng thái thành " + newStatus.name()));
 
-        // Loyalty Points: Nếu đơn hàng được giao, cộng điểm cho khách hàng
+        // Loyalty Points: Nếu đơn hàng được giao, cộng điểm cho khách hàng (nhân hệ số nếu có Membership)
         if (newStatus == OrderEntity.OrderStatus.DELIVERED && saved.getUserId() != null) {
-            int earnedPoints = saved.getTotalAmount() != null ? saved.getTotalAmount().intValue() / 1000 : 0;
+            int basePoints = saved.getTotalAmount() != null ? saved.getTotalAmount().intValue() / 1000 : 0;
+            double multiplier = 1.0;
+            try {
+                com.tiki.order.dto.MembershipBenefitCheckDto benefits = userClient.checkMemberBenefits(saved.getUserId());
+                if (benefits != null && benefits.isMember() && benefits.getPointsMultiplier() > 1.0) {
+                    multiplier = benefits.getPointsMultiplier();
+                }
+            } catch (Exception e) {
+                log.warn("Could not check membership multiplier for user {}: {}", saved.getUserId(), e.getMessage());
+            }
+            int earnedPoints = (int) Math.round(basePoints * multiplier);
             if (earnedPoints > 0) {
                 try {
                     userClient.updatePoints(saved.getUserId(), earnedPoints);
-                    log.info("Granted {} loyalty points to user {} for order {}", earnedPoints, saved.getUserId(), orderId);
+                    log.info("Granted {} loyalty points (multiplier={}) to user {} for order {}", earnedPoints, multiplier, saved.getUserId(), orderId);
                 } catch (Exception e) {
                     log.error("Failed to grant loyalty points to user {}", saved.getUserId(), e);
                 }
@@ -86,6 +97,23 @@ public class OrderStatusService {
                     log.error("Failed to confirm stock for product {} on delivery", item.getProductId(), e);
                 }
             });
+
+            // Module 1: Kích hoạt tính hoa hồng và quyết toán cho seller khi đơn giao thành công
+            if (saved.getShopId() != null) {
+                try {
+                    if (settlementClient != null) {
+                        settlementClient.calculateSettlement(new com.tiki.order.client.SettlementClient.OrderSettlementRequest(
+                                saved.getId(),
+                                saved.getShopId(),
+                                null,
+                                saved.getTotalAmount()
+                        ));
+                        log.info("Triggered settlement calculation for order {} and shop {}", saved.getId(), saved.getShopId());
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to trigger settlement for order {}: {}", saved.getId(), e.getMessage());
+                }
+            }
         } else if (newStatus == OrderEntity.OrderStatus.CANCELLED || newStatus == OrderEntity.OrderStatus.REFUNDED) {
             saved.getItems().forEach(item -> {
                 try {

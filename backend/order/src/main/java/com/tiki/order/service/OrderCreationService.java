@@ -38,6 +38,7 @@ public class OrderCreationService {
     private final VoucherService voucherService;
     private final OrderMapper orderMapper;
     private final FraudDetectionService fraudDetectionService;
+    private final com.tiki.order.client.PaymentClient paymentClient;
 
     @org.springframework.beans.factory.annotation.Value("${order.shipping.free-threshold:500000}")
     private BigDecimal freeShippingThreshold = new BigDecimal("500000");
@@ -118,6 +119,21 @@ public class OrderCreationService {
         if (subtotal.compareTo(BigDecimal.ZERO) > 0 && subtotal.compareTo(freeShippingThreshold) < 0) {
             shippingFee = standardShippingFee;
         }
+
+        // Module 3: Membership Freeship Benefit
+        if (shippingFee.compareTo(BigDecimal.ZERO) > 0 && request.getUserId() != null) {
+            try {
+                Long uid = request.getUserId().longValue();
+                com.tiki.order.dto.MembershipBenefitCheckDto benefits = userClient.checkMemberBenefits(uid);
+                if (benefits != null && benefits.isMember() && benefits.isFreeShipping() && benefits.getFreeShipRemaining() > 0) {
+                    shippingFee = BigDecimal.ZERO;
+                    userClient.useFreeShip(uid);
+                    log.info("Applied membership free-shipping for user {}", uid);
+                }
+            } catch (Exception e) {
+                log.warn("Could not verify membership freeship for user {}: {}", request.getUserId(), e.getMessage());
+            }
+        }
         order.setShippingFee(shippingFee);
 
         BigDecimal voucherDiscount = BigDecimal.ZERO;
@@ -167,6 +183,37 @@ public class OrderCreationService {
         }
 
         order.calculateTotal();
+
+        // Module 6: Áp dụng thanh toán qua Gift Card & Store Credit nếu có
+        if (request.getGiftCardCode() != null && !request.getGiftCardCode().isBlank() && paymentClient != null) {
+            try {
+                paymentClient.applyGiftCard(java.util.Map.of(
+                        "code", request.getGiftCardCode(),
+                        "amount", order.getTotalAmount(),
+                        "orderId", order.getId() != null ? order.getId() : 0
+                ));
+                log.info("Applied gift card {} for order creation", request.getGiftCardCode());
+            } catch (Exception e) {
+                log.warn("Gift card application call failed: {}", e.getMessage());
+            }
+        }
+        if (Boolean.TRUE.equals(request.getUseStoreCredit()) && paymentClient != null && request.getUserId() != null) {
+            try {
+                BigDecimal creditToDeduct = request.getStoreCreditAmount() != null ?
+                        request.getStoreCreditAmount() : order.getTotalAmount();
+                paymentClient.deductStoreCredit(
+                        request.getUserId().longValue(),
+                        java.util.Map.of(
+                                "amount", creditToDeduct,
+                                "referenceId", "CHECKOUT-" + System.currentTimeMillis(),
+                                "note", "Thanh toán đơn hàng"
+                        )
+                );
+                log.info("Deducted store credit for user {}", request.getUserId());
+            } catch (Exception e) {
+                log.warn("Store credit deduction call failed: {}", e.getMessage());
+            }
+        }
 
         if (request.getPaymentMethod() != null) {
             order.setPaymentMethod(request.getPaymentMethod());
