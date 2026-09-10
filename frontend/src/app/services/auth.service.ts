@@ -76,16 +76,9 @@ export class AuthService {
 
   private authHeaders(): HttpHeaders {
     const token = this.getToken();
-    const user = this.getUser();
     let headers = new HttpHeaders({ 'Content-Type': 'application/json' });
     if (token) {
       headers = headers.set('Authorization', `Bearer ${token}`);
-    }
-    if (user && user.id) {
-      headers = headers.set('X-User-Id', user.id.toString());
-      if (user.username) {
-        headers = headers.set('X-Username', user.username);
-      }
     }
     return headers;
   }

@@ -131,4 +131,52 @@ public class OrderCreationServiceTest {
         assertEquals(BigDecimal.ZERO, result.getShippingFee());
         assertEquals(new BigDecimal("600000"), result.getTotalAmount());
     }
+
+    @Test
+    void createOrder_NegativeTotal_Exploit() {
+        // Mô phỏng hacker có 1 triệu điểm, dùng cho đơn hàng 200k
+        com.tiki.common.dto.UserDto mockUser = new com.tiki.common.dto.UserDto();
+        mockUser.setId(1L);
+        mockUser.setLoyaltyPoints(1000000); // Có 1 triệu điểm
+        when(userClient.getUser(1L)).thenReturn(mockUser);
+
+        createOrderRequest.setUsePoints(1000000); // Dùng hết 1 triệu điểm
+
+        // Lỗ hổng ĐÃ VÁ: Phải ném lỗi khi số điểm sử dụng vượt quá tổng giá trị đơn hàng
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            orderCreationService.createOrder(createOrderRequest);
+        });
+
+        assertEquals("Số điểm sử dụng không được vượt quá tổng giá trị đơn hàng.", exception.getMessage());
+    }
+
+    @Test
+    void createOrder_SilentVoucherFailure_Exploit() {
+        // Mô phỏng hacker dùng voucher hết hạn/lởm
+        createOrderRequest.setVoucherCode("FAKE_VOUCHER");
+
+        com.tiki.order.dto.VoucherValidationResponse mockResponse = new com.tiki.order.dto.VoucherValidationResponse();
+        mockResponse.setValid(false); // Voucher không hợp lệ
+        when(voucherService.validateVoucher(any())).thenReturn(mockResponse);
+
+        // Lỗ hổng ĐÃ VÁ: Phải ném lỗi khi voucher không hợp lệ
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            orderCreationService.createOrder(createOrderRequest);
+        });
+
+        assertEquals("Voucher không hợp lệ hoặc đã hết hạn: FAKE_VOUCHER", exception.getMessage());
+    }
+
+    @Test
+    void createOrder_NegativeQuantity_Exploit() {
+        // Hacker cố tình truyền số lượng âm để giảm tổng tiền hóa đơn
+        createOrderRequest.getItems().get(0).setQuantity(-10);
+
+        // Lỗ hổng ĐÃ VÁ: Ném exception khi số lượng <= 0
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            orderCreationService.createOrder(createOrderRequest);
+        });
+
+        assertTrue(exception.getMessage().contains("không hợp lệ"));
+    }
 }

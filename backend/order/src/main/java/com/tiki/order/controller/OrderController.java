@@ -231,7 +231,7 @@ public class OrderController {
         return orderStatusService.updateStatus(orderId, OrderEntity.OrderStatus.DELIVERED);
     }
 
-    @PostMapping("/{orderId}/return-request")
+    @PostMapping({"/{orderId}/return", "/{orderId}/return-request"})
     @PreAuthorize("hasRole('BUYER') or hasRole('ADMIN')")
     public OrderDto requestReturn(
             @PathVariable Integer orderId,
@@ -249,17 +249,27 @@ public class OrderController {
         return orderStatusService.requestReturn(orderId);
     }
 
-    @PostMapping("/{orderId}/refund")
-    @PreAuthorize("hasRole('ADMIN')")
-    public OrderDto refundOrder(
+    @PostMapping({"/{orderId}/return/approve", "/{orderId}/refund"})
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SELLER')")
+    public OrderDto approveReturn(
             @PathVariable Integer orderId,
-            @RequestHeader(value = "X-User-Id", required = true) Long adminId,
-            @RequestHeader(value = "X-Username", required = false) String adminUsername) {
+            @RequestHeader(value = "X-User-Id", required = true) Long staffId,
+            @RequestHeader(value = "X-Username", required = false) String staffUsername) {
 
-        // Log admin action for audit trail
-        log.warn("ADMIN ACTION: User {} ({}) refunding order {}", adminUsername, adminId, orderId);
-
+        log.info("Staff {} ({}) approved return / refund for order {}", staffUsername, staffId, orderId);
         return orderStatusService.refundOrder(orderId);
+    }
+
+    @PostMapping("/{orderId}/return/reject")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SELLER')")
+    public OrderDto rejectReturn(
+            @PathVariable Integer orderId,
+            @RequestParam(value = "reason", required = false) String reason,
+            @RequestHeader(value = "X-User-Id", required = true) Long staffId,
+            @RequestHeader(value = "X-Username", required = false) String staffUsername) {
+
+        log.info("Staff {} ({}) rejected return for order {}: reason={}", staffUsername, staffId, orderId, reason);
+        return orderStatusService.rejectReturn(orderId, reason);
     }
 
     @PostMapping("/{orderId}/payment-session")

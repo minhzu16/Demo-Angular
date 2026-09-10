@@ -217,6 +217,22 @@ public class VoucherService {
     }
 
     /**
+     * Release voucher (decrement used count upon order cancellation)
+     */
+    @Transactional
+    public void releaseVoucher(String code) {
+        if (code == null || code.isBlank()) {
+            return;
+        }
+        voucherRepository.findByCodeIgnoreCase(code).ifPresent(voucher -> {
+            if (voucher.getUsedCount() != null && voucher.getUsedCount() > 0) {
+                voucher.setUsedCount(voucher.getUsedCount() - 1);
+                voucherRepository.save(voucher);
+            }
+        });
+    }
+
+    /**
      * Get vouchers expiring soon
      */
     public List<VoucherDTO> getVouchersExpiringSoon(int days) {

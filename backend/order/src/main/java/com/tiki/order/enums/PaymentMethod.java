@@ -10,26 +10,6 @@ public enum PaymentMethod {
     COD("Cash on Delivery"),
     
     /**
-     * Bank Transfer - Chuyển khoản ngân hàng
-     */
-    BANK_TRANSFER("Bank Transfer"),
-    
-    /**
-     * VNPay - Cổng thanh toán VNPay
-     */
-    VNPAY("VNPay"),
-    
-    /**
-     * Momo - Ví điện tử Momo
-     */
-    MOMO("Momo"),
-    
-    /**
-     * ZaloPay - Ví điện tử ZaloPay
-     */
-    ZALOPAY("ZaloPay"),
-    
-    /**
      * SePay - Chuyển khoản qua SePay QR
      */
     SEPAY("SePay");
@@ -48,7 +28,7 @@ public enum PaymentMethod {
      * Check if payment method requires online payment
      */
     public boolean isOnlinePayment() {
-        return this == VNPAY || this == MOMO || this == ZALOPAY || this == SEPAY;
+        return this == SEPAY;
     }
     
     /**

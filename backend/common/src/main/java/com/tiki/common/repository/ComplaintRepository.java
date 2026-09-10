@@ -8,4 +8,6 @@ import java.util.List;
 public interface ComplaintRepository extends JpaRepository<ComplaintEntity, Long> {
     List<ComplaintEntity> findByBuyerId(Long buyerId);
     List<ComplaintEntity> findBySellerId(Long sellerId);
+    List<ComplaintEntity> findByOrderId(Long orderId);
+    boolean existsByOrderIdAndStatus(Long orderId, ComplaintEntity.Status status);
 }

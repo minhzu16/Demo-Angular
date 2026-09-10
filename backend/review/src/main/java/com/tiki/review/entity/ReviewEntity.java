@@ -37,6 +37,19 @@ public class ReviewEntity {
     @CollectionTable(name = "review_media", joinColumns = @JoinColumn(name = "review_id"))
     @Column(name = "media_url", length = 1000)
     private java.util.List<String> mediaUrls;
+
+    @Column(name = "verified_purchase")
+    @Builder.Default
+    private boolean verifiedPurchase = false;
+
+    @Column(name = "shop_reply", columnDefinition = "TEXT")
+    private String shopReply;
+
+    @Column(name = "shop_reply_at")
+    private LocalDateTime shopReplyAt;
+
+    @Column(name = "shop_reply_user_id")
+    private Long shopReplyUserId;
     
     @CreationTimestamp
     private LocalDateTime createdAt;

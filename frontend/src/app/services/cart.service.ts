@@ -75,18 +75,13 @@ export class CartService {
      * Add item to cart
      */
     addItem(productId: number, quantity: number = 1, userId?: number): Observable<Cart> {
-        let headers = new HttpHeaders();
-        if (userId) {
-            headers = headers.set('X-User-Id', userId.toString());
-        }
-
         const body: AddItemRequest = {
             productId,
             quantity,
             userId
         };
 
-        return this.http.post<Cart>(this.apiUrl, body, { headers });
+        return this.http.post<Cart>(this.apiUrl, body);
     }
 
     /**
@@ -117,45 +112,30 @@ export class CartService {
      * Get cart summary
      */
     getCartSummary(userId?: number, sessionId?: string): Observable<{ totalItems: number; totalAmount: number; itemCount: number }> {
-        let headers = new HttpHeaders();
-        if (userId) {
-            headers = headers.set('X-User-Id', userId.toString());
-        }
-
         const params: any = {};
         if (sessionId) params.sessionId = sessionId;
 
-        return this.http.get<any>(`${this.apiUrl}/summary`, { headers, params });
+        return this.http.get<any>(`${this.apiUrl}/summary`, { params });
     }
 
     /**
      * Validate cart
      */
     validateCart(userId?: number, sessionId?: string): Observable<{ valid: boolean; totalItems: number; errors: any[] }> {
-        let headers = new HttpHeaders();
-        if (userId) {
-            headers = headers.set('X-User-Id', userId.toString());
-        }
-
         const params: any = {};
         if (sessionId) params.sessionId = sessionId;
 
-        return this.http.get<any>(`${this.apiUrl}/validate`, { headers, params });
+        return this.http.get<any>(`${this.apiUrl}/validate`, { params });
     }
 
     /**
      * Clear cart
      */
     clearCart(userId?: number, sessionId?: string): Observable<void> {
-        let headers = new HttpHeaders();
-        if (userId) {
-            headers = headers.set('X-User-Id', userId.toString());
-        }
-
         const params: any = {};
         if (sessionId) params.sessionId = sessionId;
 
-        return this.http.delete<void>(`${this.apiUrl}/clear`, { headers, params });
+        return this.http.delete<void>(`${this.apiUrl}/clear`, { params });
     }
 
     /**

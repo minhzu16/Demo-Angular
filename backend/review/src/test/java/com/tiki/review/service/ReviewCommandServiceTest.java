@@ -153,10 +153,46 @@ class ReviewCommandServiceTest {
     @Test
     @DisplayName("deleteReview – delegates to repository")
     void deleteReview_DelegatesToRepository() {
+        ReviewEntity review = ReviewEntity.builder().id(5L).productId(101L).rating(5).build();
+        when(reviewRepository.findById(5L)).thenReturn(java.util.Optional.of(review));
         doNothing().when(reviewRepository).deleteById(5L);
 
         commandService.deleteReview(5L);
 
         verify(reviewRepository).deleteById(5L);
+    }
+
+    // ── replyReview ──────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("replyReview – saves shop reply and returns updated DTO")
+    void replyReview_Success() {
+        ReviewEntity review = ReviewEntity.builder()
+                .id(10L)
+                .productId(101L)
+                .userId(1L)
+                .rating(4)
+                .comment("Hàng ổn")
+                .build();
+
+        when(reviewRepository.findById(10L)).thenReturn(java.util.Optional.of(review));
+        when(reviewRepository.save(any(ReviewEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+        ReviewDto result = commandService.replyReview(10L, 999L, "Cảm ơn bạn đã mua hàng tại shop!");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getShopReply()).isEqualTo("Cảm ơn bạn đã mua hàng tại shop!");
+        assertThat(result.getShopReplyUserId()).isEqualTo(999L);
+        assertThat(result.getShopReplyAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("replyReview – throws exception when reply text is blank")
+    void replyReview_EmptyReply_ThrowsException() {
+        assertThatThrownBy(() -> commandService.replyReview(10L, 999L, "   "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("không được để trống");
+
+        verify(reviewRepository, never()).save(any());
     }
 }

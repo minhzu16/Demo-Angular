@@ -15,23 +15,8 @@ class PaymentMethodTest {
     }
 
     @Test
-    void testVNPayIsOnlinePayment() {
-        assertTrue(PaymentMethod.VNPAY.isOnlinePayment());
-    }
-
-    @Test
-    void testMomoIsOnlinePayment() {
-        assertTrue(PaymentMethod.MOMO.isOnlinePayment());
-    }
-
-    @Test
-    void testZaloPayIsOnlinePayment() {
-        assertTrue(PaymentMethod.ZALOPAY.isOnlinePayment());
-    }
-
-    @Test
-    void testBankTransferIsNotOnlinePayment() {
-        assertFalse(PaymentMethod.BANK_TRANSFER.isOnlinePayment());
+    void testSepayIsOnlinePayment() {
+        assertTrue(PaymentMethod.SEPAY.isOnlinePayment());
     }
 
     @Test
@@ -41,24 +26,18 @@ class PaymentMethodTest {
 
     @Test
     void testOtherMethodsAreNotCOD() {
-        assertFalse(PaymentMethod.VNPAY.isCOD());
-        assertFalse(PaymentMethod.MOMO.isCOD());
-        assertFalse(PaymentMethod.ZALOPAY.isCOD());
-        assertFalse(PaymentMethod.BANK_TRANSFER.isCOD());
+        assertFalse(PaymentMethod.SEPAY.isCOD());
     }
 
     @Test
     void testDisplayNames() {
         assertEquals("Cash on Delivery", PaymentMethod.COD.getDisplayName());
-        assertEquals("Bank Transfer", PaymentMethod.BANK_TRANSFER.getDisplayName());
-        assertEquals("VNPay", PaymentMethod.VNPAY.getDisplayName());
-        assertEquals("Momo", PaymentMethod.MOMO.getDisplayName());
-        assertEquals("ZaloPay", PaymentMethod.ZALOPAY.getDisplayName());
+        assertEquals("SePay", PaymentMethod.SEPAY.getDisplayName());
     }
 
     @Test
     void testAllValuesExist() {
         PaymentMethod[] methods = PaymentMethod.values();
-        assertEquals(5, methods.length);
+        assertEquals(2, methods.length);
     }
 }

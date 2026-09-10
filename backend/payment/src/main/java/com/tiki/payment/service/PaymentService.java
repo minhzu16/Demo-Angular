@@ -1,10 +1,10 @@
 package com.tiki.payment.service;
 
+import com.tiki.payment.client.OrderClient;
 import com.tiki.payment.dto.CreatePaymentRequest;
 import com.tiki.payment.dto.PaymentDto;
 import com.tiki.payment.entity.PaymentEntity;
 import com.tiki.payment.repository.PaymentRepository;
-import com.tiki.payment.util.VnPayUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,27 +13,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class PaymentService {
     private final PaymentRepository paymentRepository;
+    private final OrderClient orderClient;
 
-    @Value("${vnp.payUrl}")
-    private String vnp_PayUrl;
-    @Value("${vnp.returnUrl}")
-    private String vnp_ReturnUrl;
-    @Value("${vnp.tmnCode}")
-    private String vnp_TmnCode;
-    @Value("${vnp.hashSecret}")
-    private String vnp_HashSecret;
+    @Value("${sepay.bank-name:MBBank}")
+    private String sepayBankName;
+    
+    @Value("${sepay.account-number:0123456789}")
+    private String sepayAccountNumber;
 
     @Transactional
     public PaymentDto createPayment(CreatePaymentRequest request) {
@@ -60,11 +53,7 @@ public class PaymentService {
         PaymentEntity saved = paymentRepository.save(entity);
         PaymentDto dto = mapToDto(saved);
 
-        // Generate VNPay URL if method is VNPAY
-        if ("VNPAY".equalsIgnoreCase(request.getPaymentMethod())) {
-            String paymentUrl = generateVnPayUrl(request.getOrderId(), request.getAmount());
-            dto.setRedirectUrl(paymentUrl);
-        } else if ("SEPAY".equalsIgnoreCase(request.getPaymentMethod())) {
+        if ("SEPAY".equalsIgnoreCase(request.getPaymentMethod())) {
             String paymentUrl = generateSepayUrl(request.getOrderId(), request.getAmount());
             dto.setRedirectUrl(paymentUrl);
         } else if ("COD".equalsIgnoreCase(request.getPaymentMethod())) {
@@ -76,75 +65,9 @@ public class PaymentService {
 
     private String generateSepayUrl(Integer orderId, BigDecimal amount) {
         // Generate VietQR format URL via SePay
-        // Format: https://qr.sepay.vn/img?acc=YOUR_ACCOUNT_NUMBER&bank=YOUR_BANK_NAME&amount=AMOUNT&des=MEMO
-        // We will use placeholders for bank account info which can be overridden via properties in real prod
-        String accountNo = "0123456789"; // Thay bằng số tài khoản thật
-        String bank = "MBBank"; // Thay bằng tên ngân hàng thật
         String memo = "DH" + orderId;
         return String.format("https://qr.sepay.vn/img?acc=%s&bank=%s&amount=%s&des=%s", 
-                             accountNo, bank, amount.intValue(), memo);
-    }
-
-    private String generateVnPayUrl(Integer orderId, BigDecimal amount) {
-        String vnp_Version = "2.1.0";
-        String vnp_Command = "pay";
-        String vnp_OrderInfo = "Thanh toan don hang " + orderId;
-        String vnp_TxnRef = orderId.toString() + "_" + System.currentTimeMillis();
-        String vnp_IpAddr = "127.0.0.1";
-
-        Map<String, String> vnp_Params = new HashMap<>();
-        vnp_Params.put("vnp_Version", vnp_Version);
-        vnp_Params.put("vnp_Command", vnp_Command);
-        vnp_Params.put("vnp_TmnCode", vnp_TmnCode);
-        vnp_Params.put("vnp_Amount", String.valueOf(amount.multiply(new BigDecimal(100)).intValue()));
-        vnp_Params.put("vnp_CurrCode", "VND");
-        vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
-        vnp_Params.put("vnp_OrderInfo", vnp_OrderInfo);
-        vnp_Params.put("vnp_OrderType", "other");
-        vnp_Params.put("vnp_Locale", "vn");
-        vnp_Params.put("vnp_ReturnUrl", vnp_ReturnUrl);
-        vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
-
-        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-        String vnp_CreateDate = formatter.format(cld.getTime());
-        vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
-
-        cld.add(Calendar.MINUTE, 15);
-        String vnp_ExpireDate = formatter.format(cld.getTime());
-        vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
-
-        List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
-        Collections.sort(fieldNames);
-        StringBuilder hashData = new StringBuilder();
-        StringBuilder query = new StringBuilder();
-        Iterator<String> itr = fieldNames.iterator();
-        try {
-            while (itr.hasNext()) {
-                String fieldName = itr.next();
-                String fieldValue = vnp_Params.get(fieldName);
-                if ((fieldValue != null) && (fieldValue.length() > 0)) {
-                    //Build hash data
-                    hashData.append(fieldName);
-                    hashData.append('=');
-                    hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
-                    //Build query
-                    query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII.toString()));
-                    query.append('=');
-                    query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
-                    if (itr.hasNext()) {
-                        query.append('&');
-                        hashData.append('&');
-                    }
-                }
-            }
-        } catch (java.io.UnsupportedEncodingException e) {
-            log.error("VNPay Encoding error", e);
-        }
-        String queryUrl = query.toString();
-        String vnp_SecureHash = VnPayUtil.hmacSHA512(vnp_HashSecret, hashData.toString());
-        queryUrl += "&vnp_SecureHash=" + vnp_SecureHash;
-        return vnp_PayUrl + "?" + queryUrl;
+                             sepayAccountNumber, sepayBankName, amount.intValue(), memo);
     }
     
     @Transactional(readOnly = true)
@@ -171,7 +94,32 @@ public class PaymentService {
                 .orElseThrow(() -> new RuntimeException("Payment not found for order id: " + orderId));
         
         existing.setPaymentStatus(status);
-        return mapToDto(paymentRepository.save(existing));
+        PaymentEntity saved = paymentRepository.save(existing);
+
+        if ("COMPLETED".equalsIgnoreCase(status) || "PAID".equalsIgnoreCase(status)) {
+            try {
+                if (orderClient != null) {
+                    orderClient.updatePaymentStatus(orderId, "PAID", existing.getTransactionId());
+                    log.info("Successfully notified OrderService that order {} is PAID", orderId);
+                }
+            } catch (Exception e) {
+                log.error("Failed to notify OrderService for order {}: {}", orderId, e.getMessage());
+            }
+        }
+
+        return mapToDto(saved);
+    }
+
+    @Transactional
+    public PaymentDto refundPayment(Integer orderId) {
+        log.info("Processing refund for order id: {}", orderId);
+        PaymentEntity existing = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Payment not found for order id: " + orderId));
+
+        existing.setPaymentStatus("REFUNDED");
+        PaymentEntity saved = paymentRepository.save(existing);
+        log.info("Payment for order {} marked as REFUNDED", orderId);
+        return mapToDto(saved);
     }
 
     private PaymentDto mapToDto(PaymentEntity entity) {

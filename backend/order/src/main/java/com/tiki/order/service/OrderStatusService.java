@@ -21,7 +21,9 @@ public class OrderStatusService {
     private final OrderTrackingRepository orderTrackingRepository;
     private final UserClient userClient;
     private final com.tiki.order.client.WarehouseClient warehouseClient;
+    private final VoucherService voucherService;
     private final OrderMapper orderMapper;
+    private final com.tiki.order.client.PaymentClient paymentClient;
 
     public OrderDto cancelOrder(Integer orderId) {
         return updateStatus(orderId, OrderEntity.OrderStatus.CANCELLED);
@@ -35,6 +37,19 @@ public class OrderStatusService {
         return updateStatus(orderId, OrderEntity.OrderStatus.REFUNDED);
     }
 
+    public OrderDto rejectReturn(Integer orderId, String reason) {
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order không tồn tại"));
+        if (order.getStatus() != OrderEntity.OrderStatus.RETURN_REQUESTED) {
+            throw new IllegalStateException("Đơn hàng #" + orderId + " không ở trạng thái yêu cầu trả hàng.");
+        }
+        order.setStatus(OrderEntity.OrderStatus.DELIVERED);
+        OrderEntity saved = orderRepository.save(order);
+        String note = "Yêu cầu trả hàng bị từ chối" + (reason != null && !reason.isBlank() ? ": " + reason : "");
+        orderTrackingRepository.save(new OrderTrackingEntity(saved.getId(), OrderEntity.OrderStatus.DELIVERED, note));
+        return orderMapper.toDto(saved);
+    }
+
     public OrderDto updateStatus(Integer orderId, OrderEntity.OrderStatus newStatus) {
         OrderEntity order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order không tồn tại"));
@@ -42,6 +57,7 @@ public class OrderStatusService {
         // ✅ BUG 16 FIX: Validate trạng thái chuyển đổi hợp lệ
         validateStatusTransition(order.getStatus(), newStatus, orderId);
 
+        OrderEntity.OrderStatus oldStatus = order.getStatus();
         order.setStatus(newStatus);
         OrderEntity saved = orderRepository.save(order);
 
@@ -78,6 +94,52 @@ public class OrderStatusService {
                     log.error("Failed to release stock for product {} on cancel", item.getProductId(), e);
                 }
             });
+            
+            // Hoàn lại điểm thưởng đã dùng nếu đơn hàng bị hủy
+            if (saved.getUsePoints() != null && saved.getUsePoints() > 0 && saved.getUserId() != null) {
+                try {
+                    userClient.updatePoints(saved.getUserId(), saved.getUsePoints());
+                    log.info("Refunded {} spent loyalty points back to user {} for cancelled order {}", 
+                            saved.getUsePoints(), saved.getUserId(), orderId);
+                } catch (Exception e) {
+                    log.error("Failed to refund spent loyalty points to user {}", saved.getUserId(), e);
+                }
+            }
+
+            // Hoàn lại lượt dùng voucher nếu có
+            if (saved.getVoucherCode() != null && !saved.getVoucherCode().isBlank()) {
+                try {
+                    voucherService.releaseVoucher(saved.getVoucherCode());
+                    log.info("Released voucher {} for cancelled order {}", saved.getVoucherCode(), orderId);
+                } catch (Exception e) {
+                    log.error("Failed to release voucher {} for order {}", saved.getVoucherCode(), orderId, e);
+                }
+            }
+
+            // Thu hồi điểm thưởng đã cộng nếu đơn bị hoàn trả sau khi đã giao thành công
+            if (oldStatus == OrderEntity.OrderStatus.DELIVERED || oldStatus == OrderEntity.OrderStatus.RETURN_REQUESTED) {
+                if (saved.getUserId() != null) {
+                    int pointsToRevoke = saved.getTotalAmount() != null ? saved.getTotalAmount().intValue() / 1000 : 0;
+                    if (pointsToRevoke > 0) {
+                        try {
+                            userClient.updatePoints(saved.getUserId(), -pointsToRevoke);
+                            log.info("Revoked {} loyalty points from user {} due to order refund", pointsToRevoke, saved.getUserId());
+                        } catch (Exception e) {
+                            log.error("Failed to revoke loyalty points from user {}", saved.getUserId(), e);
+                        }
+                    }
+                }
+            }
+
+            // Đồng bộ trạng thái hoàn tiền sang payment-service
+            try {
+                if (paymentClient != null) {
+                    paymentClient.refundPayment(orderId);
+                    log.info("Triggered payment refund for order {}", orderId);
+                }
+            } catch (Exception e) {
+                log.error("Failed to notify payment-service to refund order {}: {}", orderId, e.getMessage());
+            }
         }
 
         return orderMapper.toDto(saved);

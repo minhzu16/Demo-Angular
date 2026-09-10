@@ -24,6 +24,10 @@ public class ReviewDto {
     private int rating;
     private String comment;
     private java.util.List<String> mediaUrls;
+    private boolean verifiedPurchase;
+    private String shopReply;
+    private LocalDateTime shopReplyAt;
+    private Long shopReplyUserId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

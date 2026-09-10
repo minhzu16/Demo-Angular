@@ -3,6 +3,9 @@ server:
   shutdown: graceful
   forward-headers-strategy: framework
 
+jwt:
+  secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678}
+
 spring:
   application:
     name: gateway-service
@@ -17,14 +20,22 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOrigins: "*"
+            allowedOriginPatterns:
+              - "http://localhost:*"
+              - "http://127.0.0.1:*"
+              - "${CORS_ALLOWED_ORIGIN:*}"
             allowedMethods:
               - GET
               - POST
               - PUT
               - DELETE
               - OPTIONS
-            allowedHeaders: "*"
+            allowedHeaders:
+              - Authorization
+              - Content-Type
+              - Accept
+              - X-Requested-With
+            allowCredentials: true
       # ✅ BUG 40 & 41 FIX: Global HTTP client timeout prevents gateway from hanging
       # when a downstream service is unresponsive (fail-fast instead of cascading failure)
       httpclient:
@@ -48,7 +59,7 @@ spring:
         - id: order
           uri: http://${ORDER_HOST:order}:${ORDER_PORT:8083}
           predicates:
-            - Path=/api/v1/orders/**, /api/v1/invoices/**, /api/v1/admin/orders/**, /api/v1/shipping/**, /api/v1/shipping-methods/**, /api/v1/vouchers/**, /api/v1/tracking/**, /api/vouchers/**
+            - Path=/api/v1/orders/**, /api/v1/invoices/**, /api/v1/admin/orders/**, /api/v1/shipping/**, /api/v1/shipping-methods/**, /api/v1/vouchers/**, /api/v1/tracking/**, /api/vouchers/**, /api/v1/complaints/**
           filters:
             - name: RequestRateLimiter
               args:

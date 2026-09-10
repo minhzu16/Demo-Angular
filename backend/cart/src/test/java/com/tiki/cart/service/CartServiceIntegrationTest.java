@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -53,8 +54,8 @@ public class CartServiceIntegrationTest {
         assertEquals(1, cart.getCartItems().size());
         assertEquals(101, cart.getCartItems().get(0).getProductId());
         assertEquals(2, cart.getCartItems().get(0).getQuantity());
-        assertEquals(99.0, cart.getCartItems().get(0).getPriceSnapshot());
-        assertEquals(198.0, cart.getTotalAmount());
+        assertEquals(0, BigDecimal.valueOf(99.0).compareTo(cart.getCartItems().get(0).getPriceSnapshot()));
+        assertEquals(0, BigDecimal.valueOf(198.0).compareTo(cart.getTotalAmount()));
     }
 
     @Test
@@ -64,7 +65,7 @@ public class CartServiceIntegrationTest {
         assertNotNull(updatedCart);
         assertEquals(1, updatedCart.getCartItems().size());
         assertEquals(5, updatedCart.getCartItems().get(0).getQuantity());
-        assertEquals(495.0, updatedCart.getTotalAmount());
+        assertEquals(0, BigDecimal.valueOf(495.0).compareTo(updatedCart.getTotalAmount()));
     }
 
     @Test

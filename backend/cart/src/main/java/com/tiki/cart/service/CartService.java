@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -34,16 +35,17 @@ public class CartService {
             CartItemDto i = new CartItemDto();
             i.setProductId(it.getProductId());
             int qtySafe = it.getQuantity() == null ? 0 : it.getQuantity();
-            double priceSafe = it.getPriceSnapshot() == null ? 0.0 : it.getPriceSnapshot();
+            BigDecimal priceSafe = it.getPriceSnapshot() == null ? BigDecimal.ZERO : it.getPriceSnapshot();
             i.setQuantity(qtySafe);
             i.setPriceSnapshot(priceSafe);
             return i;
         }).collect(Collectors.toList());
         d.setCartItems(items);
         d.setTotalItems(items.stream().mapToInt(CartItemDto::getQuantity).sum());
-        d.setTotalAmount(items.stream()
-                .mapToDouble(it -> it.getQuantity() * it.getPriceSnapshot())
-                .sum());
+        BigDecimal total = items.stream()
+                .map(it -> it.getPriceSnapshot().multiply(BigDecimal.valueOf(it.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        d.setTotalAmount(total);
         return d;
     }
 
@@ -83,9 +85,10 @@ public class CartService {
     }
 
     @Transactional
-    public CartDto addItem(Integer userId,String sessionId,Integer productId,Integer qty,Double price){
-        // Skip product validation temporarily to fix 500 error
-        // Product service validation can be added back later
+    public CartDto addItem(Integer userId,String sessionId,Integer productId,Integer qty,BigDecimal price){
+        if (qty == null || qty <= 0) {
+            throw new IllegalArgumentException("Số lượng sản phẩm không hợp lệ.");
+        }
         
         CartEntity cart = getOrCreate(userId,sessionId);
         
@@ -102,18 +105,29 @@ public class CartService {
             item.setCart(cart);
             item.setProductId(productId);
             item.setQuantity(qty);
-            item.setPriceSnapshot(price);
+            item.setPriceSnapshot(price != null ? price : BigDecimal.ZERO);
             cart.getItems().add(item);
         }else{
             int currentQty = item.getQuantity() == null ? 0 : item.getQuantity();
             item.setQuantity(currentQty + qty);
+            if (price != null) {
+                item.setPriceSnapshot(price);
+            }
         }
         cartRepo.save(cart);
         return toDto(cart);
     }
 
     @Transactional
+    public CartDto addItem(Integer userId,String sessionId,Integer productId,Integer qty,Double price){
+        return addItem(userId, sessionId, productId, qty, price != null ? BigDecimal.valueOf(price) : BigDecimal.ZERO);
+    }
+
+    @Transactional
     public CartDto updateQty(Integer userId,String sessionId,Integer productId,Integer qty){
+        if (qty == null || qty <= 0) {
+            throw new IllegalArgumentException("Số lượng sản phẩm không hợp lệ.");
+        }
         CartEntity cart = getOrCreate(userId,sessionId);
         cart.getItems().forEach(i->{
             if(i.getProductId().equals(productId)) i.setQuantity(qty);

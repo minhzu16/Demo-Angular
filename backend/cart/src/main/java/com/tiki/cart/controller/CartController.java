@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -66,7 +67,7 @@ public class CartController {
         Integer quantity = req.getQuantity() != null ? req.getQuantity() : 1;
         
         // ✅ SECURITY FIX: Fetch giá từ ProductService
-        Double price = fetchProductPrice(productId);
+        BigDecimal price = fetchProductPrice(productId);
         
         log.info("Adding item to cart - userId: {}, productId: {}, qty: {}, price: {}", userId, productId, quantity, price);
         return cartService.addItem(userId, null, productId, quantity, price);
@@ -80,7 +81,7 @@ public class CartController {
                                            @Valid @RequestBody AddItemRequest req){
         Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
         // ✅ SECURITY FIX: Fetch giá từ ProductService
-        Double price = fetchProductPrice(req.getProductId());
+        BigDecimal price = fetchProductPrice(req.getProductId());
         log.info("Legacy endpoint: Fetched price {} for product {}", price, req.getProductId());
         return ResponseEntity.ok(cartService.addItem(finalUserId,sessionId,req.getProductId(),req.getQuantity(),price));
     }
@@ -117,9 +118,9 @@ public class CartController {
 
     /** Total amount */
     @GetMapping("/total")
-    public ResponseEntity<Double> total(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
-                                        @RequestParam(required = false) Integer userId,
-                                        @RequestParam(required = false) String sessionId){
+    public ResponseEntity<BigDecimal> total(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+                                            @RequestParam(required = false) Integer userId,
+                                            @RequestParam(required = false) String sessionId){
         Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
         return ResponseEntity.ok(cartService.getCart(finalUserId,sessionId).getTotalAmount());
     }
@@ -174,20 +175,20 @@ public class CartController {
      * Helper method: Fetch giá sản phẩm từ Product Service
      * ✅ Fix security issue - không trust giá từ client
      */
-    private Double fetchProductPrice(Integer productId) {
+    private BigDecimal fetchProductPrice(Integer productId) {
         try {
             ProductClient.ProductDTO product = productClient.getProduct(productId);
             if (product != null && product.getPrice() != null) {
-                Double price = product.getPrice().doubleValue();
+                BigDecimal price = product.getPrice();
                 log.debug("Fetched price {} for product {}", price, productId);
                 return price;
             }
-            log.warn("Product {} not found or has no price, using 0.0", productId);
-            return 0.0;
+            log.warn("Product {} not found or has no price, using 0", productId);
+            return BigDecimal.ZERO;
         } catch (Exception e) {
             log.error("Failed to fetch price for product {}: {}", productId, e.getMessage());
-            // Fallback to 0.0 if Product Service is down
-            return 0.0;
+            // Fallback to 0 if Product Service is down
+            return BigDecimal.ZERO;
         }
     }
 }

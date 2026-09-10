@@ -230,7 +230,7 @@ public class AuthService {
         }
     }
 
-    private AuthResponse buildAuthResponse(User user) {
+    public AuthResponse buildAuthResponse(User user) {
         // Use roles string for JWT token (e.g., "BUYER,SELLER")
         String rolesString = user.getRolesAsString();
         

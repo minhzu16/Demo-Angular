@@ -55,12 +55,34 @@ public class ReviewCommandService {
 
         // 3. Persist
         ReviewEntity entity = reviewMapper.toEntity(request);
+        entity.setVerifiedPurchase(true);
         ReviewEntity saved = reviewRepository.save(entity);
         log.info("Review saved with id={}", saved.getId());
 
         // 4. Publish event (non-blocking; failure is logged but does not roll back)
         publishReviewCreatedEvent(saved);
 
+        return reviewMapper.toDto(saved);
+    }
+
+    /**
+     * Sellers or admins reply publicly to a customer review.
+     */
+    @Transactional
+    public ReviewDto replyReview(Long reviewId, Long staffId, String reply) {
+        log.info("Replying to review id={} by staffId={}", reviewId, staffId);
+        if (reply == null || reply.isBlank()) {
+            throw new IllegalArgumentException("Nội dung phản hồi không được để trống");
+        }
+        ReviewEntity review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đánh giá với ID: " + reviewId));
+
+        review.setShopReply(reply);
+        review.setShopReplyAt(java.time.LocalDateTime.now());
+        review.setShopReplyUserId(staffId);
+
+        ReviewEntity saved = reviewRepository.save(review);
+        log.info("Shop reply saved for review id={}", reviewId);
         return reviewMapper.toDto(saved);
     }
 

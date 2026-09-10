@@ -25,28 +25,6 @@ const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req);
 };
 
-const userHeaderInterceptor: HttpInterceptorFn = (req, next) => {
-  const userStr = localStorage.getItem('user_profile');
-  const isAuthEndpoint = req.url.includes('/auth/login') || req.url.includes('/auth/register');
-
-  if (userStr && !isAuthEndpoint) {
-    try {
-      const user = JSON.parse(userStr);
-      let headers = req.headers;
-
-      if (user && user.id != null) {
-        headers = headers.set('X-User-Id', String(user.id));
-      }
-      if (user && user.username) {
-        headers = headers.set('X-Username', user.username);
-      }
-
-      req = req.clone({ headers });
-    } catch (e) { }
-  }
-  return next(req);
-};
-
 import { HttpClient } from '@angular/common/http';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
@@ -60,7 +38,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withViewTransitions()),
     provideHttpClient(
       withFetch(),
-      withInterceptors([jwtInterceptor, userHeaderInterceptor, errorInterceptor])
+      withInterceptors([jwtInterceptor, errorInterceptor])
     ),
 
     importProvidersFrom(

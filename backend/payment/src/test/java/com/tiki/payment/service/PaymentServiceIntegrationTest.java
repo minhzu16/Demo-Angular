@@ -17,6 +17,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tiki.payment.client.OrderClient;
+import org.springframework.boot.test.mock.mockito.MockBean;
+
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,10 +28,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("test")
 @Import(PaymentService.class)
 @TestPropertySource(properties = {
-    "vnp.payUrl=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
-    "vnp.returnUrl=http://localhost:8080/return",
-    "vnp.tmnCode=TMN01",
-    "vnp.hashSecret=SECRET"
+    "sepay.bank-name=MBBank",
+    "sepay.account-number=0123456789",
+    "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @Transactional
 public class PaymentServiceIntegrationTest {
@@ -39,6 +41,9 @@ public class PaymentServiceIntegrationTest {
     @EnableJpaRepositories(basePackages = "com.tiki.payment.repository")
     static class TestConfig {
     }
+
+    @MockBean
+    private OrderClient orderClient;
 
     @Autowired
     private PaymentService paymentService;
@@ -52,34 +57,12 @@ public class PaymentServiceIntegrationTest {
     }
 
     @Test
-    void testCreatePayment_Stripe() {
-        CreatePaymentRequest request = new CreatePaymentRequest();
-        request.setOrderId(1001);
-        request.setAmount(new BigDecimal("250000"));
-        request.setCurrency("VND");
-        request.setPaymentMethod("STRIPE");
-
-        PaymentDto paymentDto = paymentService.createPayment(request);
-
-        assertNotNull(paymentDto);
-        assertEquals(1001, paymentDto.getOrderId());
-        assertEquals(new BigDecimal("250000"), paymentDto.getAmount());
-        assertEquals("PENDING", paymentDto.getPaymentStatus());
-        assertNull(paymentDto.getRedirectUrl());
-
-        // Verify it was persisted to H2 DB
-        PaymentEntity entity = paymentRepository.findByOrderId(1001).orElse(null);
-        assertNotNull(entity);
-        assertEquals("STRIPE", entity.getPaymentMethod());
-    }
-
-    @Test
-    void testCreatePayment_VnPay() {
+    void testCreatePayment_Sepay() {
         CreatePaymentRequest request = new CreatePaymentRequest();
         request.setOrderId(1002);
         request.setAmount(new BigDecimal("500000"));
         request.setCurrency("VND");
-        request.setPaymentMethod("VNPAY");
+        request.setPaymentMethod("SEPAY");
 
         PaymentDto paymentDto = paymentService.createPayment(request);
 
@@ -87,7 +70,8 @@ public class PaymentServiceIntegrationTest {
         assertEquals(1002, paymentDto.getOrderId());
         assertEquals("PENDING", paymentDto.getPaymentStatus());
         assertNotNull(paymentDto.getRedirectUrl());
-        assertTrue(paymentDto.getRedirectUrl().contains("vnp_TmnCode=TMN01"));
+        assertTrue(paymentDto.getRedirectUrl().contains("qr.sepay.vn/img"));
+        assertTrue(paymentDto.getRedirectUrl().contains("MBBank"));
     }
 
     @Test
@@ -114,7 +98,7 @@ public class PaymentServiceIntegrationTest {
                 .orderId(1004)
                 .amount(new BigDecimal("150000"))
                 .currency("VND")
-                .paymentMethod("STRIPE")
+                .paymentMethod("SEPAY")
                 .paymentStatus("PENDING")
                 .paymentIntentId("intent-abc")
                 .build();

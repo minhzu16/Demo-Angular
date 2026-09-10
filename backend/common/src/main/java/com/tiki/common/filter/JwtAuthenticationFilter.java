@@ -53,6 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Lấy thông tin từ header đã được Gateway relay
         String userIdHeader = request.getHeader("X-User-Id");
         String usernameHeader = request.getHeader("X-Username");
+        String roleHeader = request.getHeader("X-User-Role");
 
         // Đặt attribute để các controller có thể sử dụng (OrderController đang dùng)
         if (userIdHeader != null && !userIdHeader.isBlank()) {
@@ -66,49 +67,75 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (usernameHeader != null && !usernameHeader.isBlank()) {
             request.setAttribute("username", usernameHeader);
         }
+        if (roleHeader != null && !roleHeader.isBlank()) {
+            request.setAttribute("role", roleHeader);
+        }
 
         String authHeader = request.getHeader("Authorization");
         if (userIdHeader == null && authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             try {
-                String secret = "mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678";
+                String secret = System.getenv("JWT_SECRET");
+                if (secret == null || secret.isBlank()) {
+                    secret = System.getProperty("jwt.secret", "mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678");
+                }
                 Key key = Keys.hmacShaKeyFor(secret.getBytes());
                 Claims claims = Jwts.parserBuilder()
                         .setSigningKey(key)
                         .build()
                         .parseClaimsJws(token)
                         .getBody();
-                
-                userIdHeader = String.valueOf(claims.get("userId", Long.class));
+
+                userIdHeader = String.valueOf(claims.get("userId"));
                 usernameHeader = claims.getSubject();
-                request.setAttribute("userId", Long.parseLong(userIdHeader));
-                request.setAttribute("username", usernameHeader);
+                if (roleHeader == null) {
+                    Object r = claims.get("role");
+                    if (r != null) {
+                        roleHeader = String.valueOf(r);
+                    }
+                }
+                if (userIdHeader != null && !userIdHeader.isBlank() && !"null".equalsIgnoreCase(userIdHeader)) {
+                    request.setAttribute("userId", Long.parseLong(userIdHeader));
+                }
+                if (usernameHeader != null) {
+                    request.setAttribute("username", usernameHeader);
+                }
+                if (roleHeader != null) {
+                    request.setAttribute("role", roleHeader);
+                }
             } catch (Exception e) {
                 // Ignore invalid tokens
             }
         }
 
         // Tạo Authentication nếu chưa có:
-        // Trường hợp 1: Có cả X-User-Id và X-Username (request qua Gateway)
-        // Trường hợp 2: Chỉ có X-User-Id (test script gửi trực tiếp)
-        // Trường hợp 3: Có Authorization: Bearer token nhưng không có header relay
+        // C-03 FIX: Trích xuất đúng vai trò (Role) từ header relay hoặc claims
+        // Tuyệt đối không gán cứng cả 3 quyền BUYER, SELLER, ADMIN cho mọi người dùng
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             String principal = null;
 
-            if (userIdHeader != null && !userIdHeader.isBlank()) {
-                // Ưu tiên dùng X-Username nếu có, không thì dùng userId làm principal
+            if (userIdHeader != null && !userIdHeader.isBlank() && !"null".equalsIgnoreCase(userIdHeader)) {
                 principal = (usernameHeader != null && !usernameHeader.isBlank())
                         ? usernameHeader
                         : "user_" + userIdHeader;
             }
-            // Nếu không có X-User-Id và không có X-Username thì principal = null → không
-            // tạo Authentication
 
             if (principal != null) {
-                List<GrantedAuthority> authorities = java.util.Arrays.asList(
-                        new SimpleGrantedAuthority("ROLE_BUYER"),
-                        new SimpleGrantedAuthority("ROLE_SELLER"),
-                        new SimpleGrantedAuthority("ROLE_ADMIN"));
+                List<GrantedAuthority> authorities = new java.util.ArrayList<>();
+                if (roleHeader != null && !roleHeader.isBlank()) {
+                    for (String r : roleHeader.split(",")) {
+                        String clean = r.trim().toUpperCase();
+                        if (!clean.isEmpty()) {
+                            if (!clean.startsWith("ROLE_")) {
+                                clean = "ROLE_" + clean;
+                            }
+                            authorities.add(new SimpleGrantedAuthority(clean));
+                        }
+                    }
+                }
+                if (authorities.isEmpty()) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_BUYER"));
+                }
 
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(principal, null,
                         authorities);
@@ -125,6 +152,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if ("X-Username".equalsIgnoreCase(name) && request.getAttribute("username") != null) {
                     return String.valueOf(request.getAttribute("username"));
                 }
+                if ("X-User-Role".equalsIgnoreCase(name) && request.getAttribute("role") != null) {
+                    return String.valueOf(request.getAttribute("role"));
+                }
                 return super.getHeader(name);
             }
 
@@ -136,6 +166,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if ("X-Username".equalsIgnoreCase(name) && request.getAttribute("username") != null) {
                     return java.util.Collections.enumeration(java.util.Collections.singletonList(String.valueOf(request.getAttribute("username"))));
                 }
+                if ("X-User-Role".equalsIgnoreCase(name) && request.getAttribute("role") != null) {
+                    return java.util.Collections.enumeration(java.util.Collections.singletonList(String.valueOf(request.getAttribute("role"))));
+                }
                 return super.getHeaders(name);
             }
 
@@ -144,6 +177,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 java.util.List<String> names = java.util.Collections.list(super.getHeaderNames());
                 if (!names.contains("X-User-Id") && request.getAttribute("userId") != null) names.add("X-User-Id");
                 if (!names.contains("X-Username") && request.getAttribute("username") != null) names.add("X-Username");
+                if (!names.contains("X-User-Role") && request.getAttribute("role") != null) names.add("X-User-Role");
                 return java.util.Collections.enumeration(names);
             }
         };

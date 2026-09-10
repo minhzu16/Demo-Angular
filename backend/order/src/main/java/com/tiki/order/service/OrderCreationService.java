@@ -38,6 +38,12 @@ public class OrderCreationService {
     private final VoucherService voucherService;
     private final OrderMapper orderMapper;
 
+    @org.springframework.beans.factory.annotation.Value("${order.shipping.free-threshold:500000}")
+    private BigDecimal freeShippingThreshold = new BigDecimal("500000");
+
+    @org.springframework.beans.factory.annotation.Value("${order.shipping.standard-fee:30000}")
+    private BigDecimal standardShippingFee = new BigDecimal("30000");
+
     @CacheEvict(cacheNames = {"all-orders", "user-orders", "user-orders-status"}, allEntries = true)
     public OrderDto createOrder(CreateOrderRequest request) {
         UserDto userProfile = null;
@@ -74,6 +80,12 @@ public class OrderCreationService {
                 OrderItemEntity itemEntity = new OrderItemEntity();
                 Long productId = item.getProductId() != null ? item.getProductId().longValue() : 0L;
                 int quantity = item.getQuantity() != null ? item.getQuantity() : 1;
+                
+                // VÁ LỖI 1: Bắt buộc số lượng mỗi sản phẩm phải > 0
+                if (quantity <= 0) {
+                    throw new IllegalArgumentException("Số lượng của sản phẩm '" + item.getProductName() + "' không hợp lệ.");
+                }
+                
                 itemEntity.setProductId(productId);
                 itemEntity.setProductName(item.getProductName());
                 itemEntity.setImageUrl(item.getImageUrl());
@@ -93,17 +105,26 @@ public class OrderCreationService {
         }
         order.setSubtotal(subtotal.max(BigDecimal.ZERO));
 
+        // Tính phí ship dựa trên cấu hình (ngưỡng freeship và phí chuẩn)
+        BigDecimal shippingFee = BigDecimal.ZERO;
+        if (subtotal.compareTo(BigDecimal.ZERO) > 0 && subtotal.compareTo(freeShippingThreshold) < 0) {
+            shippingFee = standardShippingFee;
+        }
+        order.setShippingFee(shippingFee);
+
+        BigDecimal voucherDiscount = BigDecimal.ZERO;
         if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
             ValidateVoucherRequest vreq = new ValidateVoucherRequest();
             vreq.setCode(request.getVoucherCode());
             vreq.setOrderTotal(subtotal);
             VoucherValidationResponse vres = voucherService.validateVoucher(vreq);
             if (vres.getValid()) {
+                voucherDiscount = vres.getDiscountAmount();
                 order.setVoucherCode(request.getVoucherCode());
-                order.setVoucherDiscount(vres.getDiscountAmount());
+                order.setVoucherDiscount(voucherDiscount);
                 voucherService.applyVoucher(request.getVoucherCode());
             } else {
-                order.setVoucherDiscount(BigDecimal.ZERO);
+                throw new IllegalArgumentException("Voucher không hợp lệ hoặc đã hết hạn: " + request.getVoucherCode());
             }
         } else {
             order.setVoucherDiscount(BigDecimal.ZERO);
@@ -116,6 +137,11 @@ public class OrderCreationService {
             int userPoints = userProfile.getLoyaltyPoints() != null ? userProfile.getLoyaltyPoints() : 0;
             if (request.getUsePoints() > userPoints) {
                 throw new IllegalArgumentException("Số dư điểm không đủ. Bạn có " + userPoints + " điểm.");
+            }
+
+            BigDecimal currentTotal = subtotal.add(shippingFee).subtract(voucherDiscount);
+            if (BigDecimal.valueOf(request.getUsePoints()).compareTo(currentTotal) > 0) {
+                throw new IllegalArgumentException("Số điểm sử dụng không được vượt quá tổng giá trị đơn hàng.");
             }
 
             BigDecimal pointsDiscount = BigDecimal.valueOf(request.getUsePoints());
@@ -131,11 +157,6 @@ public class OrderCreationService {
             }
         }
 
-        BigDecimal shippingFee = BigDecimal.ZERO;
-        if (subtotal.compareTo(BigDecimal.ZERO) > 0 && subtotal.compareTo(new BigDecimal("500000")) < 0) {
-            shippingFee = new BigDecimal("30000");
-        }
-        order.setShippingFee(shippingFee);
         order.calculateTotal();
 
         if (request.getPaymentMethod() != null) {

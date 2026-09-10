@@ -72,6 +72,21 @@ public class ReviewController {
                 .body(reviewCommandService.createReview(request));
     }
 
+    /** POST /api/v1/reviews/{id}/reply */
+    @PostMapping("/{id}/reply")
+    public ResponseEntity<ReviewDto> replyReview(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            @RequestHeader(value = "X-User-Id", required = false) Long currentUserId) {
+        if (currentUserId == null) {
+            log.warn("SECURITY: Attempt to reply review without authentication");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String reply = body != null ? body.get("reply") : null;
+        log.info("POST reply review id={} by user={}", id, currentUserId);
+        return ResponseEntity.ok(reviewCommandService.replyReview(id, currentUserId, reply));
+    }
+
     /** DELETE /api/v1/reviews/{id} */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

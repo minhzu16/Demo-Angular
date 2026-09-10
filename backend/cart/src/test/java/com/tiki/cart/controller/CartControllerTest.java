@@ -15,6 +15,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -107,8 +108,8 @@ public class CartControllerTest {
         CartDto mockCart = new CartDto();
         mockCart.setId(1);
         mockCart.setTotalItems(2);
-        mockCart.setTotalAmount(200000.0);
-        when(cartService.addItem(any(), any(), eq(1), eq(2), anyDouble())).thenReturn(mockCart);
+        mockCart.setTotalAmount(new BigDecimal("200000.0"));
+        when(cartService.addItem(any(), any(), eq(1), eq(2), any(BigDecimal.class))).thenReturn(mockCart);
 
         mockMvc.perform(post("/api/v1/cart")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -129,12 +130,12 @@ public class CartControllerTest {
         CartItemDto item1 = new CartItemDto();
         item1.setProductId(1);
         item1.setQuantity(3);
-        item1.setPriceSnapshot(33333.33); // 3 * 33333.33 = 99999.99
+        item1.setPriceSnapshot(new BigDecimal("33333.33")); // 3 * 33333.33 = 99999.99
 
         CartItemDto item2 = new CartItemDto();
         item2.setProductId(2);
         item2.setQuantity(7);
-        item2.setPriceSnapshot(14285.71); // 7 * 14285.71 = 99999.97
+        item2.setPriceSnapshot(new BigDecimal("14285.71")); // 7 * 14285.71 = 99999.97
 
         CartDto mockCart = new CartDto();
         mockCart.setId(1);
@@ -142,7 +143,7 @@ public class CartControllerTest {
         mockCart.setTotalItems(10);
         mockCart.setCartItems(List.of(item1, item2));
         // Expected: 99999.99 + 99999.97 = 199999.96
-        mockCart.setTotalAmount(199999.96);
+        mockCart.setTotalAmount(new BigDecimal("199999.96"));
 
         when(cartService.getCart(eq(1), any())).thenReturn(mockCart);
 

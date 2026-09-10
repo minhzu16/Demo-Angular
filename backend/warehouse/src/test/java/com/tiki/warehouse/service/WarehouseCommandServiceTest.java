@@ -22,11 +22,14 @@ class WarehouseCommandServiceTest {
     @Mock
     private InventoryRepository inventoryRepository;
 
+    @Mock
+    private com.tiki.warehouse.client.NotificationClient notificationClient;
+
     @InjectMocks
     private WarehouseCommandService commandService;
 
     @Test
-    @DisplayName("reserveStock - succeeds if sufficient stock")
+    @DisplayName("reserveStock - atomic query succeeds if sufficient stock")
     void reserveStock_Success() {
         InventoryEntity entity = InventoryEntity.builder()
                 .productId(101L)
@@ -34,17 +37,16 @@ class WarehouseCommandServiceTest {
                 .reservedQuantity(10)
                 .build();
         when(inventoryRepository.findByProductId(101L)).thenReturn(Optional.of(entity));
-        when(inventoryRepository.save(any(InventoryEntity.class))).thenAnswer(i -> i.getArgument(0));
+        when(inventoryRepository.tryReserveStock(101L, 20)).thenReturn(1);
 
         boolean result = commandService.reserveStock(101L, 20);
 
         assertThat(result).isTrue();
-        assertThat(entity.getReservedQuantity()).isEqualTo(30);
-        verify(inventoryRepository).save(entity);
+        verify(inventoryRepository).tryReserveStock(101L, 20);
     }
 
     @Test
-    @DisplayName("reserveStock - fails if insufficient stock")
+    @DisplayName("reserveStock - atomic query fails and returns false if insufficient stock")
     void reserveStock_FailsIfInsufficient() {
         InventoryEntity entity = InventoryEntity.builder()
                 .productId(101L)
@@ -52,11 +54,12 @@ class WarehouseCommandServiceTest {
                 .reservedQuantity(40)
                 .build();
         when(inventoryRepository.findByProductId(101L)).thenReturn(Optional.of(entity));
+        when(inventoryRepository.tryReserveStock(101L, 20)).thenReturn(0);
 
         boolean result = commandService.reserveStock(101L, 20);
 
         assertThat(result).isFalse();
-        assertThat(entity.getReservedQuantity()).isEqualTo(40); // unchanged
+        verify(inventoryRepository).tryReserveStock(101L, 20);
     }
 
     @Test
@@ -76,19 +79,39 @@ class WarehouseCommandServiceTest {
     }
 
     @Test
-    @DisplayName("confirmOrder - reduces both quantity and reservedQuantity")
-    void confirmOrder_ReducesQuantities() {
+    @DisplayName("updateStock - triggers restock alert when quantity goes from 0 to positive")
+    void updateStock_TriggersRestockAlert_WhenRestockedFromZero() {
         InventoryEntity entity = InventoryEntity.builder()
                 .productId(101L)
-                .quantity(50)
-                .reservedQuantity(10)
+                .quantity(0)
+                .reservedQuantity(0)
                 .build();
         when(inventoryRepository.findByProductId(101L)).thenReturn(Optional.of(entity));
 
+        commandService.updateStock(101L, 20);
+
+        assertThat(entity.getQuantity()).isEqualTo(20);
+        verify(inventoryRepository).save(entity);
+        verify(notificationClient).triggerRestockAlert(101L);
+    }
+
+    @Test
+    @DisplayName("confirmOrder - calls atomic confirmStock")
+    void confirmOrder_CallsAtomicConfirm() {
+        when(inventoryRepository.confirmStock(101L, 5)).thenReturn(1);
+
         commandService.confirmOrder(101L, 5);
 
-        assertThat(entity.getQuantity()).isEqualTo(45);
-        assertThat(entity.getReservedQuantity()).isEqualTo(5);
-        verify(inventoryRepository).save(entity);
+        verify(inventoryRepository).confirmStock(101L, 5);
+    }
+
+    @Test
+    @DisplayName("releaseStock - calls atomic releaseReservedStock")
+    void releaseStock_CallsAtomicRelease() {
+        when(inventoryRepository.releaseReservedStock(101L, 5)).thenReturn(1);
+
+        commandService.releaseStock(101L, 5);
+
+        verify(inventoryRepository).releaseReservedStock(101L, 5);
     }
 }

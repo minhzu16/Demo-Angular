@@ -104,35 +104,10 @@ class OrderPaymentServiceTest {
     }
 
     @Test
-    void testValidatePaymentMethod_VNPay_ThrowsException() {
-        // When & Then
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
-            () -> OrderPaymentService.validatePaymentMethod(PaymentMethod.VNPAY)
+    void testValidatePaymentMethod_Sepay_Success() {
+        // Should not throw exception
+        assertDoesNotThrow(() -> 
+            OrderPaymentService.validatePaymentMethod(PaymentMethod.SEPAY)
         );
-        
-        assertTrue(exception.getMessage().contains("chưa được hỗ trợ"));
-    }
-
-    @Test
-    void testValidatePaymentMethod_Momo_ThrowsException() {
-        // When & Then
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
-            () -> OrderPaymentService.validatePaymentMethod(PaymentMethod.MOMO)
-        );
-        
-        assertTrue(exception.getMessage().contains("chưa được hỗ trợ"));
-    }
-
-    @Test
-    void testValidatePaymentMethod_BankTransfer_ThrowsException() {
-        // When & Then
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
-            () -> OrderPaymentService.validatePaymentMethod(PaymentMethod.BANK_TRANSFER)
-        );
-        
-        assertTrue(exception.getMessage().contains("chưa được hỗ trợ"));
     }
 }

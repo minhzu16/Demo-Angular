@@ -218,13 +218,9 @@ export class ProductService {
 
     private getAuthHeaders(): HttpHeaders {
         const token = this.authService.getToken();
-        const user = this.authService.getUser();
         let headers = new HttpHeaders({ 'Content-Type': 'application/json' });
         if (token) {
             headers = headers.set('Authorization', `Bearer ${token}`);
-        }
-        if (user && user.id) {
-            headers = headers.set('X-User-Id', user.id.toString());
         }
         return headers;
     }

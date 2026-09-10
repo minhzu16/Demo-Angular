@@ -135,10 +135,10 @@ public class OrderPaymentService {
             throw new IllegalArgumentException("Phương thức thanh toán là bắt buộc");
         }
 
-        // For now, only COD is supported
-        if (paymentMethod != PaymentMethod.COD) {
+        // For now, only COD and SEPAY are supported
+        if (paymentMethod != PaymentMethod.COD && paymentMethod != PaymentMethod.SEPAY) {
             throw new IllegalArgumentException(
-                    "Phương thức thanh toán " + paymentMethod + " chưa được hỗ trợ. Hiện chỉ có COD."
+                    "Phương thức thanh toán " + paymentMethod + " chưa được hỗ trợ."
             );
         }
     }

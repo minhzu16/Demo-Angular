@@ -2,6 +2,7 @@ package com.tiki.cart.dto;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -10,6 +11,6 @@ public class CartDto {
     private Integer userId;
     private String sessionId;
     private Integer totalItems;
-    private Double totalAmount;
+    private BigDecimal totalAmount;
     private List<CartItemDto> cartItems;
 }

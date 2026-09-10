@@ -23,13 +23,23 @@ export interface Order {
     updatedAt?: string;
 }
 
+export interface ShippingAddress {
+    fullName: string;
+    phoneNumber: string;
+    street: string;
+    province?: string;
+    district?: string;
+    ward?: string;
+}
+
 export interface CreateOrderRequest {
     userId: number;
-    shippingAddress: string;
+    shippingAddress: ShippingAddress | string;
     paymentMethod: string;
     items: OrderItem[];
     voucherCode?: string;
     note?: string;
+    usePoints?: number;
 }
 
 export interface OrderListResponse {
@@ -61,10 +71,6 @@ export class OrderService {
         const token = localStorage.getItem('access_token');
         if (token) {
             headers = headers.set('Authorization', `Bearer ${token}`);
-        }
-
-        if (userId) {
-            headers = headers.set('X-User-Id', userId.toString());
         }
 
         return headers;

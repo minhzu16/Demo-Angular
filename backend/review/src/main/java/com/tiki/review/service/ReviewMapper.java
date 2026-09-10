@@ -22,6 +22,10 @@ public class ReviewMapper {
                 .rating(entity.getRating())
                 .comment(entity.getComment())
                 .mediaUrls(entity.getMediaUrls())
+                .verifiedPurchase(entity.isVerifiedPurchase())
+                .shopReply(entity.getShopReply())
+                .shopReplyAt(entity.getShopReplyAt())
+                .shopReplyUserId(entity.getShopReplyUserId())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

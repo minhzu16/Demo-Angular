@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -75,7 +76,7 @@ public class CartServiceTest {
         assertEquals(1, dto.getCartItems().size());
         assertEquals(101, dto.getCartItems().get(0).getProductId());
         assertEquals(2, dto.getCartItems().get(0).getQuantity());
-        assertEquals(15000.0, dto.getCartItems().get(0).getPriceSnapshot());
+        assertEquals(0, BigDecimal.valueOf(15000.0).compareTo(dto.getCartItems().get(0).getPriceSnapshot()));
         verify(cartRepo).save(entity);
     }
 
@@ -89,7 +90,7 @@ public class CartServiceTest {
         item.setCart(entity);
         item.setProductId(101);
         item.setQuantity(2);
-        item.setPriceSnapshot(15000.0);
+        item.setPriceSnapshot(BigDecimal.valueOf(15000.0));
         entity.getItems().add(item);
 
         when(cartRepo.findByUserIdAndIsActive(42, true)).thenReturn(Optional.of(entity));
@@ -113,7 +114,7 @@ public class CartServiceTest {
         item.setCart(entity);
         item.setProductId(101);
         item.setQuantity(2);
-        item.setPriceSnapshot(15000.0);
+        item.setPriceSnapshot(BigDecimal.valueOf(15000.0));
         entity.getItems().add(item);
 
         when(cartRepo.findByUserIdAndIsActive(42, true)).thenReturn(Optional.of(entity));
@@ -124,6 +125,28 @@ public class CartServiceTest {
         assertNotNull(dto);
         assertEquals(10, dto.getCartItems().get(0).getQuantity());
         verify(cartRepo).save(entity);
+    }
+
+    @Test
+    public void testUpdateQty_NegativeQuantity_Exploit() {
+        // Mô phỏng hacker truyền qty = -100
+        CartEntity entity = new CartEntity();
+        entity.setId(1);
+        entity.setUserId(42);
+
+        CartItemEntity item = new CartItemEntity();
+        item.setCart(entity);
+        item.setProductId(101);
+        item.setQuantity(2);
+        item.setPriceSnapshot(BigDecimal.valueOf(150000.0)); // 150k
+        entity.getItems().add(item);
+
+        // Lỗ hổng ĐÃ ĐƯỢC VÁ: Phải ném ra lỗi IllegalArgumentException
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            cartService.updateQty(42, null, 101, -100);
+        });
+
+        assertEquals("Số lượng sản phẩm không hợp lệ.", exception.getMessage());
     }
 
     @Test
@@ -182,7 +205,7 @@ public class CartServiceTest {
         item.setCart(guestCart);
         item.setProductId(101);
         item.setQuantity(2);
-        item.setPriceSnapshot(10.0);
+        item.setPriceSnapshot(BigDecimal.valueOf(10.0));
         guestCart.getItems().add(item);
 
         when(cartRepo.findByUserIdAndIsActive(42, true)).thenReturn(Optional.of(userCart));

@@ -15,6 +15,7 @@ import { ChatComponent } from './components/chat/chat.component';
   styleUrl: './app.component.scss'
 })
 export class AppComponent implements OnInit {
+  title = 'frontend';
   private wsService = inject(WebSocketService);
   private toastr = inject(ToastrService);
   private authService = inject(AuthService);

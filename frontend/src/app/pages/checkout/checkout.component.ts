@@ -51,7 +51,6 @@ export class CheckoutComponent implements OnInit {
 
     paymentMethods = [
         { id: 'COD', name: 'Thanh toán khi nhận hàng (COD)', icon: 'bi-cash' },
-        { id: 'VNPAY', name: 'Thanh toán qua VNPay', icon: 'bi-credit-card' },
         { id: 'SEPAY', name: 'Chuyển khoản VietQR (SePay)', icon: 'bi-qr-code-scan' }
     ];
 
@@ -229,10 +228,7 @@ export class CheckoutComponent implements OnInit {
             next: (res: any) => {
                 const url = res.redirectUrl || res.paymentUrl || res.url;
                 
-                if (method === 'VNPAY' && url) {
-                    this.cartService.clearCart().subscribe();
-                    window.location.href = url;
-                } else if (method === 'SEPAY') {
+                if (method === 'SEPAY') {
                     this.cartService.clearCart().subscribe();
                     this.router.navigate(['/orders', orderId, 'success'], {
                         state: { paymentMethod: 'SEPAY', sepayQrUrl: url || '' }
