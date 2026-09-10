@@ -150,16 +150,16 @@ public class OrderStatusService {
      * Ngăn chặn các thao tác vô nghĩa như cancel đơn đã giao.
      */
     private void validateStatusTransition(OrderEntity.OrderStatus current, OrderEntity.OrderStatus target, Integer orderId) {
-        if (current == target) {
-            return; // Idempotent, cho phép
-        }
-
         // Trạng thái cuối cùng (terminal states) - không cho phép thay đổi thêm
         if (current == OrderEntity.OrderStatus.CANCELLED) {
             throw new IllegalStateException("Đơn hàng #" + orderId + " đã bị hủy, không thể cập nhật.");
         }
         if (current == OrderEntity.OrderStatus.REFUNDED) {
             throw new IllegalStateException("Đơn hàng #" + orderId + " đã hoàn tiền, không thể cập nhật.");
+        }
+
+        if (current == target) {
+            return; // Idempotent, cho phép
         }
 
         // Không cho cancel đơn đã giao hoặc đã hoàn thành

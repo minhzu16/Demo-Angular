@@ -150,6 +150,44 @@ public class CartServiceTest {
     }
 
     @Test
+    public void testAddItem_ZeroOrNegativeQuantity_Exploit() {
+        // Bug 1: Thêm vào giỏ hàng với số lượng <= 0
+        IllegalArgumentException zeroException = assertThrows(IllegalArgumentException.class, () -> {
+            cartService.addItem(42, null, 101, 0, 15000.0);
+        });
+        assertEquals("Số lượng sản phẩm không hợp lệ.", zeroException.getMessage());
+
+        IllegalArgumentException negativeException = assertThrows(IllegalArgumentException.class, () -> {
+            cartService.addItem(42, null, 101, -5, 15000.0);
+        });
+        assertEquals("Số lượng sản phẩm không hợp lệ.", negativeException.getMessage());
+    }
+
+    @Test
+    public void testPrecision_DecimalMathAvoidsFloatingPointLoss() {
+        // Bug 4: Làm tròn số phẩy động (Floating point precision loss)
+        // 3 sản phẩm với giá 19.99 nếu dùng double sẽ thành 59.970000000000006
+        CartEntity entity = new CartEntity();
+        entity.setId(1);
+        entity.setUserId(42);
+
+        CartItemEntity item = new CartItemEntity();
+        item.setCart(entity);
+        item.setProductId(101);
+        item.setQuantity(3);
+        item.setPriceSnapshot(new BigDecimal("19.99"));
+        entity.getItems().add(item);
+
+        when(cartRepo.findByUserIdAndIsActive(42, true)).thenReturn(Optional.of(entity));
+
+        CartDto dto = cartService.getCart(42, null);
+
+        assertNotNull(dto);
+        assertEquals(0, new BigDecimal("59.97").compareTo(dto.getTotalAmount()),
+                "Tổng tiền phải là 59.97 chính xác không bị trôi số thập phân");
+    }
+
+    @Test
     public void testRemoveItem() {
         CartEntity entity = new CartEntity();
         entity.setId(1);

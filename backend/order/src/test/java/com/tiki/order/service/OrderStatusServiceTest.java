@@ -120,4 +120,38 @@ public class OrderStatusServiceTest {
                 t.getStatus() == OrderEntity.OrderStatus.DELIVERED &&
                 t.getNote().contains("Hàng đã quá hạn đổi trả 7 ngày")));
     }
+
+    @Test
+    void testCancelOrder_WhenAlreadyDelivered_ThrowsIllegalStateException() {
+        // Bug 9: Hủy đơn hàng đã giao (DELIVERED) phải bị chặn
+        OrderEntity order = new OrderEntity();
+        order.setId(4);
+        order.setStatus(OrderEntity.OrderStatus.DELIVERED);
+
+        when(orderRepository.findById(4)).thenReturn(Optional.of(order));
+
+        IllegalStateException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> orderStatusService.cancelOrder(4)
+        );
+
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("Không thể hủy đơn hàng #4 vì đơn đã ở trạng thái DELIVERED"));
+    }
+
+    @Test
+    void testRefundOrder_WhenAlreadyRefunded_ThrowsIllegalStateException() {
+        // Bug 10: Hoàn tiền đơn hàng đã hoàn tiền trước đó (Double Refund race condition)
+        OrderEntity order = new OrderEntity();
+        order.setId(5);
+        order.setStatus(OrderEntity.OrderStatus.REFUNDED);
+
+        when(orderRepository.findById(5)).thenReturn(Optional.of(order));
+
+        IllegalStateException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> orderStatusService.updateStatus(5, OrderEntity.OrderStatus.REFUNDED)
+        );
+
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("đã hoàn tiền, không thể cập nhật"));
+    }
 }

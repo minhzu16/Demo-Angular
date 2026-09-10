@@ -122,6 +122,24 @@ class TwoFactorAuthServiceTest {
     }
 
     @Test
+    @DisplayName("verify2FACode fails when attempting to reuse an already consumed backup code (Bug 20 Replay Attack)")
+    void testVerifyBackupCode_ReusedCode_Fails() {
+        TwoFactorAuth entity = new TwoFactorAuth();
+        entity.setUserId(10L);
+        entity.setSecretKey("TESTKEY");
+        entity.setEnabled(true);
+        entity.setBackupCodes("CODE-1111,CODE-3333"); // CODE-2222 was already consumed
+
+        when(twoFactorRepository.findByUserId(10L)).thenReturn(Optional.of(entity));
+
+        boolean valid = twoFactorService.verify2FACode(10L, "code-2222");
+
+        assertThat(valid).isFalse();
+        // Backup codes remain unchanged
+        assertThat(entity.getBackupCodes()).isEqualTo("CODE-1111,CODE-3333");
+    }
+
+    @Test
     @DisplayName("disable2FA with backup code succeeds")
     void testDisable2FAWithBackupCode() {
         TwoFactorAuth entity = new TwoFactorAuth();

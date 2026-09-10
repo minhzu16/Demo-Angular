@@ -13,6 +13,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,6 +61,21 @@ class WarehouseCommandServiceTest {
 
         assertThat(result).isFalse();
         verify(inventoryRepository).tryReserveStock(101L, 20);
+    }
+
+    @Test
+    @DisplayName("reserveStock - fails immediately when quantity is zero or negative (Bug 16)")
+    void reserveStock_FailsIfZeroOrNegativeQuantity() {
+        boolean zeroResult = commandService.reserveStock(101L, 0);
+        boolean negativeResult = commandService.reserveStock(101L, -5);
+        boolean nullQuantityResult = commandService.reserveStock(101L, null);
+        boolean nullProductResult = commandService.reserveStock(null, 5);
+
+        assertThat(zeroResult).isFalse();
+        assertThat(negativeResult).isFalse();
+        assertThat(nullQuantityResult).isFalse();
+        assertThat(nullProductResult).isFalse();
+        verify(inventoryRepository, never()).tryReserveStock(any(), any());
     }
 
     @Test

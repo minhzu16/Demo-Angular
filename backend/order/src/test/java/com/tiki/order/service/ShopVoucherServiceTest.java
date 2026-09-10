@@ -90,6 +90,25 @@ class ShopVoucherServiceTest {
     }
 
     @Test
+    @DisplayName("Validate Voucher - Thất bại khi voucher đã hết lượt sử dụng (Bug 5 - Max Usage Reached)")
+    void testValidateVoucher_MaxUsageReached_Fails() {
+        shopVoucher.setMaxUsage(10);
+        shopVoucher.setUsedCount(10); // Đã dùng hết 10 lượt
+
+        when(voucherRepository.findByCodeIgnoreCase("SHOP100_SALE")).thenReturn(Optional.of(shopVoucher));
+
+        ValidateVoucherRequest request = new ValidateVoucherRequest();
+        request.setCode("SHOP100_SALE");
+        request.setOrderTotal(BigDecimal.valueOf(200000));
+        request.setShopId(100L);
+
+        VoucherValidationResponse response = voucherService.validateVoucher(request);
+
+        assertFalse(response.getValid());
+        assertTrue(response.getMessage().toLowerCase().contains("maximum usage"));
+    }
+
+    @Test
     @DisplayName("Create Shop Voucher - Gán đúng shopId khi tạo")
     void testCreateShopVoucher_SetsShopId() {
         CreateVoucherRequest request = new CreateVoucherRequest();

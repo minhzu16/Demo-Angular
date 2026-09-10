@@ -214,4 +214,25 @@ class OAuthServiceTest {
 
         verify(oauthAccountRepository).delete(account);
     }
+
+    @Test
+    @DisplayName("Unlink OAuth account fails when user has NO password and sole OAuth provider (Bug 19 Account Lockout)")
+    void testUnlinkOAuth_SoleAccountWithoutPassword_ThrowsException() {
+        OAuthAccount account = new OAuthAccount();
+        account.setUserId(10L);
+        account.setProvider(OAuthAccount.Provider.GOOGLE);
+
+        sampleUser.setPasswordHash(null); // Không có mật khẩu
+
+        when(oauthAccountRepository.findByUserIdAndProvider(10L, OAuthAccount.Provider.GOOGLE))
+                .thenReturn(Optional.of(account));
+        when(userRepository.findById(10L)).thenReturn(Optional.of(sampleUser));
+        when(oauthAccountRepository.findByUserId(10L)).thenReturn(List.of(account)); // Chỉ có 1 liên kết OAuth duy nhất
+
+        assertThatThrownBy(() -> oauthService.unlinkOAuth(10L, OAuthAccount.Provider.GOOGLE))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Không thể hủy liên kết phương thức đăng nhập duy nhất");
+
+        verify(oauthAccountRepository, never()).delete(any());
+    }
 }
