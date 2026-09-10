@@ -133,31 +133,23 @@ public class OrderController {
 
         Long currentUserId = (Long) request.getAttribute("userId");
         String role = (String) request.getAttribute("role");
-        log.debug("GET /orders/shop/{} - userId={}, role={} (temporary global data)", shopId, currentUserId, role);
+        log.debug("GET /orders/shop/{} - userId={}, role={}", shopId, currentUserId, role);
 
-        // TODO: Khi OrderEntity có shopId, thay bằng truy vấn theo shopId
-        List<OrderDto> allOrders = orderQueryService.getAllOrders();
-
-        // ✅ BUG 47 FIX: Prevent OOM by clamping pagination size
         if (size > 100) size = 100;
         if (size <= 0) size = 10;
         if (page < 0) page = 0;
 
-        int totalElements = allOrders.size();
-        // ✅ BUG 48 FIX: Safe last-page calculation — avoid IndexOutOfBounds
-        int totalPages = totalElements == 0 ? 1 : (int) Math.ceil((double) totalElements / size);
-        int fromIndex = Math.min(page * size, totalElements);
-        int toIndex = Math.min(fromIndex + size, totalElements);
-        List<OrderDto> pageContent = allOrders.subList(fromIndex, toIndex);
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<OrderDto> orderPage = orderQueryService.getOrdersByShop(shopId, pageable);
 
         return Map.of(
-                "content", pageContent,
-                "page", page,
-                "size", size,
-                "totalElements", totalElements,
-                "totalPages", totalPages,
-                "first", page == 0,
-                "last", page >= totalPages - 1);
+                "content", orderPage.getContent(),
+                "page", orderPage.getNumber(),
+                "size", orderPage.getSize(),
+                "totalElements", orderPage.getTotalElements(),
+                "totalPages", orderPage.getTotalPages(),
+                "first", orderPage.isFirst(),
+                "last", orderPage.isLast());
     }
 
 

@@ -35,6 +35,18 @@ public class UserController {
         User user = userService.getUserById(userId);
         return ResponseEntity.ok(mapToUserInfo(user));
     }
+
+    /**
+     * Get current user's referral info
+     */
+    @GetMapping("/me/referral")
+    public ResponseEntity<com.tiki.auth.dto.ReferralInfoDto> getMyReferral(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(userService.getReferralInfo(userId));
+    }
     
     /**
      * Get user by ID

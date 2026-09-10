@@ -58,6 +58,19 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setRole(User.Role.fromString(request.getRole()));
         
+        // Referral program logic: bonus points for referrer & new user
+        if (request.getReferralCode() != null && !request.getReferralCode().isBlank()) {
+            userRepository.findByReferralCode(request.getReferralCode().trim().toUpperCase()).ifPresent(referrer -> {
+                log.info("Applying referral reward: new user referred by userId={}", referrer.getId());
+                user.setReferredBy(referrer.getId());
+                user.setLoyaltyPoints(20); // 20 welcome points for referee
+
+                referrer.setLoyaltyPoints((referrer.getLoyaltyPoints() != null ? referrer.getLoyaltyPoints() : 0) + 50);
+                referrer.setReferralCount((referrer.getReferralCount() != null ? referrer.getReferralCount() : 0) + 1);
+                userRepository.save(referrer);
+            });
+        }
+        
         User savedUser = userRepository.save(user);
         log.info("User registered successfully: {}", savedUser.getUsername());
         return buildAuthResponse(savedUser);

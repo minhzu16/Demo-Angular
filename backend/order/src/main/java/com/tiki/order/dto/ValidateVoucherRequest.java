@@ -16,4 +16,6 @@ public class ValidateVoucherRequest {
     @NotNull(message = "Order total is required")
     @DecimalMin(value = "0", message = "Order total must be >= 0")
     private BigDecimal orderTotal;
+
+    private Long shopId;
 }

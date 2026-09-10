@@ -96,6 +96,13 @@ public class VoucherService {
             return VoucherValidationResponse.error("Voucher has reached maximum usage");
         }
 
+        // Check shop restriction
+        if (voucher.getShopId() != null && request.getShopId() != null && !voucher.getShopId().equals(request.getShopId())) {
+            return VoucherValidationResponse.error(
+                    String.format("Voucher này chỉ áp dụng cho sản phẩm của cửa hàng mã #%d", voucher.getShopId())
+            );
+        }
+
         // Check min order value
         if (request.getOrderTotal().compareTo(voucher.getMinOrderValue()) < 0) {
             return VoucherValidationResponse.error(
@@ -131,6 +138,7 @@ public class VoucherService {
         voucher.setCode(request.getCode().toUpperCase());
         voucher.setType(request.getType());
         voucher.setValue(request.getValue());
+        voucher.setShopId(request.getShopId());
         voucher.setMinOrderValue(request.getMinOrderValue());
         voucher.setStartDate(request.getStartDate());
         voucher.setEndDate(request.getEndDate());
@@ -139,6 +147,24 @@ public class VoucherService {
 
         VoucherEntity savedVoucher = voucherRepository.save(voucher);
         return convertToDTO(savedVoucher);
+    }
+
+    /**
+     * Get vouchers by shop ID
+     */
+    public List<VoucherDTO> getVouchersByShop(Long shopId) {
+        return voucherRepository.findByShopId(shopId).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Create voucher for specific shop
+     */
+    @Transactional
+    public VoucherDTO createShopVoucher(Long shopId, CreateVoucherRequest request) {
+        request.setShopId(shopId);
+        return createVoucher(request);
     }
 
     /**
@@ -269,6 +295,7 @@ public class VoucherService {
         VoucherDTO dto = new VoucherDTO();
         dto.setId(voucher.getId());
         dto.setCode(voucher.getCode());
+        dto.setShopId(voucher.getShopId());
         dto.setType(voucher.getType());
         dto.setValue(voucher.getValue());
         dto.setMinOrderValue(voucher.getMinOrderValue());

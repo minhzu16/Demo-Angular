@@ -265,4 +265,70 @@ public class FlashSaleController {
         
         return ResponseEntity.notFound().build();
     }
+
+    /**
+     * Validate flash sale purchase item constraints (max per user, availability, stock)
+     * POST /api/v1/flash-sales/validate-item
+     */
+    @PostMapping("/validate-item")
+    public ResponseEntity<?> validateFlashSaleItem(
+            @RequestParam Long productId,
+            @RequestParam(defaultValue = "1") int quantity,
+            @RequestParam(required = false) Long userId) {
+
+        log.info("Validating flash sale item: productId={}, quantity={}, userId={}", productId, quantity, userId);
+
+        LocalDateTime now = LocalDateTime.now();
+        List<FlashSale> activeSales = flashSaleRepository.findActiveFlashSales(now);
+
+        if (activeSales.isEmpty()) {
+            return ResponseEntity.ok(Map.of(
+                    "valid", false,
+                    "message", "Không có sự kiện Flash Sale nào đang hoạt động"
+            ));
+        }
+
+        for (FlashSale sale : activeSales) {
+            Optional<FlashSaleProduct> fpOpt = flashSaleProductRepository.findByFlashSaleIdAndProductId(sale.getId(), productId);
+            if (fpOpt.isPresent()) {
+                FlashSaleProduct fp = fpOpt.get();
+
+                if (!fp.isAvailable() || fp.getRemainingQuantity() <= 0) {
+                    return ResponseEntity.ok(Map.of(
+                            "valid", false,
+                            "message", "Sản phẩm Flash Sale này đã bán hết số lượng ưu đãi"
+                    ));
+                }
+
+                if (quantity > fp.getMaxPerUser()) {
+                    return ResponseEntity.ok(Map.of(
+                            "valid", false,
+                            "message", "Mỗi khách hàng chỉ được mua tối đa " + fp.getMaxPerUser() + " sản phẩm Flash Sale này"
+                    ));
+                }
+
+                if (fp.getQuantitySold() + quantity > fp.getQuantityLimit()) {
+                    return ResponseEntity.ok(Map.of(
+                            "valid", false,
+                            "message", "Chỉ còn " + fp.getRemainingQuantity() + " sản phẩm với giá Flash Sale"
+                    ));
+                }
+
+                return ResponseEntity.ok(Map.of(
+                        "valid", true,
+                        "flashSaleId", sale.getId(),
+                        "flashSaleName", sale.getName(),
+                        "salePrice", fp.getSalePrice(),
+                        "originalPrice", fp.getOriginalPrice(),
+                        "maxPerUser", fp.getMaxPerUser(),
+                        "remainingQuantity", fp.getRemainingQuantity()
+                ));
+            }
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "valid", false,
+                "message", "Sản phẩm không thuộc chương trình Flash Sale hiện tại"
+        ));
+    }
 }

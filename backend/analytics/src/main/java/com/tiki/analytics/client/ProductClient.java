@@ -22,4 +22,7 @@ public interface ProductClient {
             @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
             @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size
     );
+
+    @GetMapping("/api/v1/products/{id}")
+    Map<String, Object> getProductById(@org.springframework.web.bind.annotation.PathVariable("id") Long id);
 }

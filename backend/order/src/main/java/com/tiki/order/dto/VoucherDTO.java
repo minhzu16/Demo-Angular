@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public class VoucherDTO {
     private Integer id;
     private String code;
+    private Long shopId;
     private VoucherEntity.DiscountType type;
     private BigDecimal value;
     private BigDecimal minOrderValue;

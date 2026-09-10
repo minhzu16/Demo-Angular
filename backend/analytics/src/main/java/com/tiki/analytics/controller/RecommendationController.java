@@ -28,4 +28,18 @@ public class RecommendationController {
         log.info("GET /recommendations/trending");
         return ResponseEntity.ok(recommendationService.getTrendingProducts());
     }
+
+    @GetMapping("/product/{productId}/frequently-bought-together")
+    public ResponseEntity<List<Map<String, Object>>> getFrequentlyBoughtTogether(@PathVariable Long productId) {
+        log.info("GET /recommendations/product/{}/frequently-bought-together", productId);
+        return ResponseEntity.ok(recommendationService.getFrequentlyBoughtTogether(productId));
+    }
+
+    @GetMapping("/category/{categoryId}/best-sellers")
+    public ResponseEntity<List<Map<String, Object>>> getCategoryBestSellers(
+            @PathVariable Integer categoryId,
+            @RequestParam(defaultValue = "10") int limit) {
+        log.info("GET /recommendations/category/{}/best-sellers, limit={}", categoryId, limit);
+        return ResponseEntity.ok(recommendationService.getCategoryBestSellers(categoryId, limit));
+    }
 }

@@ -37,17 +37,7 @@ public class SalesAnalyticsController {
             @RequestParam(required = false) Long shopId) {
         
         log.info("GET /overview - startDate: {}, endDate: {}, shopId: {}", startDate, endDate, shopId);
-        
-        // Mock data for now
-        Map<String, Object> overview = Map.of(
-            "totalRevenue", 10000000,
-            "totalOrders", 150,
-            "averageOrderValue", 66667,
-            "period", Map.of(
-                "start", startDate.toString(),
-                "end", endDate.toString()
-            )
-        );
+        Map<String, Object> overview = salesAnalyticsService.getSalesOverview(shopId, startDate, endDate);
         return ResponseEntity.ok(overview);
     }
     
@@ -62,19 +52,7 @@ public class SalesAnalyticsController {
             @RequestParam(required = false) Long shopId) {
         
         log.info("GET /range - startDate: {}, endDate: {}, shopId: {}", startDate, endDate, shopId);
-        
-        // Mock data for now
-        Map<String, Object> range = Map.of(
-            "sales", List.of(
-                Map.of("date", startDate.toString(), "revenue", 500000, "orders", 10),
-                Map.of("date", startDate.plusDays(1).toString(), "revenue", 600000, "orders", 12)
-            ),
-            "summary", Map.of(
-                "totalRevenue", 1100000,
-                "totalOrders", 22,
-                "days", java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1
-            )
-        );
+        Map<String, Object> range = salesAnalyticsService.getSalesByRange(shopId, startDate, endDate);
         return ResponseEntity.ok(range);
     }
     

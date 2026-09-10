@@ -19,6 +19,8 @@ public class RegisterRequest {
     private String password;
     
     private String role; // Optional: CUSTOMER (default), ADMIN. Also accepts "user" (mapped to CUSTOMER)
+    
+    private String referralCode; // Optional: Referral code from a friend
 }
 
 

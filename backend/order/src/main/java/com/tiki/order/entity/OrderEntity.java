@@ -16,7 +16,10 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "orders")
+@Table(name = "orders", indexes = {
+    @Index(name = "idx_orders_shop_id", columnList = "shop_id"),
+    @Index(name = "idx_orders_user_id", columnList = "user_id")
+})
 public class OrderEntity {
 
     @Id
@@ -25,6 +28,9 @@ public class OrderEntity {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    @Column(name = "shop_id")
+    private Long shopId;
 
     @Column(name = "order_number", unique = true, length = 50)
     private String orderNumber;

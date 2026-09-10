@@ -17,6 +17,7 @@ public class OrderMapper {
         if (order.getUserId() != null) {
             dto.setUserId(order.getUserId().intValue());
         }
+        dto.setShopId(order.getShopId());
         dto.setOrderNumber(order.getOrderNumber());
         dto.setTotalAmount(order.getTotalAmount());
         dto.setSubtotal(order.getSubtotal());

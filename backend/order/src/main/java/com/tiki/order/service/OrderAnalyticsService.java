@@ -26,41 +26,51 @@ public class OrderAnalyticsService {
      * Get order statistics for a shop
      */
     public OrderStatsDTO getShopOrderStats(Long shopId) {
-        log.info("Getting order stats for shop: {}", shopId);
+        log.info("Getting real order stats for shop: {}", shopId);
 
         // Calculate start of today
         LocalDateTime startOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
 
-        // Get statistics from repository
-        Integer todayOrders = orderRepository.countTodayOrders(startOfDay);
-        BigDecimal todayRevenue = orderRepository.calculateTodayRevenue(startOfDay);
-        Integer pendingOrders = orderRepository.countPendingOrders();
+        Integer todayOrders;
+        BigDecimal todayRevenue;
+        Integer pendingOrders;
+        Long totalOrders;
+        BigDecimal totalRevenue;
 
-        // Get total stats
-        Long totalOrders = orderRepository.count();
+        if (shopId != null) {
+            todayOrders = orderRepository.countTodayOrdersByShopId(shopId, startOfDay);
+            todayRevenue = orderRepository.calculateTodayRevenueByShopId(shopId, startOfDay);
+            pendingOrders = orderRepository.countPendingOrdersByShopId(shopId);
+            totalOrders = orderRepository.countByShopId(shopId);
+            totalRevenue = orderRepository.calculateTotalRevenueByShopId(shopId);
+        } else {
+            todayOrders = orderRepository.countTodayOrders(startOfDay);
+            todayRevenue = orderRepository.calculateTodayRevenue(startOfDay);
+            pendingOrders = orderRepository.countPendingOrders();
+            totalOrders = orderRepository.count();
+            totalRevenue = todayRevenue != null ? todayRevenue : BigDecimal.ZERO;
+        }
 
         return OrderStatsDTO.builder()
                 .shopId(shopId)
-                .todayOrders(todayOrders)
-                .todayRevenue(todayRevenue)
-                .pendingOrders(pendingOrders)
-                .totalOrders(totalOrders.intValue())
-                .totalRevenue(BigDecimal.ZERO)
+                .todayOrders(todayOrders != null ? todayOrders : 0)
+                .todayRevenue(todayRevenue != null ? todayRevenue : BigDecimal.ZERO)
+                .pendingOrders(pendingOrders != null ? pendingOrders : 0)
+                .totalOrders(totalOrders != null ? totalOrders.intValue() : 0)
+                .totalRevenue(totalRevenue != null ? totalRevenue : BigDecimal.ZERO)
                 .build();
     }
 
     /**
-     * Get sold count for a product
-     * Note: This is a placeholder returning total orders count
-     * In real implementation, need to sum quantities from order_items table
+     * Get real sold count for a product from order_items table
      */
     public Integer getProductSoldCount(Long productId) {
-        log.info("Getting sold count for product: {}", productId);
-
-        Integer totalOrders = orderRepository.getProductSoldCount();
-
-        // Mock: assume each product sold in 10% of orders
-        return totalOrders != null ? (int)(totalOrders * 0.1) : 0;
+        log.info("Getting accurate sold count for product: {}", productId);
+        if (productId == null) {
+            return 0;
+        }
+        Integer count = orderRepository.getProductSoldCountReal(productId);
+        return count != null ? count : 0;
     }
 
     /**

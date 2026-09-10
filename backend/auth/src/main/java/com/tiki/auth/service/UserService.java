@@ -275,4 +275,16 @@ public class UserService {
         userRepository.save(user);
         log.info("Updated status to {} for user {}", status, userId);
     }
+
+    public com.tiki.auth.dto.ReferralInfoDto getReferralInfo(Long userId) {
+        User user = getUserById(userId);
+        int count = user.getReferralCount() != null ? user.getReferralCount() : 0;
+        return com.tiki.auth.dto.ReferralInfoDto.builder()
+                .referralCode(user.getReferralCode())
+                .referralLink("https://tiki.vn/register?ref=" + (user.getReferralCode() != null ? user.getReferralCode() : ""))
+                .referralCount(count)
+                .totalPointsEarned(count * 50)
+                .referredBy(user.getReferredBy())
+                .build();
+    }
 }

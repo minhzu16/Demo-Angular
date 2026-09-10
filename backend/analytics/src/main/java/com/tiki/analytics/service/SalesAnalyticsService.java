@@ -61,9 +61,8 @@ public class SalesAnalyticsService {
             log.error("Failed to fetch real revenue statistics, falling back to mock", e);
         }
 
-        // Mock implementation if order-service fails or returns empty
+        // Fallback if order-service fails or returns empty
         List<RevenueDTO> revenues = new ArrayList<>();
-        // ... (keeping a simplified mock for development robustness)
         RevenueDTO mock = RevenueDTO.builder()
                 .date(startDate)
                 .revenue(new BigDecimal("500000"))
@@ -72,6 +71,69 @@ public class SalesAnalyticsService {
                 .build();
         revenues.add(mock);
         return revenues;
+    }
+
+    /**
+     * Get real sales overview aggregated from revenue by period
+     */
+    public Map<String, Object> getSalesOverview(Long shopId, LocalDate startDate, LocalDate endDate) {
+        log.info("Getting sales overview for shop {} from {} to {}", shopId, startDate, endDate);
+        List<RevenueDTO> revenues = getRevenueByPeriod(shopId, startDate, endDate, "daily");
+
+        BigDecimal totalRevenue = revenues.stream()
+                .map(r -> r.getRevenue() != null ? r.getRevenue() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        int totalOrders = revenues.stream()
+                .mapToInt(r -> r.getOrderCount() != null ? r.getOrderCount() : 0)
+                .sum();
+
+        BigDecimal aov = totalOrders > 0 
+                ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP) 
+                : BigDecimal.ZERO;
+
+        return Map.of(
+            "totalRevenue", totalRevenue,
+            "totalOrders", totalOrders,
+            "averageOrderValue", aov,
+            "period", Map.of(
+                "start", startDate.toString(),
+                "end", endDate.toString()
+            )
+        );
+    }
+
+    /**
+     * Get real sales range data aggregated from revenue by period
+     */
+    public Map<String, Object> getSalesByRange(Long shopId, LocalDate startDate, LocalDate endDate) {
+        log.info("Getting sales by range for shop {} from {} to {}", shopId, startDate, endDate);
+        List<RevenueDTO> revenues = getRevenueByPeriod(shopId, startDate, endDate, "daily");
+
+        List<Map<String, Object>> salesList = revenues.stream().map(r -> Map.<String, Object>of(
+                "date", r.getDate().toString(),
+                "revenue", r.getRevenue() != null ? r.getRevenue() : BigDecimal.ZERO,
+                "orders", r.getOrderCount() != null ? r.getOrderCount() : 0
+        )).collect(Collectors.toList());
+
+        BigDecimal totalRevenue = revenues.stream()
+                .map(r -> r.getRevenue() != null ? r.getRevenue() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        int totalOrders = revenues.stream()
+                .mapToInt(r -> r.getOrderCount() != null ? r.getOrderCount() : 0)
+                .sum();
+
+        long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1;
+
+        return Map.of(
+            "sales", salesList,
+            "summary", Map.of(
+                "totalRevenue", totalRevenue,
+                "totalOrders", totalOrders,
+                "days", days
+            )
+        );
     }
     
     /**

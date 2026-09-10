@@ -15,6 +15,8 @@ public class CreateVoucherRequest {
     @Pattern(regexp = "^[A-Z0-9_-]+$", message = "Mã chỉ chứa chữ in hoa, số, gạch dưới và gạch ngang")
     private String code;
 
+    private Long shopId; // NULL = platform voucher, NOT NULL = shop-specific voucher
+
     @NotNull(message = "Loại giảm giá không được để trống")
     private VoucherEntity.DiscountType type;
 

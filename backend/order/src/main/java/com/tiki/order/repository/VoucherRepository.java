@@ -34,6 +34,21 @@ public interface VoucherRepository extends JpaRepository<VoucherEntity, Integer>
     List<VoucherEntity> findByIsActiveTrue();
 
     /**
+     * Find vouchers by shop ID
+     */
+    List<VoucherEntity> findByShopId(Long shopId);
+
+    /**
+     * Find active vouchers by shop ID
+     */
+    List<VoucherEntity> findByShopIdAndIsActiveTrue(Long shopId);
+
+    /**
+     * Find platform vouchers (no shop specified)
+     */
+    List<VoucherEntity> findByIsActiveTrueAndShopIdIsNull();
+
+    /**
      * Find active vouchers that are currently valid (not expired)
      */
     @Query("SELECT v FROM VoucherEntity v WHERE v.isActive = true " +

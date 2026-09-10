@@ -77,4 +77,12 @@ public class OrderQueryService {
         }
         return false;
     }
+
+    /**
+     * Get paginated orders for a shop
+     */
+    public org.springframework.data.domain.Page<OrderDto> getOrdersByShop(Long shopId, org.springframework.data.domain.Pageable pageable) {
+        return orderRepository.findByShopIdOrderByCreatedAtDesc(shopId, pageable)
+                .map(orderMapper::toDto);
+    }
 }

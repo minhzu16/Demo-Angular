@@ -44,9 +44,15 @@ public class CreateOrderRequest {
     public Integer getUsePoints() { return usePoints; }
     public void setUsePoints(Integer usePoints) { this.usePoints = usePoints; }
 
+    private Long shopId;
+    public Long getShopId() { return shopId; }
+    public void setShopId(Long shopId) { this.shopId = shopId; }
+
     public static class OrderItemDto {
         @NotNull(message = "Product ID is required")
         private Integer productId;
+
+        private Long shopId;
 
         @NotNull(message = "Quantity is required")
         @Positive(message = "Quantity must be positive")
@@ -60,6 +66,8 @@ public class CreateOrderRequest {
 
         public Integer getProductId() { return productId; }
         public void setProductId(Integer productId) { this.productId = productId; }
+        public Long getShopId() { return shopId; }
+        public void setShopId(Long shopId) { this.shopId = shopId; }
         public Integer getQuantity() { return quantity; }
         public void setQuantity(Integer quantity) { this.quantity = quantity; }
         public BigDecimal getUnitPrice() { return unitPrice != null ? unitPrice : price; }

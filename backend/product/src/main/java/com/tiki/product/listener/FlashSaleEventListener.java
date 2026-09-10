@@ -61,10 +61,14 @@ public class FlashSaleEventListener {
                     .findFirst()
                     .ifPresent(fp -> {
                         int quantityToAdd = item.getQuantity();
-                        log.info("FlashSaleListener: Incrementing sold quantity for product {} in flash sale {}: +{}", 
-                            item.getProductId(), sale.getName(), quantityToAdd);
+                        int currentSold = fp.getQuantitySold() != null ? fp.getQuantitySold() : 0;
+                        int limit = fp.getQuantityLimit() != null ? fp.getQuantityLimit() : 0;
+                        int newSold = Math.min(currentSold + quantityToAdd, limit);
+
+                        log.info("FlashSaleListener: Incrementing sold quantity for product {} in flash sale {}: {} -> {} (limit: {})", 
+                            item.getProductId(), sale.getName(), currentSold, newSold, limit);
                         
-                        fp.setQuantitySold(fp.getQuantitySold() + quantityToAdd);
+                        fp.setQuantitySold(newSold);
                         FlashSaleProduct saved = flashSaleProductRepository.save(fp);
                         
                         // Broadcast stock update

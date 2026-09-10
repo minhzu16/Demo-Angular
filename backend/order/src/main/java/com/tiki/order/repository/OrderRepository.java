@@ -42,20 +42,60 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Integer> {
     List<OrderEntity> findByStatus(OrderStatus status);
     
     /**
-     * Count today's orders for a shop
-     * Note: Shop ID needs to be added to OrderEntity or derived from order items
+     * Find orders by shop ID with pagination
+     */
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"items"})
+    org.springframework.data.domain.Page<OrderEntity> findByShopIdOrderByCreatedAtDesc(Long shopId, org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * Find all orders by shop ID
+     */
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"items"})
+    List<OrderEntity> findByShopId(Long shopId);
+
+    /**
+     * Count today's orders for a specific shop
+     */
+    @Query("SELECT COUNT(o) FROM OrderEntity o WHERE o.shopId = :shopId AND o.createdAt >= :startOfDay")
+    Integer countTodayOrdersByShopId(@Param("shopId") Long shopId, @Param("startOfDay") LocalDateTime startOfDay);
+
+    /**
+     * Calculate today's revenue for a specific shop
+     */
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM OrderEntity o WHERE o.shopId = :shopId AND o.createdAt >= :startOfDay AND o.status NOT IN ('CANCELLED', 'REFUNDED')")
+    BigDecimal calculateTodayRevenueByShopId(@Param("shopId") Long shopId, @Param("startOfDay") LocalDateTime startOfDay);
+
+    /**
+     * Count pending orders for a specific shop
+     */
+    @Query("SELECT COUNT(o) FROM OrderEntity o WHERE o.shopId = :shopId AND o.status = 'PENDING'")
+    Integer countPendingOrdersByShopId(@Param("shopId") Long shopId);
+
+    /**
+     * Count total orders for a specific shop
+     */
+    Long countByShopId(Long shopId);
+
+    /**
+     * Calculate total revenue for a specific shop
+     */
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM OrderEntity o WHERE o.shopId = :shopId AND o.status NOT IN ('CANCELLED', 'REFUNDED')")
+    BigDecimal calculateTotalRevenueByShopId(@Param("shopId") Long shopId);
+
+    /**
+     * Count today's orders for a shop (platform fallback)
      */
     @Query("SELECT COUNT(o) FROM OrderEntity o WHERE o.createdAt >= :startOfDay")
     Integer countTodayOrders(@Param("startOfDay") LocalDateTime startOfDay);
     
     /**
-     * Calculate today's revenue for a shop
+     * Calculate today's revenue for a shop (platform fallback)
      */
     @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM OrderEntity o WHERE o.createdAt >= :startOfDay")
     BigDecimal calculateTodayRevenue(@Param("startOfDay") LocalDateTime startOfDay);
     
     /**
-     * Count pending orders for a shop
+     * Count pending orders for a shop (platform fallback)
      */
     @Query("SELECT COUNT(o) FROM OrderEntity o WHERE o.status = 'PENDING'")
     Integer countPendingOrders();
@@ -68,12 +108,15 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Integer> {
     
     /**
      * Get sold count for a product
-     * Sprint 14 - Product Search Service integration
-     * Note: This is a placeholder. In real implementation, 
-     * we need OrderItem table to track product quantities
      */
     @Query("SELECT COUNT(o) FROM OrderEntity o WHERE o.status IN ('DELIVERED', 'CONFIRMED', 'PROCESSING', 'SHIPPING')")
     Integer getProductSoldCount();
+
+    /**
+     * Accurate real product sold count from OrderItemEntity
+     */
+    @Query("SELECT COALESCE(SUM(i.quantity), 0) FROM OrderItemEntity i WHERE i.productId = :productId AND i.order.status IN ('DELIVERED', 'CONFIRMED', 'PROCESSING', 'SHIPPING')")
+    Integer getProductSoldCountReal(@Param("productId") Long productId);
 
     /**
      * Get daily revenue stats within a range

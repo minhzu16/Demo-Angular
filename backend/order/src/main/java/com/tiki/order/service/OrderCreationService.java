@@ -87,6 +87,10 @@ public class OrderCreationService {
                 }
                 
                 itemEntity.setProductId(productId);
+                itemEntity.setShopId(item.getShopId() != null ? item.getShopId() : request.getShopId());
+                if (order.getShopId() == null && itemEntity.getShopId() != null) {
+                    order.setShopId(itemEntity.getShopId());
+                }
                 itemEntity.setProductName(item.getProductName());
                 itemEntity.setImageUrl(item.getImageUrl());
                 itemEntity.setPrice(item.getUnitPrice());
@@ -103,6 +107,9 @@ public class OrderCreationService {
                 }
             }
         }
+        if (order.getShopId() == null && request.getShopId() != null) {
+            order.setShopId(request.getShopId());
+        }
         order.setSubtotal(subtotal.max(BigDecimal.ZERO));
 
         // Tính phí ship dựa trên cấu hình (ngưỡng freeship và phí chuẩn)
@@ -117,6 +124,7 @@ public class OrderCreationService {
             ValidateVoucherRequest vreq = new ValidateVoucherRequest();
             vreq.setCode(request.getVoucherCode());
             vreq.setOrderTotal(subtotal);
+            vreq.setShopId(order.getShopId());
             VoucherValidationResponse vres = voucherService.validateVoucher(vreq);
             if (vres.getValid()) {
                 voucherDiscount = vres.getDiscountAmount();
@@ -124,7 +132,7 @@ public class OrderCreationService {
                 order.setVoucherDiscount(voucherDiscount);
                 voucherService.applyVoucher(request.getVoucherCode());
             } else {
-                throw new IllegalArgumentException("Voucher không hợp lệ hoặc đã hết hạn: " + request.getVoucherCode());
+                throw new IllegalArgumentException(vres.getMessage() != null ? vres.getMessage() : "Voucher không hợp lệ hoặc đã hết hạn: " + request.getVoucherCode());
             }
         } else {
             order.setVoucherDiscount(BigDecimal.ZERO);

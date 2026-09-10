@@ -111,6 +111,25 @@ public class User {
     @Column(name = "loyalty_tier")
     private LoyaltyTier loyaltyTier = LoyaltyTier.BRONZE;
 
+    @Column(name = "referral_code", unique = true, length = 32)
+    private String referralCode;
+
+    @Column(name = "referred_by")
+    private Long referredBy;
+
+    @Column(name = "referral_count")
+    private Integer referralCount = 0;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (referralCode == null || referralCode.isBlank()) {
+            referralCode = "REF" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        }
+    }
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus status = UserStatus.ACTIVE;

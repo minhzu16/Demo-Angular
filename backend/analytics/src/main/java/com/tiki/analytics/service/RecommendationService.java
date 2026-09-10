@@ -82,4 +82,67 @@ public class RecommendationService {
         }
         return Collections.emptyList();
     }
+
+    /**
+     * Get frequently bought together products for a specific product
+     */
+    public List<Map<String, Object>> getFrequentlyBoughtTogether(Long productId) {
+        log.info("Generating frequently bought together recommendations for product {}", productId);
+        try {
+            // 1. Fetch product to find its category
+            Integer categoryId = null;
+            try {
+                Map<String, Object> product = productClient.getProductById(productId);
+                if (product != null) {
+                    if (product.get("categoryId") != null) {
+                        categoryId = Integer.parseInt(product.get("categoryId").toString());
+                    } else if (product.get("category") instanceof Map<?, ?> catMap && catMap.containsKey("id")) {
+                        categoryId = Integer.parseInt(catMap.get("id").toString());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not fetch product category directly for product {}: {}", productId, e.getMessage());
+            }
+
+            // 2. Fetch products in the same category
+            Map<String, Object> response = productClient.searchProducts(null, categoryId, null, null, null, 0, 8);
+            if (response != null && response.get("content") != null) {
+                List<Map<String, Object>> products = (List<Map<String, Object>>) response.get("content");
+                return products.stream()
+                        .filter(p -> {
+                            Object idObj = p.get("id");
+                            return idObj != null && !productId.toString().equals(idObj.toString());
+                        })
+                        .limit(4)
+                        .collect(Collectors.toList());
+            }
+        } catch (Exception e) {
+            log.error("Failed to generate frequently bought together for product {}", productId, e);
+        }
+
+        // Fallback: trending products excluding current
+        return getTrendingProducts().stream()
+                .filter(p -> {
+                    Object idObj = p.get("id");
+                    return idObj != null && !productId.toString().equals(idObj.toString());
+                })
+                .limit(4)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get best selling products by category
+     */
+    public List<Map<String, Object>> getCategoryBestSellers(Integer categoryId, int limit) {
+        log.info("Fetching best sellers for category {}, limit {}", categoryId, limit);
+        try {
+            Map<String, Object> response = productClient.searchProducts(null, categoryId, null, null, null, 0, limit > 0 ? limit : 10);
+            if (response != null && response.get("content") != null) {
+                return (List<Map<String, Object>>) response.get("content");
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch category best sellers for category {}", categoryId, e);
+        }
+        return Collections.emptyList();
+    }
 }

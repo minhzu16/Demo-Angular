@@ -201,4 +201,26 @@ public class VoucherController {
         List<VoucherDTO> vouchers = voucherService.getVouchersWithLowUsage(threshold);
         return ResponseEntity.ok(vouchers);
     }
+
+    /**
+     * Get vouchers for specific shop
+     * GET /api/v1/vouchers/shop/{shopId}
+     */
+    @GetMapping("/v1/vouchers/shop/{shopId}")
+    public ResponseEntity<List<VoucherDTO>> getShopVouchers(@PathVariable Long shopId) {
+        List<VoucherDTO> vouchers = voucherService.getVouchersByShop(shopId);
+        return ResponseEntity.ok(vouchers);
+    }
+
+    /**
+     * Create voucher for specific shop (Seller / Admin)
+     * POST /api/v1/vouchers/shop/{shopId}
+     */
+    @PostMapping("/v1/vouchers/shop/{shopId}")
+    public ResponseEntity<VoucherDTO> createShopVoucher(
+            @PathVariable Long shopId,
+            @Valid @RequestBody CreateVoucherRequest request) {
+        VoucherDTO voucher = voucherService.createShopVoucher(shopId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(voucher);
+    }
 }
