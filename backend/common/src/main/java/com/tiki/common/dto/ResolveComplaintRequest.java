@@ -19,4 +19,6 @@ public class ResolveComplaintRequest {
 
     @NotBlank(message = "Nội dung giải quyết/phản hồi không được để trống")
     private String resolution;
+
+    private String resolutionType; // REFUND, REJECT, COMPENSATION
 }

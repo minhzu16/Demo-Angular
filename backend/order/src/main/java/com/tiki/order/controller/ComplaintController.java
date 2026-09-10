@@ -64,6 +64,29 @@ public class ComplaintController {
     }
 
     /**
+     * Seller submits their response/defense to a complaint
+     */
+    @PostMapping("/{id}/seller-response")
+    public ResponseEntity<ComplaintDto> submitSellerResponse(
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") Long sellerId,
+            @Valid @RequestBody com.tiki.common.dto.SellerComplaintResponseRequest request) {
+        log.info("Received seller response for complaint id={} by sellerId={}", id, sellerId);
+        return ResponseEntity.ok(complaintService.submitSellerResponse(id, sellerId, request));
+    }
+
+    /**
+     * Admin views all complaints across the platform with pagination & filter
+     */
+    @GetMapping("/admin")
+    public ResponseEntity<org.springframework.data.domain.Page<ComplaintDto>> getAdminComplaints(
+            @RequestParam(required = false) com.tiki.common.entity.ComplaintEntity.Status status,
+            @org.springframework.data.web.PageableDefault(size = 20) org.springframework.data.domain.Pageable pageable) {
+        log.info("Admin fetching complaints list: status={}", status);
+        return ResponseEntity.ok(complaintService.getAdminComplaints(status, pageable));
+    }
+
+    /**
      * Seller or Admin resolves or rejects a complaint
      */
     @PutMapping("/{id}/resolve")

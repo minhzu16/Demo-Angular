@@ -18,6 +18,7 @@ import java.util.Map;
 public class WarehouseController {
     private final WarehouseQueryService warehouseQueryService;
     private final WarehouseCommandService warehouseCommandService;
+    private final com.tiki.warehouse.service.WarehouseAllocationService warehouseAllocationService;
 
     @GetMapping("/stock/{productId}")
     public ResponseEntity<Integer> getStock(@PathVariable Long productId) {
@@ -79,5 +80,47 @@ public class WarehouseController {
             warehouseCommandService.updateStock(productId, quantity);
         }
         return ResponseEntity.ok(warehouseQueryService.getInventory(productId));
+    }
+
+    // ==========================================
+    // Multi-Warehouse APIs (Giai đoạn Q4)
+    // ==========================================
+
+    @GetMapping("/locations")
+    public ResponseEntity<List<com.tiki.warehouse.dto.WarehouseLocationDto>> getAllLocations() {
+        log.info("Fetching all active warehouse locations");
+        return ResponseEntity.ok(warehouseAllocationService.getAllLocations());
+    }
+
+    @PostMapping("/locations")
+    public ResponseEntity<com.tiki.warehouse.dto.WarehouseLocationDto> createLocation(
+            @jakarta.validation.Valid @RequestBody com.tiki.warehouse.dto.CreateWarehouseLocationRequest request) {
+        log.info("Creating warehouse location: code={}", request.getCode());
+        return ResponseEntity.ok(warehouseAllocationService.createLocation(request));
+    }
+
+    @GetMapping("/stock-by-warehouse/{productId}")
+    public ResponseEntity<List<com.tiki.warehouse.entity.WarehouseStockEntity>> getStockByWarehouse(
+            @PathVariable Long productId) {
+        log.info("Fetching multi-warehouse stock for product: {}", productId);
+        return ResponseEntity.ok(warehouseAllocationService.getStockByWarehouse(productId));
+    }
+
+    @PutMapping("/stock-by-warehouse/{warehouseId}/{productId}")
+    public ResponseEntity<Void> updateWarehouseStock(
+            @PathVariable Long warehouseId,
+            @PathVariable Long productId,
+            @RequestBody Map<String, Integer> payload) {
+        Integer quantity = payload.get("quantity");
+        log.info("Updating warehouse {} stock for product {} to {}", warehouseId, productId, quantity);
+        warehouseAllocationService.updateWarehouseStock(warehouseId, productId, quantity);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/allocate")
+    public ResponseEntity<com.tiki.warehouse.dto.WarehouseAllocationResponse> allocateFulfillment(
+            @RequestBody com.tiki.warehouse.dto.WarehouseAllocationRequest request) {
+        log.info("Allocating fulfillment for province: {}", request.getDestinationProvince());
+        return ResponseEntity.ok(warehouseAllocationService.allocateFulfillment(request));
     }
 }

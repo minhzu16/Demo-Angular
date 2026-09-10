@@ -49,6 +49,9 @@ public class OrderCreationServiceTest {
     @Mock
     private OrderMapper orderMapper;
 
+    @Mock
+    private FraudDetectionService fraudDetectionService;
+
     @InjectMocks
     private OrderCreationService orderCreationService;
 
@@ -77,6 +80,10 @@ public class OrderCreationServiceTest {
         createOrderRequest.setItems(items);
         
         createOrderRequest.setPaymentMethod(PaymentMethod.COD);
+
+        lenient().when(fraudDetectionService.assessOrderRisk(any())).thenReturn(
+                new FraudDetectionService.FraudAssessment(0, "LOW", "Bình thường")
+        );
     }
 
     @Test

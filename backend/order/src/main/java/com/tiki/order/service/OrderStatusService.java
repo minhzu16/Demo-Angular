@@ -177,4 +177,26 @@ public class OrderStatusService {
     public List<OrderTrackingEntity> getOrderStatusHistory(Integer orderId) {
         return orderTrackingRepository.findByOrderIdOrderByCreatedAtDesc(orderId);
     }
+
+    /**
+     * ✅ Q4: Admin reviews fraud flagged order (APPROVE or CANCEL)
+     */
+    public OrderDto reviewFraudOrder(Integer orderId, String action, String reason) {
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng: " + orderId));
+        if ("APPROVE".equalsIgnoreCase(action)) {
+            order.setFraudRiskLevel("LOW");
+            order.setFraudReason("Đã được Admin xác nhận an toàn" + (reason != null && !reason.isBlank() ? ": " + reason : ""));
+            OrderEntity saved = orderRepository.save(order);
+            log.info("Order {} marked safe after fraud review", orderId);
+            return orderMapper.toDto(saved);
+        } else if ("REJECT_FRAUD".equalsIgnoreCase(action) || "CANCEL".equalsIgnoreCase(action)) {
+            log.warn("Order {} cancelled due to fraud confirmation: {}", orderId, reason);
+            order.setFraudReason("Bị hủy do vi phạm gian lận: " + (reason != null ? reason : ""));
+            orderRepository.save(order);
+            return updateStatus(orderId, OrderEntity.OrderStatus.CANCELLED);
+        } else {
+            throw new IllegalArgumentException("Hành động xem xét không hợp lệ: " + action);
+        }
+    }
 }

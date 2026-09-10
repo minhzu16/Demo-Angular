@@ -37,6 +37,7 @@ public class OrderCreationService {
     private final RabbitTemplate rabbitTemplate;
     private final VoucherService voucherService;
     private final OrderMapper orderMapper;
+    private final FraudDetectionService fraudDetectionService;
 
     @org.springframework.beans.factory.annotation.Value("${order.shipping.free-threshold:500000}")
     private BigDecimal freeShippingThreshold = new BigDecimal("500000");
@@ -173,6 +174,16 @@ public class OrderCreationService {
             order.setPaymentMethod(PaymentMethod.COD);
         }
         order.setPaymentStatus(PaymentStatus.PENDING);
+
+        // ✅ Q4: Fraud Detection Signal Assessment
+        if (fraudDetectionService != null) {
+            FraudDetectionService.FraudAssessment fraudAssessment = fraudDetectionService.assessOrderRisk(order);
+            if (fraudAssessment != null) {
+                order.setFraudScore(fraudAssessment.getScore());
+                order.setFraudRiskLevel(fraudAssessment.getRiskLevel());
+                order.setFraudReason(fraudAssessment.getReason());
+            }
+        }
 
         OrderEntity saved = orderRepository.save(order);
 

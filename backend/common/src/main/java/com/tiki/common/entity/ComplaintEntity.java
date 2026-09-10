@@ -39,6 +39,15 @@ public class ComplaintEntity {
     @Column(columnDefinition = "text")
     private String resolution;
 
+    @Column(name = "seller_response", columnDefinition = "text")
+    private String sellerResponse;
+
+    @Column(name = "seller_response_at")
+    private LocalDateTime sellerResponseAt;
+
+    @Column(name = "resolution_type", length = 50)
+    private String resolutionType;
+
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime resolvedAt;

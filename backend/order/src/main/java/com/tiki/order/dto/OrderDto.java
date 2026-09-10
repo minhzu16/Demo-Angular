@@ -26,6 +26,9 @@ public class OrderDto {
     private PaymentStatus paymentStatus;
     private ShippingAddress shippingAddress;
     private List<Item> items;
+    private Integer fraudScore;
+    private String fraudRiskLevel;
+    private String fraudReason;
 
     public static class Item {
         private Integer productId;
@@ -104,6 +107,12 @@ public class OrderDto {
     public void setShippingAddress(ShippingAddress shippingAddress) { this.shippingAddress = shippingAddress; }
     public List<Item> getItems() { return items; }
     public void setItems(List<Item> items) { this.items = items; }
+    public Integer getFraudScore() { return fraudScore; }
+    public void setFraudScore(Integer fraudScore) { this.fraudScore = fraudScore; }
+    public String getFraudRiskLevel() { return fraudRiskLevel; }
+    public void setFraudRiskLevel(String fraudRiskLevel) { this.fraudRiskLevel = fraudRiskLevel; }
+    public String getFraudReason() { return fraudReason; }
+    public void setFraudReason(String fraudReason) { this.fraudReason = fraudReason; }
 }
 
 

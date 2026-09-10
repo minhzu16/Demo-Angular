@@ -31,6 +31,9 @@ public class OrderMapper {
         dto.setPointsDiscount(order.getPointsDiscount());
         dto.setVoucherCode(order.getVoucherCode());
         dto.setVoucherDiscount(order.getVoucherDiscount());
+        dto.setFraudScore(order.getFraudScore());
+        dto.setFraudRiskLevel(order.getFraudRiskLevel());
+        dto.setFraudReason(order.getFraudReason());
 
         OrderDto.ShippingAddress sa = new OrderDto.ShippingAddress();
         sa.setFullName(order.getCustomerName());

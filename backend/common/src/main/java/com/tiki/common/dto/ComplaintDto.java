@@ -14,6 +14,9 @@ public class ComplaintDto {
     private String description;
     private String status;
     private String resolution;
+    private String sellerResponse;
+    private LocalDateTime sellerResponseAt;
+    private String resolutionType;
     private LocalDateTime createdAt;
     private LocalDateTime resolvedAt;
 }

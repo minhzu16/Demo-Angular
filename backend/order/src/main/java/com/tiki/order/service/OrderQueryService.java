@@ -85,4 +85,12 @@ public class OrderQueryService {
         return orderRepository.findByShopIdOrderByCreatedAtDesc(shopId, pageable)
                 .map(orderMapper::toDto);
     }
+
+    /**
+     * ✅ Q4: Get suspicious/fraud-flagged orders
+     */
+    public List<OrderDto> getSuspiciousOrders() {
+        List<OrderEntity> flagged = orderRepository.findByFraudRiskLevelInOrderByCreatedAtDesc(List.of("MEDIUM", "HIGH"));
+        return flagged.stream().map(orderMapper::toDto).collect(java.util.stream.Collectors.toList());
+    }
 }

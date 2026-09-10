@@ -125,4 +125,10 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Integer> {
            "FROM OrderEntity o WHERE o.createdAt BETWEEN :start AND :end " +
            "GROUP BY CAST(o.createdAt AS date) ORDER BY date ASC")
     List<Object[]> getDailyRevenueStats(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // Fraud Detection Queries (Giai đoạn Q4)
+    long countByUserIdAndCreatedAtAfter(Long userId, LocalDateTime after);
+    long countByCustomerPhoneAndCreatedAtAfter(String customerPhone, LocalDateTime after);
+    long countByUserIdAndStatus(Long userId, OrderStatus status);
+    List<OrderEntity> findByFraudRiskLevelInOrderByCreatedAtDesc(List<String> riskLevels);
 }

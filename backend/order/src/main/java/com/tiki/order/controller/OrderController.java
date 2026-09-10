@@ -396,4 +396,26 @@ public class OrderController {
         log.info("INTERNAL: Checking if user {} purchased product {}", userId, productId);
         return orderQueryService.hasUserPurchasedProduct(userId, productId);
     }
+
+    /**
+     * ✅ Q4: Get suspicious/fraud-flagged orders for Admin/Risk management
+     */
+    @GetMapping("/fraud/signals")
+    public ResponseEntity<List<OrderDto>> getFraudSignals() {
+        log.info("Admin querying fraud flagged orders");
+        return ResponseEntity.ok(orderQueryService.getSuspiciousOrders());
+    }
+
+    /**
+     * ✅ Q4: Admin reviews a flagged order (APPROVE or REJECT_FRAUD)
+     */
+    @PostMapping("/{orderId}/fraud-review")
+    public ResponseEntity<OrderDto> reviewFraudOrder(
+            @PathVariable Integer orderId,
+            @RequestBody Map<String, String> payload) {
+        String action = payload.get("action");
+        String reason = payload.get("reason");
+        log.info("Fraud review for order {}: action={}, reason={}", orderId, action, reason);
+        return ResponseEntity.ok(orderStatusService.reviewFraudOrder(orderId, action, reason));
+    }
 }

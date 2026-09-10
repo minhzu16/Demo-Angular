@@ -110,6 +110,16 @@ public class OrderEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    // Fraud Detection Signals (Giai đoạn Q4)
+    @Column(name = "fraud_score")
+    private Integer fraudScore = 0;
+
+    @Column(name = "fraud_risk_level", length = 20)
+    private String fraudRiskLevel = "LOW";
+
+    @Column(name = "fraud_reason", columnDefinition = "TEXT")
+    private String fraudReason;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

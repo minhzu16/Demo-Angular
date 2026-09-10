@@ -31,6 +31,9 @@ class ComplaintServiceTest {
     @Mock
     private OrderRepository orderRepository;
 
+    @Mock
+    private OrderStatusService orderStatusService;
+
     @InjectMocks
     private ComplaintService complaintService;
 
@@ -172,5 +175,72 @@ class ComplaintServiceTest {
         assertThatThrownBy(() -> complaintService.resolveComplaint(5L, 999L, request))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("đã được phân xử trước đó");
+    }
+
+    @Test
+    @DisplayName("submitSellerResponse - records seller defense and timestamp")
+    void testSubmitSellerResponseSuccess() {
+        ComplaintEntity existing = new ComplaintEntity();
+        existing.setId(10L);
+        existing.setOrderId(101L);
+        existing.setSellerId(88L);
+        existing.setStatus(ComplaintEntity.Status.PENDING);
+
+        when(complaintRepository.findById(10L)).thenReturn(Optional.of(existing));
+        when(complaintRepository.save(any(ComplaintEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+        com.tiki.common.dto.SellerComplaintResponseRequest request = com.tiki.common.dto.SellerComplaintResponseRequest.builder()
+                .response("Chúng tôi đã kiểm tra camera đóng hàng, sản phẩm nguyên vẹn khi xuất kho.")
+                .build();
+
+        ComplaintDto result = complaintService.submitSellerResponse(10L, 88L, request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getSellerResponse()).contains("kiểm tra camera");
+        assertThat(existing.getSellerResponseAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("submitSellerResponse - throws exception when seller does not own complaint shop")
+    void testSubmitSellerResponseUnauthorized() {
+        ComplaintEntity existing = new ComplaintEntity();
+        existing.setId(10L);
+        existing.setOrderId(101L);
+        existing.setSellerId(88L);
+        existing.setStatus(ComplaintEntity.Status.PENDING);
+
+        when(complaintRepository.findById(10L)).thenReturn(Optional.of(existing));
+
+        com.tiki.common.dto.SellerComplaintResponseRequest request = com.tiki.common.dto.SellerComplaintResponseRequest.builder()
+                .response("Hacker seller response")
+                .build();
+
+        assertThatThrownBy(() -> complaintService.submitSellerResponse(10L, 999L, request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("không có quyền phản hồi");
+    }
+
+    @Test
+    @DisplayName("resolveComplaint with REFUND resolution triggers orderStatusService.refundOrder")
+    void testResolveComplaintWithAutoRefund() {
+        ComplaintEntity existing = new ComplaintEntity();
+        existing.setId(15L);
+        existing.setOrderId(101L);
+        existing.setStatus(ComplaintEntity.Status.PENDING);
+
+        when(complaintRepository.findById(15L)).thenReturn(Optional.of(existing));
+        when(complaintRepository.save(any(ComplaintEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+        ResolveComplaintRequest request = ResolveComplaintRequest.builder()
+                .status(ComplaintEntity.Status.RESOLVED)
+                .resolution("Chấp thuận khiếu nại, hoàn lại tiền vào tài khoản người mua.")
+                .resolutionType("REFUND")
+                .build();
+
+        ComplaintDto result = complaintService.resolveComplaint(15L, 1L, request);
+
+        assertThat(result.getStatus()).isEqualTo("RESOLVED");
+        assertThat(result.getResolutionType()).isEqualTo("REFUND");
+        verify(orderStatusService).refundOrder(101);
     }
 }
