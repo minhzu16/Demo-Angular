@@ -19,16 +19,21 @@ public class InvoiceController {
     private InvoiceService invoiceService;
     
     /**
-     * Get invoice by order ID (v1 API - Public)
+     * Get invoice by order ID (v1 API - Public/Buyer)
      * GET /api/v1/invoices/order/{orderId}
      */
     @GetMapping("/api/v1/invoices/order/{orderId}")
     public ResponseEntity<InvoiceDto> getInvoiceByOrder(@PathVariable Integer orderId) {
-        // For now, return a simple response - can be enhanced with actual service call
-        InvoiceDto invoice = new InvoiceDto();
-        invoice.setOrderId(orderId);
-        invoice.setTotalAmount(new BigDecimal("100000"));
-        return ResponseEntity.ok(invoice);
+        return ResponseEntity.ok(invoiceService.getInvoiceByOrder(orderId));
+    }
+
+    /**
+     * Get all invoices for a seller's shop
+     * GET /api/v1/invoices/shop/{shopId}
+     */
+    @GetMapping("/api/v1/invoices/shop/{shopId}")
+    public ResponseEntity<List<InvoiceDto>> getInvoicesByShop(@PathVariable Long shopId) {
+        return ResponseEntity.ok(invoiceService.getInvoicesByShop(shopId));
     }
 
     @PostMapping("/api/admin/invoices/issue")

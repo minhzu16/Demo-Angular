@@ -25,10 +25,15 @@ public class InvoiceService {
     @Autowired
     private InvoiceRepository invoiceRepo;
 
+    @Autowired
+    private com.tiki.order.repository.OrderRepository orderRepo;
+
     @Value("${invoice.storage-path:template_storage/invoices}")
     private String storagePath;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     private InvoiceDto toDto(InvoiceEntity e){
         InvoiceDto d = new InvoiceDto();
@@ -55,14 +60,50 @@ public class InvoiceService {
         e = invoiceRepo.save(e);
 
         // write file to storage
-        Path dir = Paths.get(storagePath);
-        if(!Files.exists(dir)){
-            Files.createDirectories(dir);
+        try {
+            Path dir = Paths.get(storagePath);
+            if (!Files.exists(dir)) {
+                Files.createDirectories(dir);
+            }
+            Path file = buildFilePath(invoiceNumber);
+            objectMapper.writeValue(file.toFile(), toDto(e));
+        } catch (Exception ex) {
+            // Log warning but allow invoice issuance to complete
+            org.slf4j.LoggerFactory.getLogger(InvoiceService.class)
+                    .warn("Could not persist invoice file: {}", ex.getMessage());
         }
-        Path file = buildFilePath(invoiceNumber);
-        objectMapper.writeValue(file.toFile(), toDto(e));
 
         return toDto(e);
+    }
+
+    public InvoiceDto getInvoiceByOrder(Integer orderId) {
+        Optional<InvoiceEntity> existing = invoiceRepo.findByOrderId(orderId);
+        if (existing.isPresent()) {
+            return toDto(existing.get());
+        }
+
+        // Check if order exists in system
+        com.tiki.order.entity.OrderEntity order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng với mã: " + orderId));
+
+        try {
+            return issueInvoice(orderId, order.getTotalAmount());
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi xuất hóa đơn cho đơn hàng " + orderId, e);
+        }
+    }
+
+    public List<InvoiceDto> getInvoicesByShop(Long shopId) {
+        List<com.tiki.order.entity.OrderEntity> shopOrders = orderRepo.findByShopId(shopId);
+        if (shopOrders.isEmpty()) {
+            return List.of();
+        }
+        List<Integer> orderIds = shopOrders.stream()
+                .map(com.tiki.order.entity.OrderEntity::getId)
+                .collect(Collectors.toList());
+        return invoiceRepo.findByOrderIdIn(orderIds).stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     public List<InvoiceDto> getAll(){

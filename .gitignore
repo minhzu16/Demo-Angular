@@ -66,3 +66,4 @@ build-*.txt
 /package-lock.json
 /test_e2e.js
 *.sql
+!infra/mysql/init/*.sql

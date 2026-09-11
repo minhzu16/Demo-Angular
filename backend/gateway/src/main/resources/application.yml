@@ -45,7 +45,7 @@ spring:
         - id: auth
           uri: http://${AUTH_HOST:auth}:${AUTH_PORT:8082}
           predicates:
-            - Path=/api/v1/auth/**, /api/v1/users/**
+            - Path=/api/v1/auth/**, /api/v1/users/**, /api/v1/otp/**, /api/v1/membership/**, /api/v1/admin/users/**, /api/v1/admin/audit-logs/**
           filters:
             - name: RequestRateLimiter
               args:
@@ -55,11 +55,11 @@ spring:
         - id: product
           uri: http://${PRODUCT_HOST:product}:${PRODUCT_PORT:8081}
           predicates:
-            - Path=/api/v1/products/**, /api/v1/categories/**, /api/v1/wishlists/**, /api/v1/wishlist/**, /api/v1/flash-sales/**
+            - Path=/api/v1/products/**, /api/v1/categories/**, /api/v1/brands/**, /api/v1/admin/products/**, /api/v1/wishlists/**, /api/v1/wishlist/**, /api/v1/compare/**, /api/v1/flash-sales/**, /api/products/**
         - id: order
           uri: http://${ORDER_HOST:order}:${ORDER_PORT:8083}
           predicates:
-            - Path=/api/v1/orders/**, /api/v1/invoices/**, /api/v1/admin/orders/**, /api/v1/shipping/**, /api/v1/shipping-methods/**, /api/v1/vouchers/**, /api/v1/tracking/**, /api/vouchers/**, /api/v1/complaints/**
+            - Path=/api/v1/orders/**, /api/v1/rma/**, /api/v1/invoices/**, /api/v1/admin/orders/**, /api/admin/orders/**, /api/v1/shipping/**, /api/v1/shipping-methods/**, /api/v1/vouchers/**, /api/v1/tracking/**, /api/vouchers/**, /api/v1/complaints/**
           filters:
             - name: RequestRateLimiter
               args:
@@ -69,7 +69,7 @@ spring:
         - id: payment
           uri: http://${PAYMENT_HOST:payment}:${PAYMENT_PORT:8084}
           predicates:
-            - Path=/api/v1/payments/**
+            - Path=/api/v1/payments/**, /api/v1/gift-cards/**, /api/v1/store-credit/**
           filters:
             - name: RequestRateLimiter
               args:
@@ -88,6 +88,10 @@ spring:
           uri: http://${WAREHOUSE_HOST:warehouse}:${WAREHOUSE_PORT:8092}
           predicates:
             - Path=/api/v1/warehouse/**
+        - id: template-storage
+          uri: http://${TEMPLATE_STORAGE_HOST:template-storage}:${TEMPLATE_STORAGE_PORT:8087}
+          predicates:
+            - Path=/api/v1/templates/**, /api/v1/marketing/**
         - id: notification
           uri: http://${NOTIFICATION_HOST:notification}:${NOTIFICATION_PORT:8088}
           predicates:
@@ -99,7 +103,7 @@ spring:
         - id: analytics
           uri: http://${ANALYTICS_HOST:analytics}:${ANALYTICS_PORT:8090}
           predicates:
-            - Path=/api/v1/analytics/**
+            - Path=/api/v1/analytics/**, /api/v1/admin/analytics/**
         - id: chat-ws
           uri: ws://${CHAT_HOST:chat}:${CHAT_PORT:8091}
           predicates:
@@ -108,6 +112,18 @@ spring:
           uri: http://${CHAT_HOST:chat}:${CHAT_PORT:8091}
           predicates:
             - Path=/api/v1/chat/**
+        - id: settlement
+          uri: http://${SETTLEMENT_HOST:settlement}:${SETTLEMENT_PORT:8094}
+          predicates:
+            - Path=/api/v1/settlement/**
+        - id: b2b
+          uri: http://${B2B_HOST:b2b}:${B2B_PORT:8095}
+          predicates:
+            - Path=/api/v1/b2b/**
+        - id: live
+          uri: http://${LIVE_HOST:live}:${LIVE_PORT:8096}
+          predicates:
+            - Path=/api/v1/live/**
 
 logging:
   level:

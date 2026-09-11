@@ -530,6 +530,86 @@ services:
       - tiki_net
     restart: unless-stopped
 
+  settlement:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: settlement
+        SERVICE_PORT: 8094
+    container_name: settlement
+    ports:
+      - "8094:8094"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_FORWARD_HEADERS_STRATEGY=framework
+      - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=${MYSQL_USER:-sa}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-123}
+      - ORDER_SERVICE_URL=http://order:8083
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tiki_net
+    restart: unless-stopped
+
+  b2b:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: b2b
+        SERVICE_PORT: 8095
+    container_name: b2b
+    ports:
+      - "8095:8095"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_FORWARD_HEADERS_STRATEGY=framework
+      - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=${MYSQL_USER:-sa}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-123}
+      - ORDER_SERVICE_URL=http://order:8083
+      - PRODUCT_SERVICE_URL=http://product:8081
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tiki_net
+    restart: unless-stopped
+
+  live:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: live
+        SERVICE_PORT: 8096
+    container_name: live
+    ports:
+      - "8096:8096"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_FORWARD_HEADERS_STRATEGY=framework
+      - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=${MYSQL_USER:-sa}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-123}
+      - PRODUCT_SERVICE_URL=http://product:8081
+      - ORDER_SERVICE_URL=http://order:8083
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tiki_net
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend

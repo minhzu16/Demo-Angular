@@ -497,6 +497,86 @@ services:
       retries: 3
       start_period: 30s
 
+  # Settlement Service
+  settlement:
+    build:
+      context: ./backend/settlement
+      dockerfile: Dockerfile.simple
+    container_name: settlement
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=${MYSQL_USER:-sa}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-123}
+      - ORDER_SERVICE_URL=http://order:8083
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tiki_net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8094/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # B2B Wholesale Service
+  b2b:
+    build:
+      context: ./backend/b2b
+      dockerfile: Dockerfile.simple
+    container_name: b2b
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=${MYSQL_USER:-sa}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-123}
+      - ORDER_SERVICE_URL=http://order:8083
+      - PRODUCT_SERVICE_URL=http://product:8081
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tiki_net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8095/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Live Commerce Service
+  live:
+    build:
+      context: ./backend/live
+      dockerfile: Dockerfile.simple
+    container_name: live
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=${MYSQL_USER:-sa}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-123}
+      - PRODUCT_SERVICE_URL=http://product:8081
+      - ORDER_SERVICE_URL=http://order:8083
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tiki_net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8096/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
   # Frontend
   frontend:
     build:

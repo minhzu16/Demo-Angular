@@ -24,6 +24,9 @@ COPY notification/target/ /build/notification/
 COPY review/target/ /build/review/
 COPY analytics/target/ /build/analytics/
 COPY gateway/target/ /build/gateway/
+COPY settlement/target/ /build/settlement/
+COPY b2b/target/ /build/b2b/
+COPY live/target/ /build/live/
 
 
 # Select the correct JAR and move it to a known location
