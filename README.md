@@ -130,8 +130,8 @@ The architecture consists of **18 modular microservices** orchestrated via **Spr
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/minhzu16/Demo-Angular.git
-cd Demo-Angular
+git clone https://github.com/minhzu16/NexMart.git
+cd NexMart
 
 # 2. Start all databases, message brokers, and microservices
 docker compose up -d

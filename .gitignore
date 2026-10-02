@@ -14,7 +14,7 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -34,8 +34,9 @@ build/
 
 ### Frontend ###
 frontend/dist/
-frontend/.angular/cache/
+frontend/.angular/
 frontend/node_modules/
+node_modules/
 
 ### Backend ###
 backend/*/target/
@@ -45,25 +46,33 @@ out/
 .env
 *.log
 
-### PowerShell Scripts ###
-*.ps1
-
-# Temporary test files & logs
-*.txt
-*.md
-!README.md
-!HELP.md
-.agents/
-api-test-output*
-*_schema*
-*_logs*
-build-*.txt
-*-crash*.txt
+### Root Temporary Test Files & Logs ###
+*.log
+/api-test-output*
+/*_schema*
+/*_logs*
+/build-*.txt
+/*-crash*.txt
+/docker-*.log
+/service-logs.txt
+/controllers*.txt
+/fe_*.txt
+/final-*.txt
+/verify_hash.txt
+/check-fail-output.txt
 /BOOT-INF/
 /com/
-/node_modules/
 /package.json
 /package-lock.json
 /test_e2e.js
-*.sql
-!infra/mysql/init/*.sql
+/commit-commands.txt
+/order-log.txt
+/fix-mysql-grants.sql
+/fix_pass.sql
+/*-REPORT.md
+/test-report.md
+/report-summary.md
+/rule.md
+*.ps1
+.agents/
+

@@ -2,7 +2,10 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 
-const ARTIFACT_DIR = 'C:\\Users\\LEGION 5 PRO\\.gemini\\antigravity-ide\\brain\\a79711c3-e256-41d6-a0cd-dab5787cdddf';
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || path.join(__dirname, 'screenshots');
+if (!fs.existsSync(ARTIFACT_DIR)) {
+  fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+}
 
 async function delay(time) {
   return new Promise(function(resolve) { 
