@@ -60,6 +60,10 @@ public class CreateOrderRequest {
     public BigDecimal getStoreCreditAmount() { return storeCreditAmount; }
     public void setStoreCreditAmount(BigDecimal storeCreditAmount) { this.storeCreditAmount = storeCreditAmount; }
 
+    private String idempotencyKey;
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
+
     public static class OrderItemDto {
         @NotNull(message = "Product ID is required")
         private Integer productId;

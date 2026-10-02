@@ -1,28 +1,44 @@
 package com.tiki.order.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tiki.common.dto.UserDto;
 import com.tiki.common.event.OrderCreatedEvent;
+import com.tiki.order.client.ProductClient;
 import com.tiki.order.client.UserClient;
 import com.tiki.order.client.WarehouseClient;
 import com.tiki.order.dto.CreateOrderRequest;
 import com.tiki.order.dto.OrderDto;
+import com.tiki.order.dto.ProductPricingDto;
 import com.tiki.order.dto.ValidateVoucherRequest;
 import com.tiki.order.dto.VoucherValidationResponse;
 import com.tiki.order.entity.OrderEntity;
+import com.tiki.order.entity.OrderIdempotencyEntity;
 import com.tiki.order.entity.OrderItemEntity;
 import com.tiki.order.entity.OrderTrackingEntity;
+import com.tiki.order.entity.OutboxEventEntity;
 import com.tiki.order.enums.PaymentMethod;
 import com.tiki.order.enums.PaymentStatus;
+import com.tiki.order.repository.OrderIdempotencyRepository;
 import com.tiki.order.repository.OrderRepository;
 import com.tiki.order.repository.OrderTrackingRepository;
+import com.tiki.order.repository.OutboxEventRepository;
+import com.tiki.order.saga.CheckoutSagaOrchestrator;
+import com.tiki.order.saga.CheckoutSagaState;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,7 +55,11 @@ public class OrderCreationService {
     private final OrderMapper orderMapper;
     private final FraudDetectionService fraudDetectionService;
     private final com.tiki.order.client.PaymentClient paymentClient;
-    private final com.tiki.order.client.ProductClient productClient;
+    private final ProductClient productClient;
+    private final CheckoutSagaOrchestrator sagaOrchestrator;
+    private final OrderIdempotencyRepository orderIdempotencyRepository;
+    private final OutboxEventRepository outboxEventRepository;
+    private final ObjectMapper objectMapper;
 
     @org.springframework.beans.factory.annotation.Value("${order.shipping.free-threshold:500000}")
     private BigDecimal freeShippingThreshold = new BigDecimal("500000");
@@ -49,6 +69,75 @@ public class OrderCreationService {
 
     @CacheEvict(cacheNames = {"all-orders", "user-orders", "user-orders-status"}, allEntries = true)
     public OrderDto createOrder(CreateOrderRequest request) {
+        String idempKey = request.getIdempotencyKey();
+        OrderIdempotencyEntity idempotencyEntity = null;
+
+        // --- IDEMPOTENCY CHECK ---
+        if (idempKey != null && !idempKey.isBlank()) {
+            Optional<OrderIdempotencyEntity> existingOpt = orderIdempotencyRepository.findByIdempotencyKey(idempKey);
+            if (existingOpt.isPresent()) {
+                OrderIdempotencyEntity existing = existingOpt.get();
+                if ("COMPLETED".equals(existing.getStatus())) {
+                    log.info("Idempotent hit for key: {}. Returning cached order response.", idempKey);
+                    if (existing.getResponseBody() != null && !existing.getResponseBody().isBlank()) {
+                        try {
+                            return objectMapper.readValue(existing.getResponseBody(), OrderDto.class);
+                        } catch (Exception e) {
+                            log.warn("Failed to deserialize cached response body for key: {}. Falling back to DB lookup.", idempKey);
+                        }
+                    }
+                    if (existing.getOrderId() != null) {
+                        return orderRepository.findById(existing.getOrderId())
+                                .map(orderMapper::toDto)
+                                .orElseThrow(() -> new IllegalStateException("Đơn hàng không tồn tại."));
+                    }
+                } else if ("IN_PROGRESS".equals(existing.getStatus())) {
+                    if (existing.getCreatedAt() != null && existing.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(2))) {
+                        throw new IllegalStateException("Yêu cầu đặt hàng đang được xử lý. Vui lòng không gửi lặp lại (Conflict).");
+                    }
+                }
+            }
+
+            idempotencyEntity = existingOpt.orElseGet(() -> OrderIdempotencyEntity.builder()
+                    .idempotencyKey(idempKey)
+                    .requestHash(calculateRequestHash(request))
+                    .status("IN_PROGRESS")
+                    .expiresAt(LocalDateTime.now().plusDays(1))
+                    .build());
+            idempotencyEntity.setStatus("IN_PROGRESS");
+            idempotencyEntity.setExpiresAt(LocalDateTime.now().plusDays(1));
+            orderIdempotencyRepository.save(idempotencyEntity);
+        }
+
+        // --- CHECKOUT SAGA EXECUTION WITH COMPENSATING TRANSACTIONS ---
+        CheckoutSagaState sagaState = new CheckoutSagaState();
+        try {
+            OrderDto result = executeCheckoutSaga(request, sagaState);
+
+            // Record completed idempotency
+            if (idempotencyEntity != null) {
+                idempotencyEntity.setStatus("COMPLETED");
+                idempotencyEntity.setOrderId(result.getId());
+                try {
+                    idempotencyEntity.setResponseBody(objectMapper.writeValueAsString(result));
+                } catch (Exception ignored) {}
+                orderIdempotencyRepository.save(idempotencyEntity);
+            }
+
+            return result;
+        } catch (Exception ex) {
+            log.error("Checkout execution failed, executing Saga compensation: {}", ex.getMessage());
+            sagaOrchestrator.compensate(sagaState, ex.getMessage());
+
+            if (idempotencyEntity != null) {
+                idempotencyEntity.setStatus("FAILED");
+                orderIdempotencyRepository.save(idempotencyEntity);
+            }
+            throw ex;
+        }
+    }
+
+    private OrderDto executeCheckoutSaga(CreateOrderRequest request, CheckoutSagaState sagaState) {
         UserDto userProfile = null;
         if (request.getUserId() != null) {
             try {
@@ -72,9 +161,7 @@ public class OrderCreationService {
             order.setShippingAddress(addr.getStreet());
         }
 
-        // SECURITY FIX (Vulnerability 3.2): Server-side authoritative pricing & catalog validation.
-        // Client only specifies {productId, quantity}. Prices, names, shopIds, and thumbnails are
-        // strictly fetched and snapshotted from product-service to prevent client-side price tampering.
+        // SECURITY: Authoritative Server-side catalog and price lookup
         if (request.getItems() == null || request.getItems().isEmpty()) {
             throw new IllegalArgumentException("Đơn hàng phải có ít nhất một sản phẩm.");
         }
@@ -85,7 +172,7 @@ public class OrderCreationService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        List<com.tiki.order.dto.ProductPricingDto> productPricings;
+        List<ProductPricingDto> productPricings;
         try {
             productPricings = productClient.getBatchPricing(productIds);
         } catch (Exception e) {
@@ -93,11 +180,13 @@ public class OrderCreationService {
             throw new IllegalStateException("Không thể kiểm tra giá sản phẩm từ hệ thống. Vui lòng thử lại sau.");
         }
 
-        java.util.Map<Integer, com.tiki.order.dto.ProductPricingDto> pricingMap = productPricings != null 
-                ? productPricings.stream().collect(Collectors.toMap(com.tiki.order.dto.ProductPricingDto::getProductId, p -> p, (p1, p2) -> p1))
-                : java.util.Collections.emptyMap();
+        Map<Integer, ProductPricingDto> pricingMap = productPricings != null
+                ? productPricings.stream().collect(Collectors.toMap(ProductPricingDto::getProductId, p -> p, (p1, p2) -> p1))
+                : Collections.emptyMap();
 
         BigDecimal subtotal = BigDecimal.ZERO;
+
+        // Step 1: Inventory Reservation (with Saga tracking)
         for (CreateOrderRequest.OrderItemDto item : request.getItems()) {
             Long productId = item.getProductId() != null ? item.getProductId().longValue() : 0L;
             int quantity = item.getQuantity() != null ? item.getQuantity() : 1;
@@ -106,7 +195,7 @@ public class OrderCreationService {
                 throw new IllegalArgumentException("Số lượng của sản phẩm (ID: " + productId + ") không hợp lệ.");
             }
 
-            com.tiki.order.dto.ProductPricingDto serverProduct = pricingMap.get(item.getProductId());
+            ProductPricingDto serverProduct = pricingMap.get(item.getProductId());
             if (serverProduct == null) {
                 throw new IllegalArgumentException("Sản phẩm ID " + productId + " không tồn tại hoặc đã ngừng kinh doanh.");
             }
@@ -116,8 +205,8 @@ public class OrderCreationService {
 
             OrderItemEntity itemEntity = new OrderItemEntity();
             itemEntity.setProductId(productId);
-            Long shopId = serverProduct.getShopId() != null && serverProduct.getShopId() > 0 
-                    ? serverProduct.getShopId() 
+            Long shopId = serverProduct.getShopId() != null && serverProduct.getShopId() > 0
+                    ? serverProduct.getShopId()
                     : (item.getShopId() != null ? item.getShopId() : request.getShopId());
             itemEntity.setShopId(shopId);
             if (order.getShopId() == null && shopId != null) {
@@ -125,31 +214,36 @@ public class OrderCreationService {
             }
             itemEntity.setProductName(serverProduct.getName());
             itemEntity.setImageUrl(serverProduct.getThumbnailUrl());
-            itemEntity.setPrice(unitPrice); // SERVER SNAPSHOT PRICE
+            itemEntity.setPrice(unitPrice);
             itemEntity.setQuantity(quantity);
             order.addItem(itemEntity);
 
-            // Kiểm tra tồn kho nghiêm ngặt — fail nếu không đủ hàng
+            // Reserve stock via warehouse service
             try {
-                warehouseClient.reserveStock(productId, quantity);
+                Boolean reserved = warehouseClient.reserveStock(productId, quantity);
+                if (Boolean.FALSE.equals(reserved)) {
+                    throw new IllegalStateException("Hết hàng tồn kho");
+                }
+                sagaOrchestrator.recordStockReservation(sagaState, productId, quantity);
             } catch (Exception e) {
                 log.error("Stock reservation failed for product {}: {}", productId, e.getMessage());
                 throw new IllegalStateException(
-                    "Sản phẩm '" + serverProduct.getName() + "' không đủ số lượng tồn kho. Vui lòng giảm số lượng hoặc chọn sản phẩm khác.");
+                        "Sản phẩm '" + serverProduct.getName() + "' không đủ số lượng tồn kho. Vui lòng giảm số lượng hoặc chọn sản phẩm khác.");
             }
         }
+
         if (order.getShopId() == null && request.getShopId() != null) {
             order.setShopId(request.getShopId());
         }
         order.setSubtotal(subtotal.max(BigDecimal.ZERO));
 
-        // Tính phí ship dựa trên cấu hình (ngưỡng freeship và phí chuẩn)
+        // Shipping fee calculation
         BigDecimal shippingFee = BigDecimal.ZERO;
         if (subtotal.compareTo(BigDecimal.ZERO) > 0 && subtotal.compareTo(freeShippingThreshold) < 0) {
             shippingFee = standardShippingFee;
         }
 
-        // Module 3: Membership Freeship Benefit
+        // Membership Freeship Benefit
         if (shippingFee.compareTo(BigDecimal.ZERO) > 0 && request.getUserId() != null) {
             try {
                 Long uid = request.getUserId().longValue();
@@ -165,6 +259,7 @@ public class OrderCreationService {
         }
         order.setShippingFee(shippingFee);
 
+        // Step 2: Voucher Application (with Saga tracking)
         BigDecimal voucherDiscount = BigDecimal.ZERO;
         if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
             ValidateVoucherRequest vreq = new ValidateVoucherRequest();
@@ -177,6 +272,7 @@ public class OrderCreationService {
                 order.setVoucherCode(request.getVoucherCode());
                 order.setVoucherDiscount(voucherDiscount);
                 voucherService.applyVoucher(request.getVoucherCode());
+                sagaOrchestrator.recordVoucherApplication(sagaState, request.getVoucherCode());
             } else {
                 throw new IllegalArgumentException(vres.getMessage() != null ? vres.getMessage() : "Voucher không hợp lệ hoặc đã hết hạn: " + request.getVoucherCode());
             }
@@ -184,6 +280,7 @@ public class OrderCreationService {
             order.setVoucherDiscount(BigDecimal.ZERO);
         }
 
+        // Step 3: Loyalty points deduction (with Saga tracking)
         if (request.getUsePoints() != null && request.getUsePoints() > 0) {
             if (userProfile == null) {
                 throw new IllegalArgumentException("Cần đăng nhập để sử dụng điểm thưởng");
@@ -204,6 +301,7 @@ public class OrderCreationService {
 
             try {
                 userClient.updatePoints(userProfile.getId(), -request.getUsePoints());
+                sagaOrchestrator.recordPointsDeduction(sagaState, userProfile.getId(), request.getUsePoints());
                 log.info("Deducted {} points from user {}", request.getUsePoints(), userProfile.getId());
             } catch (Exception e) {
                 log.error("Failed to deduct points for user {}", userProfile.getId(), e);
@@ -213,15 +311,14 @@ public class OrderCreationService {
 
         order.calculateTotal();
 
-        // Module 6: Áp dụng thanh toán qua Gift Card & Store Credit nếu có
+        // Optional Gift Card & Store Credit integration
         if (request.getGiftCardCode() != null && !request.getGiftCardCode().isBlank() && paymentClient != null) {
             try {
-                paymentClient.applyGiftCard(java.util.Map.of(
+                paymentClient.applyGiftCard(Map.of(
                         "code", request.getGiftCardCode(),
                         "amount", order.getTotalAmount(),
                         "orderId", order.getId() != null ? order.getId() : 0
                 ));
-                log.info("Applied gift card {} for order creation", request.getGiftCardCode());
             } catch (Exception e) {
                 log.warn("Gift card application call failed: {}", e.getMessage());
             }
@@ -232,13 +329,12 @@ public class OrderCreationService {
                         request.getStoreCreditAmount() : order.getTotalAmount();
                 paymentClient.deductStoreCredit(
                         request.getUserId().longValue(),
-                        java.util.Map.of(
+                        Map.of(
                                 "amount", creditToDeduct,
                                 "referenceId", "CHECKOUT-" + System.currentTimeMillis(),
                                 "note", "Thanh toán đơn hàng"
                         )
                 );
-                log.info("Deducted store credit for user {}", request.getUserId());
             } catch (Exception e) {
                 log.warn("Store credit deduction call failed: {}", e.getMessage());
             }
@@ -251,7 +347,7 @@ public class OrderCreationService {
         }
         order.setPaymentStatus(PaymentStatus.PENDING);
 
-        // ✅ Q4: Fraud Detection Signal Assessment
+        // Fraud Detection Signal Assessment
         if (fraudDetectionService != null) {
             FraudDetectionService.FraudAssessment fraudAssessment = fraudDetectionService.assessOrderRisk(order);
             if (fraudAssessment != null) {
@@ -261,8 +357,16 @@ public class OrderCreationService {
             }
         }
 
-        OrderEntity saved = orderRepository.save(order);
+        // Step 4: Atomic DB save & Transactional Outbox write
+        OrderEntity saved = saveOrderAndOutbox(order);
+        sagaOrchestrator.recordOrderCreated(sagaState, saved.getId());
 
+        return orderMapper.toDto(saved);
+    }
+
+    @Transactional
+    public OrderEntity saveOrderAndOutbox(OrderEntity order) {
+        OrderEntity saved = orderRepository.save(order);
         orderTrackingRepository.save(new OrderTrackingEntity(saved.getId(), saved.getStatus(), "Đơn hàng đã được tạo"));
 
         List<com.tiki.common.event.OrderItemDto> eventItems = saved.getItems().stream()
@@ -285,8 +389,63 @@ public class OrderCreationService {
                 .items(eventItems)
                 .build();
 
-        rabbitTemplate.convertAndSend("tiki.events", "order.created", event);
+        String payloadJson = "{}";
+        try {
+            payloadJson = objectMapper.writeValueAsString(event);
+        } catch (Exception e) {
+            log.error("Failed to serialize OrderCreatedEvent to JSON", e);
+        }
 
-        return orderMapper.toDto(saved);
+        OutboxEventEntity outboxEvent = OutboxEventEntity.builder()
+                .aggregateType("ORDER")
+                .aggregateId(saved.getId())
+                .eventType("order.created")
+                .exchange("tiki.events")
+                .routingKey("order.created")
+                .payload(payloadJson)
+                .status("PENDING")
+                .build();
+
+        outboxEventRepository.save(outboxEvent);
+
+        // Optimistic inline RabbitMQ delivery with automatic Outbox fallback
+        try {
+            rabbitTemplate.convertAndSend("tiki.events", "order.created", event);
+            outboxEvent.setStatus("PUBLISHED");
+            outboxEvent.setProcessedAt(LocalDateTime.now());
+            outboxEventRepository.save(outboxEvent);
+            log.info("OrderCreatedEvent dispatched immediately inline for order {}", saved.getId());
+        } catch (Exception e) {
+            log.warn("Inline RabbitMQ delivery failed for order {}. Event safely queued in Transactional Outbox: {}",
+                    saved.getId(), e.getMessage());
+        }
+
+        return saved;
+    }
+
+    private String calculateRequestHash(CreateOrderRequest request) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            StringBuilder sb = new StringBuilder();
+            sb.append(request.getUserId()).append(":");
+            if (request.getItems() != null) {
+                for (CreateOrderRequest.OrderItemDto item : request.getItems()) {
+                    sb.append(item.getProductId()).append("x").append(item.getQuantity()).append(";");
+                }
+            }
+            sb.append(request.getVoucherCode()).append(":");
+            sb.append(request.getUsePoints()).append(":");
+            sb.append(request.getPaymentMethod());
+            byte[] hash = md.digest(sb.toString().getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            return "HASH_" + System.currentTimeMillis();
+        }
     }
 }

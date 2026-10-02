@@ -58,6 +58,18 @@ public class OrderCreationServiceTest {
     @Mock
     private com.tiki.order.client.ProductClient productClient;
 
+    @Mock
+    private com.tiki.order.saga.CheckoutSagaOrchestrator sagaOrchestrator;
+
+    @Mock
+    private com.tiki.order.repository.OrderIdempotencyRepository orderIdempotencyRepository;
+
+    @Mock
+    private com.tiki.order.repository.OutboxEventRepository outboxEventRepository;
+
+    @Mock
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
     @InjectMocks
     private OrderCreationService orderCreationService;
 
@@ -102,6 +114,8 @@ public class OrderCreationServiceTest {
         lenient().when(fraudDetectionService.assessOrderRisk(any())).thenReturn(
                 new FraudDetectionService.FraudAssessment(0, "LOW", "Bình thường")
         );
+
+        lenient().when(warehouseClient.reserveStock(any(), any())).thenReturn(true);
     }
 
     @Test
@@ -247,5 +261,89 @@ public class OrderCreationServiceTest {
         });
 
         assertTrue(exception.getMessage().contains("không tồn tại"));
+    }
+
+    @Test
+    void createOrder_IdempotencyCompleted_ReturnsCachedResponseImmediately() throws Exception {
+        createOrderRequest.setIdempotencyKey("IDEMP_KEY_123");
+
+        com.tiki.order.entity.OrderIdempotencyEntity completedRecord = com.tiki.order.entity.OrderIdempotencyEntity.builder()
+                .idempotencyKey("IDEMP_KEY_123")
+                .status("COMPLETED")
+                .orderId(999)
+                .responseBody("{\"id\":999,\"totalAmount\":230000}")
+                .build();
+
+        when(orderIdempotencyRepository.findByIdempotencyKey("IDEMP_KEY_123")).thenReturn(java.util.Optional.of(completedRecord));
+        OrderDto cachedDto = new OrderDto();
+        cachedDto.setId(999);
+        cachedDto.setTotalAmount(new BigDecimal("230000"));
+        when(objectMapper.readValue(completedRecord.getResponseBody(), OrderDto.class)).thenReturn(cachedDto);
+
+        OrderDto result = orderCreationService.createOrder(createOrderRequest);
+
+        assertNotNull(result);
+        assertEquals(999, result.getId());
+        verify(warehouseClient, never()).reserveStock(any(), any());
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void createOrder_IdempotencyInProgress_ThrowsConflictException() {
+        createOrderRequest.setIdempotencyKey("IDEMP_IN_PROGRESS");
+
+        com.tiki.order.entity.OrderIdempotencyEntity inProgressRecord = com.tiki.order.entity.OrderIdempotencyEntity.builder()
+                .idempotencyKey("IDEMP_IN_PROGRESS")
+                .status("IN_PROGRESS")
+                .createdAt(java.time.LocalDateTime.now())
+                .build();
+
+        when(orderIdempotencyRepository.findByIdempotencyKey("IDEMP_IN_PROGRESS")).thenReturn(java.util.Optional.of(inProgressRecord));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            orderCreationService.createOrder(createOrderRequest);
+        });
+
+        assertTrue(exception.getMessage().contains("đang được xử lý"));
+        verify(warehouseClient, never()).reserveStock(any(), any());
+    }
+
+    @Test
+    void createOrder_StockReservationFails_TriggersSagaCompensation() {
+        when(warehouseClient.reserveStock(any(), any())).thenThrow(new RuntimeException("Out of stock"));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            orderCreationService.createOrder(createOrderRequest);
+        });
+
+        assertTrue(exception.getMessage().contains("không đủ số lượng"));
+        verify(sagaOrchestrator).compensate(any(), any());
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void createOrder_Success_SavesTransactionalOutboxEvent() {
+        when(orderRepository.save(any(OrderEntity.class))).thenAnswer(invocation -> {
+            OrderEntity order = invocation.getArgument(0);
+            order.setId(100);
+            return order;
+        });
+
+        when(orderMapper.toDto(any(OrderEntity.class))).thenAnswer(invocation -> {
+            OrderDto dto = new OrderDto();
+            dto.setId(100);
+            return dto;
+        });
+
+        OrderDto result = orderCreationService.createOrder(createOrderRequest);
+
+        assertNotNull(result);
+        assertEquals(100, result.getId());
+        // Verify Transactional Outbox event is saved
+        verify(outboxEventRepository, atLeastOnce()).save(argThat(outbox -> 
+                "ORDER".equals(outbox.getAggregateType()) &&
+                Integer.valueOf(100).equals(outbox.getAggregateId()) &&
+                "order.created".equals(outbox.getEventType())
+        ));
     }
 }

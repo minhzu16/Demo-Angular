@@ -44,13 +44,15 @@ public class OrderController {
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('BUYER') or hasRole('ADMIN')")
     public OrderDto createOrder(@Valid @RequestBody CreateOrderRequest request,
-            @RequestHeader(value = "X-User-Id", required = false) Long currentUserId) {
+            @RequestHeader(value = "X-User-Id", required = false) Long currentUserId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         if (currentUserId != null) {
             request.setUserId(currentUserId.intValue());
         }
-        log.info("Creating order for user: {}", request.getUserId());
-        // Reserve inventory for 15 minutes by default
-        // (The service will call warehouse reservation internally next step)
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            request.setIdempotencyKey(idempotencyKey);
+        }
+        log.info("Creating order for user: {}, idempotencyKey: {}", request.getUserId(), request.getIdempotencyKey());
         return orderCreationService.createOrder(request);
     }
 
