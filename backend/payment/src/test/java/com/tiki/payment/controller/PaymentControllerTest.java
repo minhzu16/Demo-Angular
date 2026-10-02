@@ -170,4 +170,64 @@ class PaymentControllerTest {
 
         verify(paymentService).refundPayment(123);
     }
+
+    @Test
+    @DisplayName("SePay Webhook Concurrency: 10 luồng gửi trùng webhook đồng thời - Chỉ 1 lần duy nhất xử lý hoàn tất thanh toán")
+    void sepayWebhook_ConcurrentCalls_ExactlyOneCompletesPayment() throws Exception {
+        int threadCount = 10;
+        PaymentDto mockPayment = PaymentDto.builder()
+                .orderId(123)
+                .amount(new BigDecimal("500000"))
+                .paymentStatus("PENDING")
+                .build();
+        when(paymentService.getPaymentInfoByOrderId(123)).thenReturn(mockPayment);
+
+        // Atomic simulation of database conditional update: exactly 1 update succeeds
+        java.util.concurrent.atomic.AtomicInteger conditionalUpdateCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        when(paymentRepository.updatePaymentStatusConditional(eq(123), eq("COMPLETED"), eq("TXN_CONCURRENT_1")))
+                .thenAnswer(inv -> conditionalUpdateCount.getAndIncrement() == 0 ? 1 : 0);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("id", "TXN_CONCURRENT_1");
+        payload.put("content", "DH123");
+        payload.put("transferAmount", 500000);
+        String payloadJson = objectMapper.writeValueAsString(payload);
+
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(threadCount);
+        java.util.concurrent.CountDownLatch readyLatch = new java.util.concurrent.CountDownLatch(threadCount);
+        java.util.concurrent.CountDownLatch startLatch = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch doneLatch = new java.util.concurrent.CountDownLatch(threadCount);
+        java.util.concurrent.atomic.AtomicInteger ok200Count = new java.util.concurrent.atomic.AtomicInteger(0);
+
+        for (int i = 0; i < threadCount; i++) {
+            executor.submit(() -> {
+                readyLatch.countDown();
+                try {
+                    startLatch.await();
+                    mockMvc.perform(post("/api/v1/payments/sepay-webhook")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .header("Authorization", "Apikey " + TEST_SECRET)
+                            .content(payloadJson))
+                            .andExpect(status().isOk());
+                    ok200Count.incrementAndGet();
+                } catch (Exception e) {
+                    // unexpected error
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        readyLatch.await(5, java.util.concurrent.TimeUnit.SECONDS);
+        startLatch.countDown();
+        boolean completed = doneLatch.await(10, java.util.concurrent.TimeUnit.SECONDS);
+        executor.shutdown();
+
+        org.assertj.core.api.Assertions.assertThat(completed).isTrue();
+        // Cả 10 luồng đều trả về 200 OK (an toàn và idempotent với bên SePay)
+        org.assertj.core.api.Assertions.assertThat(ok200Count.get()).isEqualTo(threadCount);
+
+        // NHƯNG paymentService.updatePaymentStatusByOrderId chỉ được gọi DUY NHẤT 1 LẦN!
+        verify(paymentService, times(1)).updatePaymentStatusByOrderId(123, "COMPLETED");
+    }
 }

@@ -231,15 +231,25 @@ public class VoucherService {
     }
 
     /**
-     * Apply voucher (increment used count)
+     * Apply voucher (atomic increment used count, prevents race conditions)
      */
     @Transactional
     public void applyVoucher(String code) {
-        VoucherEntity voucher = voucherRepository.findByCodeIgnoreCase(code)
-                .orElseThrow(() -> new ResourceNotFoundException("Voucher not found with code: " + code));
-
-        voucher.incrementUsedCount();
-        voucherRepository.save(voucher);
+        if (code == null || code.isBlank()) {
+            throw new IllegalArgumentException("Mã voucher không được để trống");
+        }
+        int updated = voucherRepository.tryApplyVoucher(code.trim());
+        if (updated == 0) {
+            VoucherEntity voucher = voucherRepository.findByCodeIgnoreCase(code.trim())
+                    .orElseThrow(() -> new ResourceNotFoundException("Voucher not found with code: " + code));
+            if (Boolean.FALSE.equals(voucher.getIsActive())) {
+                throw new IllegalStateException("Voucher hiện không hoạt động");
+            }
+            if (voucher.hasReachedMaxUsage()) {
+                throw new IllegalStateException("Voucher đã đạt giới hạn sử dụng tối đa");
+            }
+            throw new IllegalStateException("Không thể áp dụng voucher: " + code);
+        }
     }
 
     /**

@@ -24,6 +24,16 @@ public interface VoucherRepository extends JpaRepository<VoucherEntity, Integer>
     Optional<VoucherEntity> findByCodeIgnoreCase(String code);
 
     /**
+     * Atomic voucher usage query:
+     * Guarantees zero race conditions / max usage limit enforcement under peak concurrency.
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE VoucherEntity v SET v.usedCount = COALESCE(v.usedCount, 0) + 1 " +
+           "WHERE LOWER(v.code) = LOWER(:code) AND v.isActive = true " +
+           "AND COALESCE(v.usedCount, 0) < v.maxUsage")
+    int tryApplyVoucher(@Param("code") String code);
+
+    /**
      * Check if code exists
      */
     boolean existsByCode(String code);
