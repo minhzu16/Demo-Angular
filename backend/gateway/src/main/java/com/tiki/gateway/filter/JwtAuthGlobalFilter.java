@@ -60,6 +60,13 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
             return onError(exchange, HttpStatus.FORBIDDEN, "Truy cập tài nguyên nội bộ bị từ chối qua Gateway");
         }
 
+        String reqId = request.getHeaders().getFirst("X-Request-Id");
+        if (reqId == null || reqId.isBlank()) {
+            reqId = java.util.UUID.randomUUID().toString();
+        }
+        final String correlationId = reqId;
+        exchange.getResponse().getHeaders().set("X-Request-Id", correlationId);
+
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -89,6 +96,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                             headers.remove("X-User-Id");
                             headers.remove("X-Username");
                             headers.remove("X-User-Role");
+                            headers.set("X-Request-Id", correlationId);
                             if (userId != null && !userId.isBlank()) {
                                 headers.set("X-User-Id", userId);
                             }
@@ -122,6 +130,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                     headers.remove("X-User-Id");
                     headers.remove("X-Username");
                     headers.remove("X-User-Role");
+                    headers.set("X-Request-Id", correlationId);
                 })
                 .build();
 
