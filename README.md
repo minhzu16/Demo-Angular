@@ -88,19 +88,152 @@ The architecture consists of **18 modular microservices** orchestrated via **Spr
 1. **Gateway Header Stripping & Anti-Spoofing**:
    - The API Gateway strictly purges incoming client-supplied identity headers (`X-User-Id`, `X-User-Role`, `X-Username`).
    - Trusted headers are cryptographically injected only after valid RSA/HMAC JWT signature verification.
-2. **Zero Overselling Concurrency Engine**:
+   - External access to internal service-to-service endpoints (`/**/internal/**`) is blocked at Gateway level (`403 Forbidden`).
+2. **Zero-Trust Authoritative Server Pricing & Snapshot**:
+   - Client-sent unit prices are strictly ignored to prevent client-side price tampering.
+   - Prices, product titles, and vendor ownership are fetched authoritatively from `product-service` and snapshotted immutably on order items.
+3. **Zero Overselling Concurrency Engine**:
    - Stock allocations utilize atomic conditional SQL queries:
      `UPDATE inventory SET reserved_quantity = reserved_quantity + :qty WHERE quantity - reserved_quantity >= :qty`
-   - Completely eliminates double-booking race conditions during high-concurrency flash sales.
-3. **Double-Refund & Idempotency Protection**:
-   - Payment webhooks authenticate webhook secrets, verify transfer sums, and enforce strict idempotent processing.
-   - Status transitions are guarded by a state machine blocking repeated refunds or invalid cancellations.
-4. **Loyalty Point Compensation & Anti-Farm Exploits**:
-   - Compensating transactions automatically revoke earned loyalty points when an order is refunded or cancelled, preventing infinite reward point exploits.
-5. **Cross-Shop Voucher Contamination Guard**:
-   - Multi-tenant voucher validations strictly verify shop identity, preventing Shop A discounts from subsidizing Shop B orders.
-6. **Financial Precision Standard**:
-   - All arithmetic across cart items, orders, vouchers, taxes, and payouts strictly uses `BigDecimal(19, 2)` to avoid IEEE 754 floating-point rounding errors.
+   - Validated via 50-thread high-concurrency race condition tests (`WarehouseConcurrencyTest`).
+4. **Checkout Saga Orchestration & Automatic Compensation**:
+   - 4-step forward transaction: Inventory Reservation → Voucher Claim → Points Deduction → Atomic DB & Outbox Commit.
+   - Any mid-flight failure automatically triggers inverse compensating actions (releasing reserved stocks, returning vouchers, and refunding points).
+5. **Transactional Outbox Pattern**:
+   - Domain events (`order.created`) are written to `outbox_events` in the same database transaction as the order.
+   - Inline optimistic delivery with asynchronous background poller (`OutboxPublisher`) guarantees at-least-once delivery with zero phantom events.
+6. **Payment Webhook Idempotency & Audit Ledger**:
+   - Constant-time secret comparison (`MessageDigest.isEqual`) with fail-closed security.
+   - Atomic database status transition (`UPDATE payments SET status = 'COMPLETED' WHERE status = 'PENDING'`).
+   - Unique composite index `(provider, provider_txn_id)` in `payment_events` rejects concurrent replays cleanly (`already_processed`).
+
+---
+
+## 📐 Architecture Sequence Diagrams
+
+### 1. Checkout Saga with Compensation & Transactional Outbox
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Buyer as Buyer (Client)
+    participant Gateway as API Gateway
+    participant OrderSvc as Order Service
+    participant ProductSvc as Product Service
+    participant WarehouseSvc as Warehouse Service
+    participant VoucherSvc as Voucher Engine
+    participant DB as MySQL (Order DB)
+    participant Rabbit as RabbitMQ
+
+    Buyer->>Gateway: POST /api/v1/orders (Idempotency-Key)
+    Gateway->>Gateway: Validate JWT & Strip Spoofed Headers
+    Gateway->>OrderSvc: Forward with X-User-Id & X-Request-Id
+
+    OrderSvc->>DB: Check Idempotency Key
+    alt Duplicate Completed Key
+        OrderSvc-->>Buyer: Return Cached Order Response (200 OK)
+    else In-Progress Key
+        OrderSvc-->>Buyer: Return 409 Conflict
+    end
+
+    Note over OrderSvc,ProductSvc: Authoritative Server Pricing
+    OrderSvc->>ProductSvc: POST /products/internal/pricing-batch
+    ProductSvc-->>OrderSvc: Authoritative prices & names
+
+    Note over OrderSvc,WarehouseSvc: Step 1: Inventory Reservation
+    OrderSvc->>WarehouseSvc: POST /warehouse/reserve/{productId}/{qty}
+    alt Stock Reservation Fails
+        OrderSvc->>OrderSvc: Trigger Saga Compensation
+        OrderSvc-->>Buyer: 400 Bad Request (Hết hàng tồn kho)
+    end
+
+    Note over OrderSvc,VoucherSvc: Step 2: Voucher Application
+    OrderSvc->>VoucherSvc: applyVoucher(code) via Atomic SQL
+    alt Voucher Exhausted or Invalid
+        OrderSvc->>WarehouseSvc: Compensate: releaseStock(productId, qty)
+        OrderSvc-->>Buyer: 400 Bad Request (Voucher không hợp lệ)
+    end
+
+    Note over OrderSvc,DB: Step 3 & 4: Atomic DB Commit & Outbox Write
+    rect rgb(240, 248, 255)
+        OrderSvc->>DB: Save OrderEntity & Items
+        OrderSvc->>DB: Save OutboxEventEntity (status=PENDING)
+        OrderSvc->>DB: Mark Idempotency COMPLETED
+    end
+
+    OrderSvc->>Rabbit: Optimistic Inline Dispatch (order.created)
+    opt RabbitMQ Down
+        Note over OrderSvc,Rabbit: OutboxPublisher retries asynchronously in background
+    end
+
+    OrderSvc-->>Buyer: 201 Created (OrderDto)
+```
+
+### 2. Idempotent Payment Webhook Processing (SePay VietQR)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor GatewayProvider as SePay Webhook Provider
+    participant PaymentCtrl as PaymentController
+    participant Ledger as PaymentEventRepository
+    participant PaymentDB as PaymentRepository (Atomic SQL)
+    participant OrderSvc as Order Service
+
+    GatewayProvider->>PaymentCtrl: POST /api/v1/payments/sepay-webhook (Apikey Header)
+
+    Note over PaymentCtrl: Fail-Closed Authentication
+    alt Webhook Secret Missing or Header Mismatch
+        PaymentCtrl-->>GatewayProvider: 401 Unauthorized / 500 Fail-Closed
+    end
+
+    PaymentCtrl->>Ledger: existsByProviderAndTxnId("SEPAY", txnId)
+    alt Already Processed in Ledger
+        PaymentCtrl-->>GatewayProvider: 200 OK ("already_processed")
+    end
+
+    Note over PaymentCtrl: Strict Amount Verification
+    alt transferAmount != payment.amount
+        PaymentCtrl->>Ledger: Save Audit Log (AMOUNT_MISMATCH)
+        PaymentCtrl-->>GatewayProvider: 400 Bad Request ("amount_mismatch")
+    end
+
+    Note over PaymentCtrl,PaymentDB: Atomic Conditional State Transition
+    PaymentCtrl->>PaymentDB: UPDATE payments SET status='COMPLETED' WHERE status='PENDING'
+    alt Rows Updated == 1 (First Winner)
+        PaymentCtrl->>OrderSvc: Update Order Status to PAID
+        PaymentCtrl->>Ledger: Record Unique Event (status=COMPLETED)
+        PaymentCtrl-->>GatewayProvider: 200 OK ("success")
+    else Rows Updated == 0 (Concurrent Duplicate)
+        PaymentCtrl-->>GatewayProvider: 200 OK ("already_processed")
+    end
+```
+
+---
+
+## 🏛️ Architecture Decision Records (ADRs)
+
+Key architectural decisions, trade-offs, and design rationales are documented in [`docs/adr/`](docs/adr/):
+
+- [ADR 0001: Distributed Checkout Saga Orchestration and Transactional Outbox Pattern](docs/adr/0001-checkout-saga-and-outbox.md)
+- [ADR 0002: Authoritative Server-Side Pricing and Immutable Catalog Snapshot](docs/adr/0002-authoritative-pricing-and-catalog-snapshot.md)
+- [ADR 0003: Idempotent Payment Webhook Processing and Atomic Ledger Auditing](docs/adr/0003-idempotent-payment-webhook-processing.md)
+- [ADR 0004: Zero-Trust Gateway Security and End-to-End Distributed Tracing](docs/adr/0004-distributed-tracing-and-zero-trust-gateway.md)
+
+---
+
+## 🔍 Engineering Transparency: Real vs. Simulated
+
+To uphold technical honesty, the table below clarifies which platform components are **production-grade implementations** versus **simulated environments**:
+
+| Capability | Real Production Implementation | Simulated / Sandbox Scope |
+|---|---|---|
+| **Inventory Concurrency** | **Real**: Atomic SQL reservation with `tryReserveStock` tested under 50-thread concurrent load without overselling. | None (runs real database locking). |
+| **Checkout Saga & Outbox** | **Real**: Saga state machine with compensation rollback + DB-backed `outbox_events` and background `OutboxPublisher`. | None. |
+| **Idempotency Engine** | **Real**: DB-backed `order_idempotency_keys` table with SHA-256 request hashing and 409 conflict detection. | None. |
+| **Banking Webhook (SePay)** | **Real**: Constant-time key comparison, amount matching, atomic conditional status change, and unique event ledger. | Webhook simulation calls VietQR sandbox endpoints rather than direct live commercial bank API. |
+| **Message Broker** | **Real**: Standard AMQP event routing, exchanges, and queue bindings. | Single-node RabbitMQ in Docker Compose (enterprise multi-node cluster recommended for cloud prod). |
+| **Search Engine** | **Real**: Elasticsearch 8 client integration for product full-text query. | Single-node ES container with memory limit tuning for local development. |
 
 ---
 
@@ -126,17 +259,19 @@ The architecture consists of **18 modular microservices** orchestrated via **Spr
 - **Java JDK** 17+ & **Maven** 3.8+
 - **Node.js** 18+ & **npm** 9+
 
-### Running the Entire Platform with Docker Compose
+### Environment Configuration
+Copy the provided environment template and configure secure secrets before running:
+```bash
+cp .env.example .env
+```
+
+### Running the Platform with Docker Compose
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/minhzu16/NexMart.git
-cd NexMart
-
-# 2. Start all databases, message brokers, and microservices
+# 1. Start all databases, message brokers, and microservices
 docker compose up -d
 
-# 3. Verify container health status
+# 2. Verify container health status
 docker compose ps
 ```
 
@@ -150,36 +285,18 @@ docker compose ps
 
 ## 🧪 Comprehensive Automated Testing
 
-NexMart enforces a zero-regression policy. The entire monorepo features **285 automated unit & security tests** passing with 100% success:
+NexMart enforces a zero-regression policy. The monorepo features **300+ automated unit, security, and high-concurrency tests** passing with 100% success:
 
 ```bash
-# Run test suite across all 18 backend microservices
+# Run test suite across backend microservices
 cd backend
 mvn test
 ```
 
-```text
-[INFO] Reactor Summary for NexMart Monorepo 0.0.1-SNAPSHOT:
-[INFO] Common Module ...................................... SUCCESS (4 tests)
-[INFO] Auth Module ........................................ SUCCESS (43 tests)
-[INFO] Product Module ..................................... SUCCESS (17 tests)
-[INFO] Order Module ....................................... SUCCESS (68 tests)
-[INFO] API Gateway ........................................ SUCCESS (5 tests)
-[INFO] Cart Service ....................................... SUCCESS (24 tests)
-[INFO] Payment Module ..................................... SUCCESS (22 tests)
-[INFO] Warehouse Module ................................... SUCCESS (17 tests)
-[INFO] Shop Module ........................................ SUCCESS (17 tests)
-[INFO] Template Storage Module ............................ SUCCESS (9 tests)
-[INFO] Notification Module ................................ SUCCESS (8 tests)
-[INFO] Review Module ...................................... SUCCESS (14 tests)
-[INFO] Analytics Module ................................... SUCCESS (4 tests)
-[INFO] Chat Module ........................................ SUCCESS (6 tests)
-[INFO] Settlement Module .................................. SUCCESS (13 tests)
-[INFO] B2B Module ......................................... SUCCESS (8 tests)
-[INFO] Live Commerce Module ............................... SUCCESS (10 tests)
-[INFO] ------------------------------------------------------------------------
-[INFO] BUILD SUCCESS | Total Tests: 285 | Failures: 0 | Errors: 0
-```
+### Key Concurrency Test Highlights
+- **`WarehouseConcurrencyTest`**: 50 concurrent threads simultaneously contending for 10 items. Result: Exactly 10 succeed, 40 fail, remaining stock = 0.
+- **`VoucherConcurrencyTest`**: 30 concurrent threads contending for a voucher with `maxUsage = 5`. Result: Exactly 5 succeed, 25 fail, `usedCount = 5`.
+- **`PaymentControllerTest (Concurrency)`**: 10 concurrent webhook requests with identical transaction ID. Result: Exactly 1 triggers payment completion, 9 return `already_processed`.
 
 ### Frontend Build Verification
 ```bash
@@ -191,4 +308,4 @@ npm run build
 
 ## 📄 License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
