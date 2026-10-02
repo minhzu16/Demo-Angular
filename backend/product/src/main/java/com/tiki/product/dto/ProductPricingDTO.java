@@ -1,0 +1,22 @@
+package com.tiki.product.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProductPricingDTO {
+    private Integer productId;
+    private String name;
+    private BigDecimal price;
+    private Long shopId;
+    private String thumbnailUrl;
+    private String status;
+    private Integer stock;
+}

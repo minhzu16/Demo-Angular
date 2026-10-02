@@ -39,6 +39,7 @@ public class OrderCreationService {
     private final OrderMapper orderMapper;
     private final FraudDetectionService fraudDetectionService;
     private final com.tiki.order.client.PaymentClient paymentClient;
+    private final com.tiki.order.client.ProductClient productClient;
 
     @org.springframework.beans.factory.annotation.Value("${order.shipping.free-threshold:500000}")
     private BigDecimal freeShippingThreshold = new BigDecimal("500000");
@@ -71,42 +72,70 @@ public class OrderCreationService {
             order.setShippingAddress(addr.getStreet());
         }
 
+        // SECURITY FIX (Vulnerability 3.2): Server-side authoritative pricing & catalog validation.
+        // Client only specifies {productId, quantity}. Prices, names, shopIds, and thumbnails are
+        // strictly fetched and snapshotted from product-service to prevent client-side price tampering.
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Đơn hàng phải có ít nhất một sản phẩm.");
+        }
+
+        List<Integer> productIds = request.getItems().stream()
+                .map(CreateOrderRequest.OrderItemDto::getProductId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<com.tiki.order.dto.ProductPricingDto> productPricings;
+        try {
+            productPricings = productClient.getBatchPricing(productIds);
+        } catch (Exception e) {
+            log.error("Failed to fetch product pricing from product-service: {}", e.getMessage());
+            throw new IllegalStateException("Không thể kiểm tra giá sản phẩm từ hệ thống. Vui lòng thử lại sau.");
+        }
+
+        java.util.Map<Integer, com.tiki.order.dto.ProductPricingDto> pricingMap = productPricings != null 
+                ? productPricings.stream().collect(Collectors.toMap(com.tiki.order.dto.ProductPricingDto::getProductId, p -> p, (p1, p2) -> p1))
+                : java.util.Collections.emptyMap();
+
         BigDecimal subtotal = BigDecimal.ZERO;
-        if (request.getItems() != null) {
-            for (CreateOrderRequest.OrderItemDto item : request.getItems()) {
-                if (item.getUnitPrice() != null && item.getQuantity() != null) {
-                    subtotal = subtotal.add(item.getUnitPrice()
-                            .multiply(BigDecimal.valueOf(item.getQuantity())));
-                }
+        for (CreateOrderRequest.OrderItemDto item : request.getItems()) {
+            Long productId = item.getProductId() != null ? item.getProductId().longValue() : 0L;
+            int quantity = item.getQuantity() != null ? item.getQuantity() : 1;
 
-                OrderItemEntity itemEntity = new OrderItemEntity();
-                Long productId = item.getProductId() != null ? item.getProductId().longValue() : 0L;
-                int quantity = item.getQuantity() != null ? item.getQuantity() : 1;
-                
-                // VÁ LỖI 1: Bắt buộc số lượng mỗi sản phẩm phải > 0
-                if (quantity <= 0) {
-                    throw new IllegalArgumentException("Số lượng của sản phẩm '" + item.getProductName() + "' không hợp lệ.");
-                }
-                
-                itemEntity.setProductId(productId);
-                itemEntity.setShopId(item.getShopId() != null ? item.getShopId() : request.getShopId());
-                if (order.getShopId() == null && itemEntity.getShopId() != null) {
-                    order.setShopId(itemEntity.getShopId());
-                }
-                itemEntity.setProductName(item.getProductName());
-                itemEntity.setImageUrl(item.getImageUrl());
-                itemEntity.setPrice(item.getUnitPrice());
-                itemEntity.setQuantity(quantity);
-                order.addItem(itemEntity);
+            if (quantity <= 0) {
+                throw new IllegalArgumentException("Số lượng của sản phẩm (ID: " + productId + ") không hợp lệ.");
+            }
 
-                // Kiểm tra tồn kho nghiêm ngặt — fail nếu không đủ hàng
-                try {
-                    warehouseClient.reserveStock(productId, quantity);
-                } catch (Exception e) {
-                    log.error("Stock reservation failed for product {}: {}", productId, e.getMessage());
-                    throw new IllegalStateException(
-                        "Sản phẩm '" + item.getProductName() + "' không đủ số lượng tồn kho. Vui lòng giảm số lượng hoặc chọn sản phẩm khác.");
-                }
+            com.tiki.order.dto.ProductPricingDto serverProduct = pricingMap.get(item.getProductId());
+            if (serverProduct == null) {
+                throw new IllegalArgumentException("Sản phẩm ID " + productId + " không tồn tại hoặc đã ngừng kinh doanh.");
+            }
+
+            BigDecimal unitPrice = serverProduct.getPrice() != null ? serverProduct.getPrice() : BigDecimal.ZERO;
+            subtotal = subtotal.add(unitPrice.multiply(BigDecimal.valueOf(quantity)));
+
+            OrderItemEntity itemEntity = new OrderItemEntity();
+            itemEntity.setProductId(productId);
+            Long shopId = serverProduct.getShopId() != null && serverProduct.getShopId() > 0 
+                    ? serverProduct.getShopId() 
+                    : (item.getShopId() != null ? item.getShopId() : request.getShopId());
+            itemEntity.setShopId(shopId);
+            if (order.getShopId() == null && shopId != null) {
+                order.setShopId(shopId);
+            }
+            itemEntity.setProductName(serverProduct.getName());
+            itemEntity.setImageUrl(serverProduct.getThumbnailUrl());
+            itemEntity.setPrice(unitPrice); // SERVER SNAPSHOT PRICE
+            itemEntity.setQuantity(quantity);
+            order.addItem(itemEntity);
+
+            // Kiểm tra tồn kho nghiêm ngặt — fail nếu không đủ hàng
+            try {
+                warehouseClient.reserveStock(productId, quantity);
+            } catch (Exception e) {
+                log.error("Stock reservation failed for product {}: {}", productId, e.getMessage());
+                throw new IllegalStateException(
+                    "Sản phẩm '" + serverProduct.getName() + "' không đủ số lượng tồn kho. Vui lòng giảm số lượng hoặc chọn sản phẩm khác.");
             }
         }
         if (order.getShopId() == null && request.getShopId() != null) {

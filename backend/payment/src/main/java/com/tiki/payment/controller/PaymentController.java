@@ -13,12 +13,21 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 
+import com.tiki.payment.entity.PaymentEventEntity;
+import com.tiki.payment.repository.PaymentEventRepository;
+import com.tiki.payment.repository.PaymentRepository;
+import org.springframework.dao.DataIntegrityViolationException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
 @Slf4j
 public class PaymentController {
     private final PaymentService paymentService;
+    private final PaymentRepository paymentRepository;
+    private final PaymentEventRepository paymentEventRepository;
 
     @Value("${sepay.webhook-secret:}")
     private String sepayWebhookSecret;
@@ -65,50 +74,110 @@ public class PaymentController {
     public ResponseEntity<String> handleSepayWebhook(
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestBody java.util.Map<String, Object> payload) {
-        log.info("Received SePay webhook: {}", payload);
+        log.info("Received SePay webhook payload");
+
+        // 1. Fail-closed signature verification (Vulnerability 3.5)
+        if (sepayWebhookSecret == null || sepayWebhookSecret.isBlank()) {
+            log.error("SECURITY: sepay.webhook-secret is unconfigured or empty. Rejecting webhook (Fail-Closed).");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Webhook secret unconfigured");
+        }
+
+        String expectedKey = "Apikey " + sepayWebhookSecret.trim();
+        byte[] expectedBytes = expectedKey.getBytes(StandardCharsets.UTF_8);
+        byte[] providedBytes = authHeader != null ? authHeader.trim().getBytes(StandardCharsets.UTF_8) : new byte[0];
+
+        // Constant-time comparison to prevent timing attacks
+        if (authHeader == null || !MessageDigest.isEqual(providedBytes, expectedBytes)) {
+            log.warn("SECURITY: Unauthorized SePay webhook attempt - invalid API key");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
         try {
-            // 1. Signature/API Key Verification
-            if (sepayWebhookSecret != null && !sepayWebhookSecret.isBlank()) {
-                String expectedKey = "Apikey " + sepayWebhookSecret.trim();
-                if (authHeader == null || (!authHeader.equalsIgnoreCase(expectedKey) && !authHeader.contains(sepayWebhookSecret))) {
-                    log.warn("Unauthorized SePay webhook attempt with header: {}", authHeader);
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
-                }
+            // 2. Extract provider transaction id for unique idempotency constraint
+            String providerTxnId = null;
+            if (payload.get("id") != null) {
+                providerTxnId = String.valueOf(payload.get("id"));
+            } else if (payload.get("referenceCode") != null) {
+                providerTxnId = String.valueOf(payload.get("referenceCode"));
             }
 
-            // 2. Extract content and orderId
+            if (providerTxnId == null || providerTxnId.isBlank()) {
+                providerTxnId = "TXN_" + System.currentTimeMillis();
+            }
+
+            // Check if already processed in idempotent ledger
+            if (paymentEventRepository.existsByProviderAndProviderTxnId("SEPAY", providerTxnId)) {
+                log.info("SePay webhook with txnId {} already processed. Returning idempotent OK.", providerTxnId);
+                return ResponseEntity.ok("already_processed");
+            }
+
+            // 3. Extract content and orderId
             String content = payload.get("content") != null ? String.valueOf(payload.get("content")) : "";
-            if (content.toUpperCase().contains("DH")) {
-                int dhIndex = content.toUpperCase().indexOf("DH");
-                String orderIdStr = content.substring(dhIndex + 2).replaceAll("[^0-9]", "");
-                if (!orderIdStr.isEmpty()) {
-                    Integer orderId = Integer.parseInt(orderIdStr);
-
-                    // 3. Idempotency Check
-                    PaymentDto payment = paymentService.getPaymentInfoByOrderId(orderId);
-                    if ("COMPLETED".equalsIgnoreCase(payment.getPaymentStatus())) {
-                        log.info("Order {} payment is already COMPLETED. Skipping duplicate webhook.", orderId);
-                        return ResponseEntity.ok("already_processed");
-                    }
-
-                    // 4. Amount Verification
-                    Object transferAmountObj = payload.get("transferAmount");
-                    if (transferAmountObj == null) {
-                        transferAmountObj = payload.get("amount");
-                    }
-                    if (transferAmountObj != null) {
-                        BigDecimal transferAmount = new BigDecimal(String.valueOf(transferAmountObj));
-                        if (payment.getAmount() != null && transferAmount.compareTo(payment.getAmount()) < 0) {
-                            log.warn("Underpaid SePay webhook for order {}: Expected {}, Received {}", 
-                                    orderId, payment.getAmount(), transferAmount);
-                            return ResponseEntity.badRequest().body("underpaid");
-                        }
-                    }
-
-                    paymentService.updatePaymentStatusByOrderId(orderId, "COMPLETED");
-                    log.info("Successfully updated order {} to COMPLETED via verified SePay webhook", orderId);
-                }
+            if (!content.toUpperCase().contains("DH")) {
+                log.warn("SePay webhook content lacks order reference 'DH': {}", content);
+                return ResponseEntity.badRequest().body("missing_order_ref");
             }
+
+            int dhIndex = content.toUpperCase().indexOf("DH");
+            String orderIdStr = content.substring(dhIndex + 2).replaceAll("[^0-9]", "");
+            if (orderIdStr.isEmpty()) {
+                log.warn("Failed to extract numeric orderId from content: {}", content);
+                return ResponseEntity.badRequest().body("invalid_order_id");
+            }
+            Integer orderId = Integer.parseInt(orderIdStr);
+
+            // 4. Strict Amount Verification
+            Object transferAmountObj = payload.get("transferAmount");
+            if (transferAmountObj == null) {
+                transferAmountObj = payload.get("amount");
+            }
+            if (transferAmountObj == null) {
+                log.warn("SePay webhook missing transferAmount for order {}", orderId);
+                return ResponseEntity.badRequest().body("missing_transfer_amount");
+            }
+
+            BigDecimal transferAmount = new BigDecimal(String.valueOf(transferAmountObj));
+            PaymentDto payment = paymentService.getPaymentInfoByOrderId(orderId);
+
+            if (payment.getAmount() == null || transferAmount.compareTo(payment.getAmount()) != 0) {
+                log.warn("Amount mismatch in SePay webhook for order {}: Expected {}, Received {}",
+                        orderId, payment.getAmount(), transferAmount);
+                try {
+                    paymentEventRepository.save(PaymentEventEntity.builder()
+                            .provider("SEPAY")
+                            .providerTxnId(providerTxnId)
+                            .orderId(orderId)
+                            .amount(transferAmount)
+                            .status("AMOUNT_MISMATCH")
+                            .rawPayload(payload.toString())
+                            .build());
+                } catch (Exception ignored) {}
+                return ResponseEntity.badRequest().body("amount_mismatch");
+            }
+
+            // 5. Idempotent Atomic Conditional Update at Database level
+            int updatedRows = paymentRepository.updatePaymentStatusConditional(orderId, "COMPLETED", providerTxnId);
+            if (updatedRows > 0) {
+                paymentService.updatePaymentStatusByOrderId(orderId, "COMPLETED");
+                log.info("Order {} payment successfully COMPLETED via verified SePay webhook (txnId={})", orderId, providerTxnId);
+            } else {
+                log.info("Order {} was already marked COMPLETED or not PENDING. Conditional update skipped.", orderId);
+            }
+
+            // 6. Record unique event in audit ledger
+            try {
+                paymentEventRepository.save(PaymentEventEntity.builder()
+                        .provider("SEPAY")
+                        .providerTxnId(providerTxnId)
+                        .orderId(orderId)
+                        .amount(transferAmount)
+                        .status("COMPLETED")
+                        .rawPayload(payload.toString())
+                        .build());
+            } catch (DataIntegrityViolationException ex) {
+                log.info("Duplicate webhook event concurrent insert caught for txnId: {}", providerTxnId);
+            }
+
             return ResponseEntity.ok("success");
         } catch (Exception e) {
             log.error("Error processing SePay webhook", e);

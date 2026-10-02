@@ -114,4 +114,13 @@ public class ProductController {
             )
         );
     }
+
+    /**
+     * Internal endpoint for Order/Cart services to retrieve authoritative pricing & product snapshots
+     */
+    @PostMapping("/internal/pricing-batch")
+    public java.util.List<com.tiki.product.dto.ProductPricingDTO> getBatchPricing(@RequestBody java.util.List<Integer> productIds) {
+        log.debug("Internal batch pricing query for {} product IDs", productIds != null ? productIds.size() : 0);
+        return productService.getBatchPricing(productIds);
+    }
 }

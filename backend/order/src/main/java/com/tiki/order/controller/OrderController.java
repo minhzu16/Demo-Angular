@@ -55,8 +55,9 @@ public class OrderController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<OrderDto> getAllOrders() {
-        log.debug("Getting all orders");
+        log.debug("Getting all orders (Admin only)");
         return orderQueryService.getAllOrders();
     }
 
@@ -84,13 +85,19 @@ public class OrderController {
     }
 
     @GetMapping("/my-orders")
+    @PreAuthorize("isAuthenticated()")
     public Map<String, Object> getMyOrders(
-            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+            jakarta.servlet.http.HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
+        Long userId = userIdHeader != null ? userIdHeader : (Long) request.getAttribute("userId");
+        if (userId == null) {
+            throw new AccessDeniedException(0L, "my-orders", 0);
+        }
         if (size > 100) size = 100;
         if (size < 1) size = 10;
         log.debug("GET /orders/my-orders - userId={}, page={}, size={}, status={}", userId, page, size, status);
@@ -118,10 +125,6 @@ public class OrderController {
 
     /**
      * Get orders for a shop (seller dashboard)
-     * NOTE: Hiện tại OrderEntity chưa có shopId nên tạm thời trả về toàn bộ đơn
-     * hàng,
-     * chỉ phân trang ở cấp service để FE có dữ liệu hiển thị.
-     * Khi có quan hệ shop-order, sẽ cập nhật lại filter theo shopId.
      */
     @GetMapping("/shop/{shopId}")
     @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN')")
@@ -152,13 +155,12 @@ public class OrderController {
                 "last", orderPage.isLast());
     }
 
-
     @GetMapping("/{orderId}")
     @PreAuthorize("isAuthenticated()")
     public OrderDto getOrder(
             @PathVariable Integer orderId,
             @RequestHeader(value = "X-User-Id", required = false) Long currentUserIdHeader,
-            @RequestHeader(value = "X-Role", required = false) String roleHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String roleHeader,
             jakarta.servlet.http.HttpServletRequest request) {
         log.debug("Getting order: {}", orderId);
         OrderDto order = orderQueryService.getOrder(orderId);
@@ -166,10 +168,10 @@ public class OrderController {
         Long currentUserId = currentUserIdHeader != null ? currentUserIdHeader : (Long) request.getAttribute("userId");
         String role = roleHeader != null ? roleHeader : (String) request.getAttribute("role");
         
-        // ✅ BUG 19 FIX: IDOR on order details (only owner or ADMIN/SELLER can view)
+        // IDOR Prevention: Only owner, ADMIN, or managing SELLER can view
         if (currentUserId != null && order.getUserId() != null && !order.getUserId().equals(currentUserId.intValue())) {
-            boolean isAdmin = role != null && role.contains("ADMIN");
-            boolean isSeller = role != null && role.contains("SELLER"); // In a real app, verify if order belongs to seller's shop
+            boolean isAdmin = role != null && (role.contains("ADMIN") || role.contains("ROLE_ADMIN"));
+            boolean isSeller = role != null && (role.contains("SELLER") || role.contains("ROLE_SELLER"));
             if (!isAdmin && !isSeller) {
                 log.warn("SECURITY: User {} attempted to view order {} belonging to user {}", currentUserId, orderId, order.getUserId());
                 throw new AccessDeniedException(currentUserId, "order", orderId);
@@ -246,7 +248,16 @@ public class OrderController {
     public OrderDto approveReturn(
             @PathVariable Integer orderId,
             @RequestHeader(value = "X-User-Id", required = true) Long staffId,
+            @RequestHeader(value = "X-User-Role", required = false) String roleHeader,
             @RequestHeader(value = "X-Username", required = false) String staffUsername) {
+
+        OrderDto order = orderQueryService.getOrder(orderId);
+        boolean isAdmin = roleHeader != null && (roleHeader.contains("ADMIN") || roleHeader.contains("ROLE_ADMIN"));
+        // SECURITY: Seller can only refund orders belonging to their own shop
+        if (!isAdmin && order.getShopId() != null && !order.getShopId().equals(staffId)) {
+            log.warn("SECURITY: Seller {} attempted to refund order {} belonging to shop {}", staffId, orderId, order.getShopId());
+            throw new AccessDeniedException(staffId, "refund_order", orderId);
+        }
 
         log.info("Staff {} ({}) approved return / refund for order {}", staffUsername, staffId, orderId);
         return orderStatusService.refundOrder(orderId);
@@ -258,36 +269,47 @@ public class OrderController {
             @PathVariable Integer orderId,
             @RequestParam(value = "reason", required = false) String reason,
             @RequestHeader(value = "X-User-Id", required = true) Long staffId,
+            @RequestHeader(value = "X-User-Role", required = false) String roleHeader,
             @RequestHeader(value = "X-Username", required = false) String staffUsername) {
+
+        OrderDto order = orderQueryService.getOrder(orderId);
+        boolean isAdmin = roleHeader != null && (roleHeader.contains("ADMIN") || roleHeader.contains("ROLE_ADMIN"));
+        // SECURITY: Seller can only reject returns for orders belonging to their own shop
+        if (!isAdmin && order.getShopId() != null && !order.getShopId().equals(staffId)) {
+            log.warn("SECURITY: Seller {} attempted to reject return for order {} belonging to shop {}", staffId, orderId, order.getShopId());
+            throw new AccessDeniedException(staffId, "reject_return", orderId);
+        }
 
         log.info("Staff {} ({}) rejected return for order {}: reason={}", staffUsername, staffId, orderId, reason);
         return orderStatusService.rejectReturn(orderId, reason);
     }
 
     @PostMapping("/{orderId}/payment-session")
+    @PreAuthorize("isAuthenticated()")
     public Map<String, Object> createPaymentSession(@PathVariable Integer orderId) {
         log.info("Creating payment session for order: {}", orderId);
         return mockPaymentService.createSession(orderId);
-    }
-
-    // Webhook endpoint (simulated)
-    @PostMapping("/webhook")
-    public ResponseEntity<?> webhook(
-            @RequestParam Integer orderId,
-            @RequestParam String signature,
-            @RequestBody(required = false) String payload) {
-        if (!mockPaymentService.verifySignature(orderId, signature)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        OrderDto updated = orderPaymentService.markOrderPaid(orderId, payload);
-        return ResponseEntity.ok(updated);
     }
 
     /**
      * Get order statistics for a user
      */
     @GetMapping("/stats/user/{userId}")
-    public Map<String, Object> getUserOrderStats(@PathVariable Integer userId) {
+    @PreAuthorize("isAuthenticated()")
+    public Map<String, Object> getUserOrderStats(
+            @PathVariable Integer userId,
+            @RequestHeader(value = "X-User-Id", required = false) Long currentUserIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String roleHeader,
+            jakarta.servlet.http.HttpServletRequest request) {
+        Long currentUserId = currentUserIdHeader != null ? currentUserIdHeader : (Long) request.getAttribute("userId");
+        String role = roleHeader != null ? roleHeader : (String) request.getAttribute("role");
+        boolean isAdmin = role != null && (role.contains("ADMIN") || role.contains("ROLE_ADMIN"));
+
+        if (currentUserId != null && !userId.equals(currentUserId.intValue()) && !isAdmin) {
+            log.warn("SECURITY: User {} attempted to read stats of user {}", currentUserId, userId);
+            throw new AccessDeniedException(currentUserId, "user_stats", userId);
+        }
+
         log.debug("Getting order stats for user: {}", userId);
         List<OrderDto> orders = orderQueryService.getOrdersByUser(userId);
         return Map.of(
@@ -301,6 +323,7 @@ public class OrderController {
      * Get order statistics for a shop
      */
     @GetMapping("/stats/shop")
+    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN')")
     public OrderStatsDTO getShopOrderStats(@RequestParam Long shopId) {
         log.debug("Getting order stats for shop: {}", shopId);
         return orderAnalyticsService.getShopOrderStats(shopId);
@@ -330,6 +353,7 @@ public class OrderController {
      * Get order statistics for current user (authenticated)
      */
     @GetMapping("/stats")
+    @PreAuthorize("isAuthenticated()")
     public Map<String, Object> getMyOrderStats(
             @RequestHeader(value = "X-User-Id", required = false) Long userId) {
         log.debug("Getting order stats for authenticated user: {}", userId);
@@ -349,15 +373,30 @@ public class OrderController {
      * Get order status history
      */
     @GetMapping("/{orderId}/status-history")
-    public List<Map<String, Object>> getOrderStatusHistory(@PathVariable Integer orderId) {
+    @PreAuthorize("isAuthenticated()")
+    public List<Map<String, Object>> getOrderStatusHistory(
+            @PathVariable Integer orderId,
+            @RequestHeader(value = "X-User-Id", required = false) Long currentUserIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String roleHeader,
+            jakarta.servlet.http.HttpServletRequest request) {
         log.debug("Getting status history for order: {}", orderId);
+        OrderDto order = orderQueryService.getOrder(orderId);
+        Long currentUserId = currentUserIdHeader != null ? currentUserIdHeader : (Long) request.getAttribute("userId");
+        String role = roleHeader != null ? roleHeader : (String) request.getAttribute("role");
+        boolean isAdmin = role != null && (role.contains("ADMIN") || role.contains("ROLE_ADMIN"));
+        boolean isSeller = role != null && (role.contains("SELLER") || role.contains("ROLE_SELLER"));
+
+        if (currentUserId != null && order.getUserId() != null && !order.getUserId().equals(currentUserId.intValue()) && !isAdmin && !isSeller) {
+            log.warn("SECURITY: User {} attempted to view status history of order {}", currentUserId, orderId);
+            throw new AccessDeniedException(currentUserId, "order_history", orderId);
+        }
+
         try {
             List<com.tiki.order.entity.OrderTrackingEntity> history = orderStatusService.getOrderStatusHistory(orderId);
             List<Map<String, Object>> result = new java.util.ArrayList<>();
             for (com.tiki.order.entity.OrderTrackingEntity tracking : history) {
                 Map<String, Object> map = new java.util.HashMap<>();
                 map.put("status", tracking.getStatus() != null ? tracking.getStatus().name() : "");
-                // ✅ BUG 18 FIX: Chuyển đổi LocalDateTime sang ZonedDateTime với múi giờ để FE parse chính xác
                 if (tracking.getCreatedAt() != null) {
                     map.put("timestamp", tracking.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toString());
                 } else {
@@ -378,6 +417,7 @@ public class OrderController {
      * INTERNAL API: Get revenue stats for analytics
      */
     @GetMapping("/analytics/revenue")
+    @PreAuthorize("hasRole('ADMIN')")
     public List<Map<String, Object>> getRevenueAnalytics(
             @RequestParam String start,
             @RequestParam String end) {
@@ -398,18 +438,20 @@ public class OrderController {
     }
 
     /**
-     * ✅ Q4: Get suspicious/fraud-flagged orders for Admin/Risk management
+     * Get suspicious/fraud-flagged orders for Admin/Risk management
      */
     @GetMapping("/fraud/signals")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<OrderDto>> getFraudSignals() {
         log.info("Admin querying fraud flagged orders");
         return ResponseEntity.ok(orderQueryService.getSuspiciousOrders());
     }
 
     /**
-     * ✅ Q4: Admin reviews a flagged order (APPROVE or REJECT_FRAUD)
+     * Admin reviews a flagged order (APPROVE or REJECT_FRAUD)
      */
     @PostMapping("/{orderId}/fraud-review")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrderDto> reviewFraudOrder(
             @PathVariable Integer orderId,
             @RequestBody Map<String, String> payload) {

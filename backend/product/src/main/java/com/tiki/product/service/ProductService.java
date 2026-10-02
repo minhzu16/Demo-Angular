@@ -4,6 +4,7 @@ import com.tiki.product.dto.PageResponseDTO;
 import com.tiki.product.dto.ProductDetailDTO;
 import com.tiki.product.dto.ProductImageDTO;
 import com.tiki.product.dto.ProductListDTO;
+import com.tiki.product.dto.ProductPricingDTO;
 import com.tiki.product.entity.CategoryEntity;
 import com.tiki.product.entity.ProductEntity;
 import com.tiki.product.entity.ProductImageEntity;
@@ -216,6 +217,23 @@ public class ProductService {
         dto.setStock(e.getStock());
         dto.setStatus(e.getStatus());
         return dto;
+    }
+
+    public List<ProductPricingDTO> getBatchPricing(List<Integer> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return List.of();
+        }
+        List<ProductEntity> entities = productRepository.findAllById(productIds);
+        return entities.stream().map(e -> ProductPricingDTO.builder()
+                .productId(e.getId())
+                .name(e.getName())
+                .price(e.getPrice())
+                .shopId(e.getShopId() != null ? e.getShopId() : (e.getSellerId() != null ? e.getSellerId() : 0L))
+                .thumbnailUrl(e.getThumbnailUrl())
+                .status(e.getStatus())
+                .stock(e.getStock())
+                .build()
+        ).collect(Collectors.toList());
     }
 
     private ProductImageDTO toImageDTO(ProductImageEntity e) {

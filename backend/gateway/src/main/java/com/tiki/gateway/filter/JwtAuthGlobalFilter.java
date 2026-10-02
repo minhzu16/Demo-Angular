@@ -53,6 +53,13 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
+
+        // SECURITY FIX (Vulnerability 3.4): Block direct external access to internal service-to-service endpoints
+        if (isInternalPath(path)) {
+            log.warn("Blocked direct external access attempt to internal path: {}", path);
+            return onError(exchange, HttpStatus.FORBIDDEN, "Truy cập tài nguyên nội bộ bị từ chối qua Gateway");
+        }
+
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -123,6 +130,10 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
 
     private boolean isAdminPath(String path) {
         return path.startsWith("/api/v1/admin/") || path.contains("/admin/");
+    }
+
+    private boolean isInternalPath(String path) {
+        return path != null && (path.contains("/internal/") || path.endsWith("/internal"));
     }
 
     private boolean hasAdminRole(String role) {

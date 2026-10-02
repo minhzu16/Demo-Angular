@@ -56,7 +56,10 @@ public class AuthService {
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setRole(User.Role.fromString(request.getRole()));
+        // SECURITY FIX (Vulnerability 3.1): Prevent privilege escalation during registration.
+        // All public registrations are strictly assigned BUYER role.
+        // Elevation to SELLER requires approved seller applications; ADMIN is created strictly via seed/CLI.
+        user.setRole(User.Role.BUYER);
         
         // Referral program logic: bonus points for referrer & new user
         if (request.getReferralCode() != null && !request.getReferralCode().isBlank()) {

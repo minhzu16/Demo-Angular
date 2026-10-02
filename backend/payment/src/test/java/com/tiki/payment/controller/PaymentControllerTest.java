@@ -31,20 +31,44 @@ class PaymentControllerTest {
     @Mock
     private PaymentService paymentService;
 
+    @Mock
+    private com.tiki.payment.repository.PaymentRepository paymentRepository;
+
+    @Mock
+    private com.tiki.payment.repository.PaymentEventRepository paymentEventRepository;
+
     private PaymentController controller;
+
+    private static final String TEST_SECRET = "SECRET_KEY_123";
 
     @BeforeEach
     void setUp() {
-        controller = new PaymentController(paymentService);
+        controller = new PaymentController(paymentService, paymentRepository, paymentEventRepository);
+        ReflectionTestUtils.setField(controller, "sepayWebhookSecret", TEST_SECRET);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
         objectMapper = new ObjectMapper();
     }
 
     @Test
+    @DisplayName("SePay Webhook: Fail-closed 500 khi webhook secret chưa được cấu hình")
+    void sepayWebhook_InternalServerError_WhenSecretNotConfigured() throws Exception {
+        ReflectionTestUtils.setField(controller, "sepayWebhookSecret", "");
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("content", "DH123");
+        payload.put("transferAmount", 100000);
+
+        mockMvc.perform(post("/api/v1/payments/sepay-webhook")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Apikey " + TEST_SECRET)
+                .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("Webhook secret unconfigured"));
+    }
+
+    @Test
     @DisplayName("SePay Webhook: Từ chối 401 khi header API Key không khớp")
     void sepayWebhook_Unauthorized_WhenApiKeyMismatch() throws Exception {
-        ReflectionTestUtils.setField(controller, "sepayWebhookSecret", "SECRET_KEY_123");
-
         Map<String, Object> payload = new HashMap<>();
         payload.put("content", "DH123");
         payload.put("transferAmount", 100000);
@@ -57,8 +81,8 @@ class PaymentControllerTest {
     }
 
     @Test
-    @DisplayName("SePay Webhook: Từ chối 400 Bad Request khi chuyển thiếu tiền (underpaid)")
-    void sepayWebhook_BadRequest_WhenUnderpaid() throws Exception {
+    @DisplayName("SePay Webhook: Từ chối 400 Bad Request khi chuyển sai số tiền (amount mismatch)")
+    void sepayWebhook_BadRequest_WhenAmountMismatch() throws Exception {
         PaymentDto mockPayment = PaymentDto.builder()
                 .orderId(123)
                 .amount(new BigDecimal("500000"))
@@ -67,16 +91,18 @@ class PaymentControllerTest {
         when(paymentService.getPaymentInfoByOrderId(123)).thenReturn(mockPayment);
 
         Map<String, Object> payload = new HashMap<>();
+        payload.put("id", "TXN_001");
         payload.put("content", "DH123");
-        payload.put("transferAmount", 100000); // Only paid 100k for 500k order
+        payload.put("transferAmount", 100000); // 100k != 500k
 
         mockMvc.perform(post("/api/v1/payments/sepay-webhook")
                 .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Apikey " + TEST_SECRET)
                 .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("underpaid"));
+                .andExpect(content().string("amount_mismatch"));
 
-        verify(paymentService, never()).updatePaymentStatusByOrderId(eq(123), anyString());
+        verify(paymentRepository, never()).updatePaymentStatusConditional(anyInt(), anyString(), anyString());
     }
 
     @Test
@@ -88,41 +114,43 @@ class PaymentControllerTest {
                 .paymentStatus("PENDING")
                 .build();
         when(paymentService.getPaymentInfoByOrderId(123)).thenReturn(mockPayment);
+        when(paymentRepository.updatePaymentStatusConditional(123, "COMPLETED", "TXN_12345")).thenReturn(1);
 
         Map<String, Object> payload = new HashMap<>();
+        payload.put("id", "TXN_12345");
         payload.put("content", "Thanh toan don hang DH123");
         payload.put("transferAmount", 500000);
 
         mockMvc.perform(post("/api/v1/payments/sepay-webhook")
                 .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Apikey " + TEST_SECRET)
                 .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("success"));
 
+        verify(paymentRepository).updatePaymentStatusConditional(123, "COMPLETED", "TXN_12345");
         verify(paymentService).updatePaymentStatusByOrderId(123, "COMPLETED");
     }
 
     @Test
-    @DisplayName("SePay Webhook: Idempotency - Bỏ qua xử lý trùng khi đơn hàng đã COMPLETED")
-    void sepayWebhook_Idempotent_WhenAlreadyCompleted() throws Exception {
-        PaymentDto mockPayment = PaymentDto.builder()
-                .orderId(123)
-                .amount(new BigDecimal("500000"))
-                .paymentStatus("COMPLETED")
-                .build();
-        when(paymentService.getPaymentInfoByOrderId(123)).thenReturn(mockPayment);
+    @DisplayName("SePay Webhook: Idempotency - Bỏ qua xử lý trùng khi transaction ID đã tồn tại trong ledger")
+    void sepayWebhook_Idempotent_WhenTxnAlreadyExists() throws Exception {
+        when(paymentEventRepository.existsByProviderAndProviderTxnId("SEPAY", "TXN_DUPLICATE")).thenReturn(true);
 
         Map<String, Object> payload = new HashMap<>();
+        payload.put("id", "TXN_DUPLICATE");
         payload.put("content", "DH123");
         payload.put("transferAmount", 500000);
 
         mockMvc.perform(post("/api/v1/payments/sepay-webhook")
                 .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Apikey " + TEST_SECRET)
                 .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("already_processed"));
 
-        verify(paymentService, never()).updatePaymentStatusByOrderId(eq(123), anyString());
+        verify(paymentRepository, never()).updatePaymentStatusConditional(anyInt(), anyString(), anyString());
+        verify(paymentService, never()).updatePaymentStatusByOrderId(anyInt(), anyString());
     }
 
     @Test

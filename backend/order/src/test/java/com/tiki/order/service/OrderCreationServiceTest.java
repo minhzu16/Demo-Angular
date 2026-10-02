@@ -55,6 +55,9 @@ public class OrderCreationServiceTest {
     @Mock
     private com.tiki.order.client.PaymentClient paymentClient;
 
+    @Mock
+    private com.tiki.order.client.ProductClient productClient;
+
     @InjectMocks
     private OrderCreationService orderCreationService;
 
@@ -83,6 +86,18 @@ public class OrderCreationServiceTest {
         createOrderRequest.setItems(items);
         
         createOrderRequest.setPaymentMethod(PaymentMethod.COD);
+
+        lenient().when(productClient.getBatchPricing(any())).thenReturn(List.of(
+                com.tiki.order.dto.ProductPricingDto.builder()
+                        .productId(101)
+                        .name("Test Product")
+                        .price(new BigDecimal("100000"))
+                        .shopId(1L)
+                        .thumbnailUrl("http://image.png")
+                        .status("ACTIVE")
+                        .stock(50)
+                        .build()
+        ));
 
         lenient().when(fraudDetectionService.assessOrderRisk(any())).thenReturn(
                 new FraudDetectionService.FraudAssessment(0, "LOW", "Bình thường")
@@ -188,5 +203,49 @@ public class OrderCreationServiceTest {
         });
 
         assertTrue(exception.getMessage().contains("không hợp lệ"));
+    }
+
+    @Test
+    void createOrder_PriceTamperingExploit_IgnoredAndUsesServerPrice() {
+        // Hacker cố tình can thiệp request để mua sản phẩm 100.000đ với giá 1đ
+        createOrderRequest.getItems().get(0).setUnitPrice(new BigDecimal("1"));
+        createOrderRequest.getItems().get(0).setPrice(new BigDecimal("1"));
+        createOrderRequest.getItems().get(0).setQuantity(2);
+
+        org.mockito.ArgumentCaptor<OrderEntity> orderCaptor = org.mockito.ArgumentCaptor.forClass(OrderEntity.class);
+        when(orderRepository.save(orderCaptor.capture())).thenAnswer(invocation -> {
+            OrderEntity order = invocation.getArgument(0);
+            order.setId(2);
+            return order;
+        });
+
+        when(orderMapper.toDto(any(OrderEntity.class))).thenAnswer(invocation -> {
+            OrderEntity order = invocation.getArgument(0);
+            OrderDto dto = new OrderDto();
+            dto.setSubtotal(order.getSubtotal());
+            dto.setTotalAmount(order.getTotalAmount());
+            return dto;
+        });
+
+        OrderDto result = orderCreationService.createOrder(createOrderRequest);
+
+        assertNotNull(result);
+        OrderEntity savedOrder = orderCaptor.getValue();
+        // Server phải lấy giá từ database (100.000đ * 2 = 200.000đ), không lấy giá 1đ do hacker gửi
+        assertEquals(new BigDecimal("200000"), savedOrder.getSubtotal(), 
+                "Lỗ hổng 3.2: Giá sản phẩm phải tính theo server database, không cho phép client quyết định!");
+        assertEquals(new BigDecimal("100000"), savedOrder.getItems().get(0).getPrice());
+    }
+
+    @Test
+    void createOrder_ProductNotFound_ThrowsException() {
+        // Hacker gửi productId không tồn tại trên hệ thống
+        when(productClient.getBatchPricing(any())).thenReturn(List.of());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            orderCreationService.createOrder(createOrderRequest);
+        });
+
+        assertTrue(exception.getMessage().contains("không tồn tại"));
     }
 }
