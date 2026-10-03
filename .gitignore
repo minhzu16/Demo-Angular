@@ -74,5 +74,6 @@ out/
 /report-summary.md
 /rule.md
 *.ps1
-.agents/
+.agents/*
+!.agents/skills/
 
