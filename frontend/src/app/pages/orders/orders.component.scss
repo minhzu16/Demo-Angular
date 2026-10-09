@@ -47,7 +47,7 @@
   
   .empty-icon {
     width: 100px; height: 100px;
-    background: rgba(108,99,255,0.1);
+    background: rgba(var(--nx-primary-rgb),0.1);
     color: var(--nx-primary-light);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
@@ -108,7 +108,7 @@
   
   &.active {
     color: var(--nx-primary);
-    .dot { background: var(--nx-primary); box-shadow: 0 0 0 3px rgba(108,99,255,0.2); }
+    .dot { background: var(--nx-primary); box-shadow: 0 0 0 3px rgba(var(--nx-primary-rgb),0.2); }
   }
   
   &.cancelled {
@@ -127,7 +127,7 @@
   padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 700;
   
   &.bg-warning { background: rgba(255,179,71,0.1) !important; color: #FFB347 !important; }
-  &.bg-info { background: rgba(108,99,255,0.1) !important; color: #6C63FF !important; }
+  &.bg-info { background: rgba(var(--nx-primary-rgb),0.1) !important; color: var(--nx-primary-dark) !important; }
   &.bg-success { background: rgba(46,213,115,0.1) !important; color: #2ED573 !important; }
   &.bg-danger { background: rgba(255,71,87,0.1) !important; color: #FF4757 !important; }
 }

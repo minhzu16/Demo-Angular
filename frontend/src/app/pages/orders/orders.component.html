@@ -78,7 +78,7 @@
           <div class="total-section">
             <span class="total-label">Tổng cộng:</span>
             <span class="total-val">{{ formatPrice(order.totalAmount) }}</span>
-            <span class="points-earned mt-1" *ngIf="order.status === 'DELIVERED'"><i class="bi bi-lightning-charge-fill text-warning"></i> Đã nhận {{ (order.totalAmount / 10000) | number:'1.0-0' }} NexPoints</span>
+            <span class="points-earned mt-1" *ngIf="order.status === 'DELIVERED'"><i class="bi bi-lightning-charge-fill text-warning"></i> Đã nhận khoảng {{ (order.totalAmount / 1000) | number:'1.0-0' }} NexPoints</span>
           </div>
           <div class="action-buttons">
             <button class="btn btn-outline-primary" routerLink="/products"><i class="bi bi-arrow-repeat"></i> Mua lại</button>

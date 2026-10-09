@@ -54,9 +54,10 @@ export class RegisterComponent {
     };
 
     this.auth.register(registerData).subscribe({
-      next: () => {
+      next: res => {
         this.loading = false;
-        this.router.navigateByUrl('/login');
+        // AuthService already stored the session when the API returns a token — don't bounce to /login.
+        this.router.navigateByUrl(res?.accessToken ? '/home' : '/login');
       },
       error: err => {
         this.loading = false;

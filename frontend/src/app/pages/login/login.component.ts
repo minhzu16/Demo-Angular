@@ -25,6 +25,7 @@ export class LoginComponent {
   loading = false;
   error: string | null = null;
   showPassword = false;
+  showForgotHint = false;
 
   togglePassword() {
     this.showPassword = !this.showPassword;
@@ -46,7 +47,11 @@ export class LoginComponent {
         const fullName = (res?.user?.fullName || res?.user?.username || this.form.value.username) as string;
 
         const roles = res?.user?.role || 'BUYER';
-        if (roles.includes('ADMIN')) {
+        const returnUrl = this.router.parseUrl(this.router.url).queryParams['returnUrl'];
+        // Only follow same-app absolute paths — never "//host" or "http://…" (open redirect).
+        if (typeof returnUrl === 'string' && /^\/(?!\/)/.test(returnUrl)) {
+          this.router.navigateByUrl(returnUrl);
+        } else if (roles.includes('ADMIN')) {
           this.router.navigate(['/dashboard'], { state: { fromLogin: true, fullName } });
         } else if (roles.includes('SELLER')) {
           this.router.navigate(['/seller/dashboard'], { state: { fromLogin: true, fullName } });
@@ -58,7 +63,7 @@ export class LoginComponent {
         this.loading = false;
       },
       error: err => {
-        this.error = (err?.error?.message as string) || 'Login failed';
+        this.error = (err?.error?.message as string) || err?.message || 'Đăng nhập không thành công. Vui lòng thử lại.';
         this.loading = false;
       }
     });

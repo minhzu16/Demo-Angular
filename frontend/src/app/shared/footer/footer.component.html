@@ -1,77 +1,59 @@
 <footer class="nexmart-footer">
-  <!-- Gradient top divider -->
-  <div class="footer-gradient-top"></div>
-
   <div class="footer-main">
     <div class="nx-container footer-grid">
 
       <!-- Brand Column -->
       <div class="footer-brand">
-        <a routerLink="/home" class="footer-logo-link" id="footer-logo">
-          <div class="footer-logo-icon"><i class="bi bi-lightning-charge-fill"></i></div>
-          <div class="footer-logo-text">
+        <a routerLink="/home" class="footer-logo-link" id="footer-logo" aria-label="NexMart — về trang chủ">
+          <span class="footer-logo-icon" aria-hidden="true">N</span>
+          <span class="footer-logo-text">
             <span class="logo-nex">Nex</span><span class="logo-mart">Mart</span>
-          </div>
+          </span>
         </a>
         <p class="footer-desc">
-          Nền tảng thương mại điện tử thế hệ mới — Flash Sale mỗi ngày, tích NexPoints đổi quà, giao siêu tốc 2 giờ.
+          Chợ trực tuyến kết nối người mua với những cửa hàng đã được xác minh — thanh toán an toàn, đổi trả rõ ràng.
         </p>
 
-        <!-- NexPoints promo -->
         <div class="footer-promo">
-          <i class="bi bi-lightning-charge-fill"></i>
-          <span>Tích <strong>NexPoints</strong> với mỗi đơn hàng</span>
-        </div>
-
-        <!-- Social Links -->
-        <div class="footer-social">
-          <a href="#" class="social-link" aria-label="Facebook"   id="social-facebook"><i class="bi bi-facebook"></i></a>
-          <a href="#" class="social-link" aria-label="Instagram"  id="social-instagram"><i class="bi bi-instagram"></i></a>
-          <a href="#" class="social-link" aria-label="YouTube"    id="social-youtube"><i class="bi bi-youtube"></i></a>
-          <a href="#" class="social-link" aria-label="TikTok"     id="social-tiktok"><i class="bi bi-tiktok"></i></a>
+          <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+          <span>Tích <strong>NexPoints</strong> sau mỗi đơn giao thành công</span>
         </div>
       </div>
 
       <!-- Links: Mua sắm -->
-      <div class="footer-col">
-        <h6 class="footer-heading">Mua sắm</h6>
+      <nav class="footer-col" aria-labelledby="footer-shop">
+        <h2 class="footer-heading" id="footer-shop">Mua sắm</h2>
         <ul class="footer-links">
           <li><a routerLink="/products">Tất cả sản phẩm</a></li>
-          <li><a routerLink="/flash-sale"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>Flash Sale</a></li>
+          <li><a routerLink="/home" fragment="home-flash-sale">Flash Sale</a></li>
+          <li><a routerLink="/compare">So sánh sản phẩm</a></li>
           <li><a routerLink="/cart">Giỏ hàng của tôi</a></li>
-          <li><a routerLink="/orders">Đơn hàng</a></li>
           <li><a routerLink="/wishlist">Danh sách yêu thích</a></li>
-          <li><a routerLink="/profile">Tài khoản & NexPoints</a></li>
         </ul>
-      </div>
+      </nav>
 
-      <!-- Links: Người bán -->
-      <div class="footer-col">
-        <h6 class="footer-heading">Người bán</h6>
+      <!-- Links: Tài khoản -->
+      <nav class="footer-col" aria-labelledby="footer-account">
+        <h2 class="footer-heading" id="footer-account">Tài khoản</h2>
         <ul class="footer-links">
+          <li><a routerLink="/orders">Đơn hàng & theo dõi</a></li>
+          <li><a routerLink="/profile">Hồ sơ & NexPoints</a></li>
           <li><a routerLink="/seller/dashboard">Kênh người bán</a></li>
           <li><a routerLink="/register">Bắt đầu bán hàng</a></li>
-          <li><a href="#">Chính sách người bán</a></li>
-          <li><a href="#">Phí dịch vụ</a></li>
-          <li><a href="#">Công cụ phân tích</a></li>
         </ul>
-      </div>
+      </nav>
 
-      <!-- Links: Hỗ trợ & Về NexMart -->
+      <!-- Hỗ trợ -->
       <div class="footer-col">
-        <h6 class="footer-heading">Hỗ trợ</h6>
+        <h2 class="footer-heading">Hỗ trợ</h2>
         <ul class="footer-links">
-          <li><a href="#">Trung tâm trợ giúp</a></li>
-          <li><a href="#">Chính sách đổi trả</a></li>
-          <li><a href="#">Thanh toán & Bảo mật</a></li>
-          <li><a href="mailto:support@nexmart.vn">Liên hệ: support&#64;nexmart.vn</a></li>
-          <li><a href="#">Câu hỏi thường gặp</a></li>
+          <li><a href="mailto:support@nexmart.vn">support&#64;nexmart.vn</a></li>
         </ul>
-        <div class="footer-trust-icons">
-          <div class="trust-icon-item"><i class="bi bi-shield-check"></i><span>Bảo mật SSL</span></div>
-          <div class="trust-icon-item"><i class="bi bi-truck"></i><span>Toàn quốc</span></div>
-          <div class="trust-icon-item"><i class="bi bi-arrow-counterclockwise"></i><span>Đổi trả 30 ngày</span></div>
-        </div>
+        <ul class="footer-trust-icons">
+          <li class="trust-icon-item"><i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Thanh toán VietQR & COD</span></li>
+          <li class="trust-icon-item"><i class="bi bi-truck" aria-hidden="true"></i><span>Freeship đơn từ 500.000&nbsp;₫</span></li>
+          <li class="trust-icon-item"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span>Yêu cầu đổi trả ngay trong đơn hàng</span></li>
+        </ul>
       </div>
 
     </div>
@@ -81,14 +63,12 @@
   <div class="footer-bottom">
     <div class="nx-container footer-bottom-inner">
       <span class="footer-copyright">© {{ currentYear }} NexMart. Tất cả quyền được bảo lưu.</span>
-      <div class="footer-payment-icons">
-        <span class="payment-icon">VNPay</span>
-        <span class="payment-icon">ATM</span>
-        <span class="payment-icon">COD</span>
-      </div>
-      <span class="footer-made">
-        Xây dựng với <i class="bi bi-heart-fill"></i> bằng Angular & Spring Boot
-      </span>
+      <ul class="footer-payment-icons" aria-label="Phương thức thanh toán">
+        <li class="payment-icon">VietQR</li>
+        <li class="payment-icon">COD</li>
+        <li class="payment-icon">Thẻ quà tặng</li>
+      </ul>
+      <span class="footer-made">Xây dựng bằng Angular & Spring Boot</span>
     </div>
   </div>
 </footer>

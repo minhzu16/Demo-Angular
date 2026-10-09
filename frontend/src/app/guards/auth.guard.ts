@@ -10,6 +10,6 @@ export const authGuard: CanActivateFn = (route, state) => {
     return true;
   }
 
-  router.navigate(['/login']);
-  return false;
+  // Remember where the visitor was heading so login can send them back.
+  return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
 };

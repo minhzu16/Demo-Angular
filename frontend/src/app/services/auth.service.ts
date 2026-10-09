@@ -126,8 +126,14 @@ export class AuthService {
   }
 
   getUser(): UserProfile | null {
-    const userStr = localStorage.getItem(USER_KEY);
-    return userStr ? JSON.parse(userStr) : null;
+    try {
+      const userStr = localStorage.getItem(USER_KEY);
+      return userStr ? JSON.parse(userStr) : null;
+    } catch {
+      // Corrupted profile in storage must not crash every page that reads the user.
+      localStorage.removeItem(USER_KEY);
+      return null;
+    }
   }
 
   isAuthenticated(): boolean {

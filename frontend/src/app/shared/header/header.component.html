@@ -1,165 +1,189 @@
+<a href="javascript:void(0)" class="nx-skip-link" (click)="skipToContent($event)">Bỏ qua, đến nội dung chính</a>
+
 <header class="nexmart-header" [class.scrolled]="isScrolled">
+  <!-- === UTILITY BAR === -->
+  <div class="header-utility">
+    <div class="nx-container utility-inner">
+      <span class="utility-promo">
+        <i class="bi bi-truck" aria-hidden="true"></i>
+        Miễn phí vận chuyển cho đơn từ 500.000&nbsp;₫
+      </span>
+      <nav class="utility-links" aria-label="Liên kết nhanh">
+        <a routerLink="/seller/dashboard" *ngIf="profile?.role === 'SELLER' || profile?.role === 'ADMIN'">Kênh người bán</a>
+        <a routerLink="/register" *ngIf="!profile">Bán hàng cùng NexMart</a>
+        <a routerLink="/orders" *ngIf="profile">Theo dõi đơn hàng</a>
+      </nav>
+    </div>
+  </div>
+
   <!-- === TOP BAR === -->
   <div class="header-top">
     <div class="nx-container header-top-inner">
       <!-- Logo -->
-      <a routerLink="/home" class="nexmart-logo" id="header-logo">
-        <div class="logo-icon">
-          <i class="bi bi-lightning-charge-fill"></i>
-        </div>
-        <div class="logo-text">
+      <a routerLink="/home" class="nexmart-logo" id="header-logo" aria-label="NexMart — về trang chủ">
+        <span class="logo-seal" aria-hidden="true"><span>N</span></span>
+        <span class="logo-text">
           <span class="logo-nex">Nex</span><span class="logo-mart">Mart</span>
-        </div>
-        <div class="logo-tagline">Next-gen Marketplace</div>
+        </span>
+        <span class="logo-tagline">Chợ trực tuyến</span>
       </a>
 
       <!-- Search Bar -->
-      <div class="header-search" id="header-search">
+      <form class="header-search" id="header-search" role="search" (ngSubmit)="onSearch()" ngNativeValidate>
+        <label for="main-search-input" class="nx-sr-only">Tìm kiếm sản phẩm</label>
         <div class="search-input-wrapper">
-          <i class="bi bi-search search-icon"></i>
+          <i class="bi bi-search search-icon" aria-hidden="true"></i>
           <input
-            type="text"
+            type="search"
+            name="q"
             class="search-input"
             id="main-search-input"
-            placeholder="Tìm sản phẩm, thương hiệu, shop..."
+            placeholder="Tìm sản phẩm, thương hiệu, cửa hàng…"
             [(ngModel)]="searchQuery"
-            (keyup.enter)="onSearch()"
             (focus)="searchFocused = true"
             (blur)="onSearchBlur()"
             autocomplete="off"
           >
-          <button class="search-btn" id="main-search-btn" (click)="onSearch()">
-            <i class="bi bi-search"></i>
+          <button type="submit" class="search-btn" id="main-search-btn">
+            <i class="bi bi-search" aria-hidden="true"></i>
             <span>Tìm</span>
           </button>
         </div>
 
         <!-- Search suggestions dropdown -->
         <div class="search-suggestions" *ngIf="searchFocused && recentSearches.length > 0">
-          <div class="suggestions-label">Tìm kiếm gần đây</div>
-          <div class="suggestion-item" *ngFor="let s of recentSearches" (mousedown)="selectSearch(s)">
-            <i class="bi bi-clock-history"></i>
+          <div class="suggestions-label" id="recent-searches-label">Tìm kiếm gần đây</div>
+          <button type="button" class="suggestion-item" *ngFor="let s of recentSearches" (mousedown)="selectSearch(s)">
+            <i class="bi bi-clock-history" aria-hidden="true"></i>
             <span>{{ s }}</span>
-          </div>
+          </button>
         </div>
-      </div>
+      </form>
 
       <!-- Right Actions -->
       <div class="header-actions">
 
         <!-- Wishlist -->
-        <a routerLink="/wishlist" class="action-item" id="header-wishlist" *ngIf="profile">
-          <i class="bi bi-heart"></i>
+        <a routerLink="/wishlist" class="action-item" id="header-wishlist" *ngIf="profile" aria-label="Danh sách yêu thích">
+          <i class="bi bi-heart" aria-hidden="true"></i>
           <span class="action-label">Yêu thích</span>
         </a>
 
         <!-- Notification Bell -->
-        <div class="action-item notif-trigger" id="header-notifications" *ngIf="profile" (click)="onNotificationToggle()" (clickOutside)="showNotificationsDropdown = false">
-          <div class="icon-wrapper">
-            <i class="bi bi-bell"></i>
-            <span class="notif-badge" *ngIf="unreadNotificationsCount > 0" [class.animate]="unreadNotificationsCount > 0">
-              {{ unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount }}
+        <div class="menu-wrap" *ngIf="profile">
+          <button type="button" class="action-item notif-trigger" id="header-notifications"
+            (click)="onNotificationToggle()"
+            [attr.aria-expanded]="showNotificationsDropdown"
+            aria-haspopup="true" aria-controls="notif-panel"
+            [attr.aria-label]="unreadNotificationsCount > 0 ? 'Thông báo, ' + unreadNotificationsCount + ' chưa đọc' : 'Thông báo'">
+            <span class="icon-wrapper">
+              <i class="bi bi-bell" aria-hidden="true"></i>
+              <span class="notif-badge" *ngIf="unreadNotificationsCount > 0" [class.animate]="unreadNotificationsCount > 0" aria-hidden="true">
+                {{ unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount }}
+              </span>
             </span>
-          </div>
-          <span class="action-label">Thông báo</span>
+            <span class="action-label">Thông báo</span>
+          </button>
 
           <!-- Notification Panel -->
-          <div class="notif-panel" [class.show]="showNotificationsDropdown" (click)="$event.stopPropagation()">
+          <div class="notif-panel" id="notif-panel" [class.show]="showNotificationsDropdown" role="region" aria-label="Thông báo">
             <div class="notif-panel-header">
-              <h6>Thông báo</h6>
-              <button class="mark-all-btn" *ngIf="unreadNotificationsCount > 0" (click)="markAllRead()">
+              <h2 class="notif-heading">Thông báo</h2>
+              <button type="button" class="mark-all-btn" *ngIf="unreadNotificationsCount > 0" (click)="markAllRead()">
                 Đánh dấu đã đọc
               </button>
             </div>
             <div class="notif-panel-body">
               <div class="notif-empty" *ngIf="!notifications || notifications.length === 0">
-                <i class="bi bi-bell-slash"></i>
-                <p>Không có thông báo mới</p>
+                <i class="bi bi-bell-slash" aria-hidden="true"></i>
+                <p>Bạn chưa có thông báo nào</p>
+                <small>Cập nhật đơn hàng và ưu đãi sẽ xuất hiện tại đây.</small>
               </div>
-              <a
+              <button
+                type="button"
                 *ngFor="let notif of notifications"
-                href="javascript:void(0)"
                 class="notif-item"
                 [class.unread]="!notif.isRead"
                 (click)="markAsRead(notif)"
               >
-                <div class="notif-icon-wrap" [class]="'type-' + (notif.type.toLowerCase() || 'default')">
-                  <i class="bi" [class]="getNotifIcon(notif.type)"></i>
-                </div>
-                <div class="notif-content">
+                <span class="notif-icon-wrap" [class]="'type-' + (notif.type || 'default').toLowerCase()">
+                  <i class="bi" [class]="getNotifIcon(notif.type)" aria-hidden="true"></i>
+                </span>
+                <span class="notif-content">
                   <span class="notif-title">{{ notif.title }}</span>
                   <span class="notif-msg">{{ notif.message }}</span>
                   <span class="notif-time">{{ notif.createdAt | date:'HH:mm, dd/MM' }}</span>
-                </div>
-                <div class="unread-dot" *ngIf="!notif.isRead"></div>
-              </a>
-            </div>
-            <div class="notif-panel-footer">
-              <a routerLink="/notifications">Xem tất cả thông báo →</a>
+                </span>
+                <span class="unread-dot" *ngIf="!notif.isRead" aria-label="Chưa đọc"></span>
+              </button>
             </div>
           </div>
         </div>
 
         <!-- User Menu -->
-        <div class="action-item user-menu-trigger" id="header-user" *ngIf="profile" (click)="showUserMenu = !showUserMenu" (clickOutside)="showUserMenu = false">
-          <div class="user-avatar">
-            <span>{{ getAvatarLetter() }}</span>
-          </div>
-          <div class="user-info hide-mobile">
-            <span class="user-greeting">Xin chào 👋</span>
-            <span class="user-name">{{ profile.fullName || profile.username }}</span>
-          </div>
-          <i class="bi bi-chevron-down chevron" [class.rotated]="showUserMenu"></i>
+        <div class="menu-wrap" *ngIf="profile">
+          <button type="button" class="action-item user-menu-trigger" id="header-user"
+            (click)="toggleUserMenu()"
+            [attr.aria-expanded]="showUserMenu" aria-haspopup="true" aria-controls="user-menu"
+            [attr.aria-label]="'Tài khoản của ' + (profile.fullName || profile.username)">
+            <span class="user-avatar" aria-hidden="true">{{ getAvatarLetter() }}</span>
+            <span class="user-info hide-mobile">
+              <span class="user-greeting">Xin chào</span>
+              <span class="user-name">{{ profile.fullName || profile.username }}</span>
+            </span>
+            <i class="bi bi-chevron-down chevron" [class.rotated]="showUserMenu" aria-hidden="true"></i>
+          </button>
 
-          <div class="user-dropdown" [class.show]="showUserMenu" (click)="$event.stopPropagation()">
+          <div class="user-dropdown" id="user-menu" [class.show]="showUserMenu">
             <div class="user-dropdown-header">
-              <div class="user-avatar-lg">{{ getAvatarLetter() }}</div>
+              <div class="user-avatar-lg" aria-hidden="true">{{ getAvatarLetter() }}</div>
               <div>
                 <div class="udd-name">{{ profile.fullName || profile.username }}</div>
                 <div class="udd-email">{{ profile.email }}</div>
               </div>
             </div>
-            <div class="udd-nexpoints" *ngIf="profile" routerLink="/profile">
-              <i class="bi bi-lightning-charge-fill"></i>
+            <a class="udd-nexpoints" routerLink="/profile" (click)="showUserMenu = false">
+              <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
               <span>NexPoints: <strong>{{ profile.loyaltyPoints || 0 | number }}</strong></span>
-            </div>
+            </a>
             <hr class="udd-divider">
             <a class="udd-item" routerLink="/profile" (click)="showUserMenu = false">
-              <i class="bi bi-person-circle"></i> Tài khoản của tôi
+              <i class="bi bi-person-circle" aria-hidden="true"></i> Tài khoản của tôi
             </a>
             <a class="udd-item" routerLink="/orders" (click)="showUserMenu = false">
-              <i class="bi bi-bag-check"></i> Đơn hàng
+              <i class="bi bi-bag-check" aria-hidden="true"></i> Đơn hàng
             </a>
             <a class="udd-item" routerLink="/wishlist" (click)="showUserMenu = false">
-              <i class="bi bi-heart"></i> Yêu thích
+              <i class="bi bi-heart" aria-hidden="true"></i> Yêu thích
             </a>
             <a class="udd-item" routerLink="/seller/dashboard" *ngIf="profile.role === 'SELLER' || profile.role === 'ADMIN'" (click)="showUserMenu = false">
-              <i class="bi bi-shop"></i> Kênh người bán
+              <i class="bi bi-shop" aria-hidden="true"></i> Kênh người bán
             </a>
             <a class="udd-item" routerLink="/admin/dashboard" *ngIf="profile.role === 'ADMIN'" (click)="showUserMenu = false">
-              <i class="bi bi-gear"></i> Quản trị
+              <i class="bi bi-gear" aria-hidden="true"></i> Quản trị
             </a>
             <hr class="udd-divider">
-            <a class="udd-item logout" href="javascript:void(0)" (click)="logout()">
-              <i class="bi bi-box-arrow-right"></i> Đăng xuất
-            </a>
+            <button type="button" class="udd-item logout" (click)="logout()">
+              <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Đăng xuất
+            </button>
           </div>
         </div>
 
         <!-- Guest Login -->
         <a routerLink="/login" class="login-btn" id="header-login" *ngIf="!profile">
-          <i class="bi bi-person"></i>
+          <i class="bi bi-person" aria-hidden="true"></i>
           <span>Đăng nhập</span>
         </a>
 
         <!-- Cart -->
-        <a routerLink="/cart" class="cart-btn" id="header-cart">
-          <div class="cart-icon-wrap">
-            <i class="bi bi-cart3"></i>
-            <span class="cart-badge" *ngIf="cartItemsCount > 0" [class.bounce]="cartBounce">
+        <a routerLink="/cart" class="cart-btn" id="header-cart"
+          [attr.aria-label]="cartItemsCount > 0 ? 'Giỏ hàng, ' + cartItemsCount + ' sản phẩm' : 'Giỏ hàng'">
+          <span class="cart-icon-wrap">
+            <i class="bi bi-cart3" aria-hidden="true"></i>
+            <span class="cart-badge" *ngIf="cartItemsCount > 0" [class.bounce]="cartBounce" aria-hidden="true">
               {{ cartItemsCount > 99 ? '99+' : cartItemsCount }}
             </span>
-          </div>
+          </span>
           <span class="action-label hide-mobile">Giỏ hàng</span>
         </a>
       </div>
@@ -167,13 +191,13 @@
   </div>
 
   <!-- === CATEGORY STRIP === -->
-  <div class="category-strip">
+  <nav class="category-strip" aria-label="Danh mục sản phẩm">
     <div class="nx-container cat-inner">
       <a routerLink="/products" class="cat-item all-cat" id="cat-all">
-        <i class="bi bi-grid-3x3-gap-fill"></i>
+        <i class="bi bi-grid-3x3-gap-fill" aria-hidden="true"></i>
         <span>Tất cả</span>
       </a>
-      <div class="cat-divider"></div>
+      <div class="cat-divider" aria-hidden="true"></div>
       <a
         *ngFor="let cat of categories; let i = index"
         [routerLink]="['/products']"
@@ -181,21 +205,21 @@
         class="cat-item"
         [id]="'cat-' + i"
       >
-        <i class="bi" [class]="cat.icon || 'bi-tag'"></i>
+        <i class="bi" [class]="cat.icon || 'bi-tag'" aria-hidden="true"></i>
         <span>{{ cat.name || cat }}</span>
       </a>
 
       <div class="cat-spacer"></div>
 
-      <a routerLink="/flash-sale" class="cat-item flash-cat" id="cat-flash">
-        <i class="bi bi-lightning-charge-fill"></i>
+      <a routerLink="/home" fragment="home-flash-sale" class="cat-item flash-cat" id="cat-flash">
+        <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
         <span>Flash Sale</span>
-        <span class="live-dot"></span>
+        <span class="live-dot" aria-hidden="true"></span>
       </a>
     </div>
-  </div>
+  </nav>
 </header>
 
 <!-- Click outside overlay for menus -->
 <div class="menu-overlay" *ngIf="showUserMenu || showNotificationsDropdown"
-  (click)="showUserMenu = false; showNotificationsDropdown = false"></div>
+  (click)="closeMenus()"></div>

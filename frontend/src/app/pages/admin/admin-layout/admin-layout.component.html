@@ -1,60 +1,58 @@
-<div class="d-flex" style="min-height: 100vh;">
+<div class="admin-shell">
   <!-- Sidebar -->
-  <div class="bg-dark text-white p-3" style="width: 250px;">
-    <div class="d-flex align-items-center mb-4">
-      <h3 class="m-0 text-white"><i class="bi bi-shield-lock"></i> TIKI Admin</h3>
-    </div>
-    <hr>
-    <ul class="nav nav-pills flex-column mb-auto">
-      <li class="nav-item mb-2">
-        <a routerLink="/admin/dashboard" routerLinkActive="active" class="nav-link text-white">
-          <i class="bi bi-speedometer2 me-2"></i> Dashboard
-        </a>
-      </li>
-      <li class="nav-item mb-2">
-        <a routerLink="/admin/users" routerLinkActive="active" class="nav-link text-white">
-          <i class="bi bi-people-fill me-2"></i> User Management
-        </a>
-      </li>
-      <li class="nav-item mb-2">
-        <a routerLink="/admin/products" routerLinkActive="active" class="nav-link text-white">
-          <i class="bi bi-box me-2"></i> All Products
-        </a>
-      </li>
-      <li class="nav-item mb-2">
-        <a routerLink="/admin/flash-sales" routerLinkActive="active" class="nav-link text-white">
-          <i class="bi bi-lightning-charge me-2"></i> Flash Sales
-        </a>
-      </li>
-      <li class="nav-item mb-2">
-        <a routerLink="/admin/sellers" routerLinkActive="active" class="nav-link text-white">
-          <i class="bi bi-person-badge me-2"></i> Seller Requests
-        </a>
-      </li>
-      <li class="nav-item mb-2 mt-4 mt-auto">
-        <a routerLink="/home" class="nav-link text-white border border-secondary rounded">
-          <i class="bi bi-shop me-2"></i> Go to Store
-        </a>
-      </li>
-    </ul>
-  </div>
+  <aside class="admin-sidebar" aria-label="Điều hướng quản trị">
+    <a routerLink="/admin/dashboard" class="admin-brand" aria-label="NexMart Quản trị — tổng quan">
+      <span class="admin-seal" aria-hidden="true">N</span>
+      <span class="admin-brand-text">
+        <span class="admin-brand-name"><span class="nex">Nex</span>Mart</span>
+        <span class="admin-brand-sub">Quản trị</span>
+      </span>
+    </a>
+
+    <nav>
+      <ul class="admin-nav">
+        <li>
+          <a routerLink="/admin/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page" class="admin-nav-link">
+            <i class="bi bi-speedometer2" aria-hidden="true"></i> Tổng quan
+          </a>
+        </li>
+        <li>
+          <a routerLink="/admin/users" routerLinkActive="active" ariaCurrentWhenActive="page" class="admin-nav-link">
+            <i class="bi bi-people" aria-hidden="true"></i> Người dùng
+          </a>
+        </li>
+        <li>
+          <a routerLink="/admin/products" routerLinkActive="active" ariaCurrentWhenActive="page" class="admin-nav-link">
+            <i class="bi bi-box-seam" aria-hidden="true"></i> Sản phẩm
+          </a>
+        </li>
+        <li>
+          <a routerLink="/admin/flash-sales" routerLinkActive="active" ariaCurrentWhenActive="page" class="admin-nav-link">
+            <i class="bi bi-lightning-charge" aria-hidden="true"></i> Flash Sale
+          </a>
+        </li>
+        <li>
+          <a routerLink="/admin/sellers" routerLinkActive="active" ariaCurrentWhenActive="page" class="admin-nav-link">
+            <i class="bi bi-person-badge" aria-hidden="true"></i> Duyệt người bán
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <a routerLink="/home" class="admin-nav-link admin-store-link">
+      <i class="bi bi-shop" aria-hidden="true"></i> Về cửa hàng
+    </a>
+  </aside>
 
   <!-- Main Content -->
-  <div class="flex-grow-1 bg-light">
-    <!-- Topbar -->
-    <nav class="navbar navbar-expand-lg navbar-white bg-white shadow-sm px-4 py-3">
-      <div class="container-fluid">
-        <span class="navbar-brand mb-0 h1 text-primary">Admin Control Panel</span>
-        <div class="d-flex align-items-center">
-            <span class="badge bg-danger me-3"><i class="bi bi-bell"></i> Alerts</span>
-            <span class="text-secondary fw-bold">Adminstrator</span>
-        </div>
-      </div>
-    </nav>
-    
-    <!-- Router outlet for dashboard/products -->
-    <div class="p-4">
-        <router-outlet></router-outlet>
-    </div>
+  <div class="admin-main">
+    <header class="admin-topbar">
+      <span class="admin-topbar-title">Bảng điều khiển quản trị</span>
+      <span class="admin-role-chip"><i class="bi bi-shield-lock" aria-hidden="true"></i> Quản trị viên</span>
+    </header>
+
+    <main class="admin-content" id="main-content" tabindex="-1">
+      <router-outlet></router-outlet>
+    </main>
   </div>
 </div>
