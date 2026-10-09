@@ -35,6 +35,24 @@
 - warehouse: seller sửa được tồn kho của sản phẩm bất kỳ (chưa kiểm sản phẩm thuộc shop mình).
 - Chưa audit: settlement, review, analytics, chat, template_storage, product (ownership khi sửa sản phẩm), shop, auth/OTP.
 
+## 0c. Audit các module còn lại (đã sửa, `mvn test` toàn bộ pass)
+
+| Module | Lỗi xác nhận | Đã sửa |
+|---|---|---|
+| **settlement** | Mọi endpoint mở: ai cũng đổi tỷ lệ hoa hồng, yêu cầu chi trả cho shop bất kỳ tới tài khoản ngân hàng mặc định, rồi tự duyệt + xác nhận; có thể tạo **chi trả trùng** cho cùng kỳ (APPROVED chưa chặn); xác nhận khi chưa duyệt | Luật + duyệt/xác nhận = ADMIN; xem/chi trả theo shop = chủ shop (tra shop-service); bỏ mặc định ngân hàng; chặn chi trả trùng; bắt buộc duyệt trước khi xác nhận |
+| **review** | `DELETE /reviews/{id}` mở cho mọi người; bất kỳ user nào cũng đăng "phản hồi của shop" cho mọi đánh giá | Chỉ tác giả/ADMIN xóa; phản hồi chỉ seller của shop bán sản phẩm (hoặc ADMIN), fail-closed |
+| **analytics** | Doanh thu/khách hàng/CLV/hiệu suất sản phẩm của mọi shop đọc được bởi bất kỳ ai (kể cả ẩn danh); gợi ý cá nhân theo userId tuỳ ý | Có `shopId` → chủ shop/ADMIN; không có → ADMIN; gợi ý cá nhân chỉ chính user |
+| **template/marketing** | Ai cũng tạo/bật tắt banner & chiến dịch, xem bản nháp | Mọi thao tác ghi + danh sách đầy đủ = ADMIN; `/active` vẫn công khai |
+| **product** | Sửa/xóa sản phẩm **không có `X-User-Id` thì bỏ qua kiểm tra chủ sở hữu** → ẩn danh đổi giá (order tin giá này); tạo sản phẩm vào shop bất kỳ; flash sale ghi mở; reindex ES mở; `POST /products/{id}/reviews` né xác minh đã mua; lookup tên shop gọi endpoint không tồn tại | Bắt buộc danh tính, ép shopId = shop của seller, flash sale/reindex = ADMIN, chặn review qua product, sửa client shop |
+| **auth** | Service không áp dụng handler lỗi chung → sai mật khẩu/trùng username trả **500**; liệt kê tài khoản (hai thông báo khác nhau); log 20 ký tự đầu của hash mật khẩu; 2FA bị bỏ qua khi đăng nhập; khoá đăng nhập né được bằng hoa/thường; `/otp/send` luôn báo "đã gửi (mock)" kể cả khi lỗi/rate-limit; dùng thử membership vô hạn | `AuthExceptionHandler` (401/409/404/400); thông báo chung; bỏ log nhạy cảm; 2FA bắt buộc mã khi đăng nhập (UI có ô nhập mã); chuẩn hoá khoá; OTP trả lỗi thật (400/429/502); một lần dùng thử (+3 test) |
+| **order/RMA** | Mọi user đã đăng nhập duyệt/kiểm định/**hoàn tiền**/đổi hàng và đọc mọi RMA; `X-User-Id` mặc định 1/999 | ADMIN cho hoàn tiền/nhận kho/kiểm định; seller đúng shop cho duyệt/từ chối; đọc theo người tạo/chủ shop/ADMIN (+3 test) |
+| **payment/membership** | `X-User-Id` mặc định 1 trên ví, thẻ quà tặng, membership; tạo gói hội viên mở | Header bắt buộc; gói = ADMIN; gateway yêu cầu đăng nhập |
+
+**Còn mở (đã xác nhận):**
+- Membership PRO **không thu tiền**: `chargeAmount` chỉ được ghi lại, không gọi payment-service → gói trả phí kích hoạt miễn phí. Cần tích hợp trừ store credit/cổng thanh toán.
+- Chưa audit sâu: payment-service ở tầng nghiệp vụ (tạo payment cho đơn của người khác, hoàn tiền), voucher/shipping/complaint của order, product variants/compare, OAuth login (liên kết tài khoản theo email chưa xác thực), refresh token qua query string.
+- Banner `imageUrl/linkUrl` chưa lọc scheme (`javascript:`) — hiện chưa có UI hiển thị.
+
 ## 1. Lỗi đã xác nhận (trạng thái trước khi sửa)
 
 | # | Mức | Lỗi | Bằng chứng | Hướng sửa |
