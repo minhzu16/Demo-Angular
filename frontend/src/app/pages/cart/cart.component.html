@@ -101,9 +101,9 @@
           <h5 class="summary-title mb-4">Tóm tắt đơn hàng</h5>
 
           <!-- Loyalty Points Banner -->
-          <div class="points-banner mb-3 p-2 bg-light rounded text-center small">
-            <i class="bi bi-lightning-charge-fill text-warning"></i>
-            <span>Tích lũy <strong>{{ (selectedTotalAmount / 10000) | number:'1.0-0' }} NexPoints</strong></span>
+          <div class="points-banner mb-3">
+            <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+            <span>Nhận khoảng <strong>{{ (selectedTotalAmount / 1000) | number:'1.0-0' }} NexPoints</strong> khi đơn được giao</span>
           </div>
 
           <div class="summary-list mb-3">
@@ -157,8 +157,8 @@
           </button>
 
           <div class="trust-indicators mt-4">
-            <div class="ti-item"><i class="bi bi-shield-check text-success"></i> Thanh toán an toàn 100%</div>
-            <div class="ti-item"><i class="bi bi-arrow-counterclockwise text-primary"></i> Trả hàng trong 30 ngày</div>
+            <div class="ti-item"><i class="bi bi-qr-code-scan" aria-hidden="true"></i> Thanh toán VietQR hoặc COD</div>
+            <div class="ti-item"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Yêu cầu đổi trả ngay trong trang đơn hàng</div>
           </div>
         </div>
       </div>

@@ -1,9 +1,12 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { ToastrService } from 'ngx-toastr';
 import { ProductService, ProductListResponse } from '../../services/product.service';
 import { CompareService } from '../../services/compare.service';
+import { WishlistService } from '../../services/wishlist.service';
+import { AuthService } from '../../services/auth.service';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
@@ -18,6 +21,11 @@ export class ProductsComponent implements OnInit, OnDestroy {
     private productService = inject(ProductService);
     private router = inject(Router);
     private compareService = inject(CompareService);
+    private route = inject(ActivatedRoute);
+    private wishlistService = inject(WishlistService);
+    private authService = inject(AuthService);
+    private toastr = inject(ToastrService);
+    private queryParamSubscription?: Subscription;
 
     filteredProducts: any[] = [];
     loading = false;
@@ -53,7 +61,18 @@ export class ProductsComponent implements OnInit, OnDestroy {
     private searchSubscription!: Subscription;
 
     ngOnInit() {
-        this.loadProducts();
+        this.wishlistService.ensureLoaded();
+
+        // The header search box and category strip link here as /products?q=… — honour it, and keep
+        // listening because navigating between two ?q= values reuses this component instance.
+        this.queryParamSubscription = this.route.queryParamMap.subscribe(params => {
+            const q = (params.get('q') || '').trim();
+            const category = this.categories.find(c => c.name.toLowerCase() === q.toLowerCase());
+            this.selectedCategoryStr = category ? category.name : '';
+            this.searchQuery = category ? '' : q;
+            this.currentPage = 1;
+            this.loadProducts();
+        });
 
         // Setup debounce for filter changes (500ms delay)
         this.searchSubscription = this.searchSubject.pipe(
@@ -68,6 +87,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
         if (this.searchSubscription) {
             this.searchSubscription.unsubscribe();
         }
+        this.queryParamSubscription?.unsubscribe();
     }
 
     loadProducts() {
@@ -144,8 +164,20 @@ export class ProductsComponent implements OnInit, OnDestroy {
         }
     }
 
+    isWished(product: any): boolean {
+        return this.wishlistService.has(Number(product.id));
+    }
+
     toggleWishlist(product: any): void {
-        product.wished = !product.wished;
+        if (!this.authService.isAuthenticated()) {
+            this.toastr.info('Đăng nhập để lưu sản phẩm yêu thích');
+            this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+            return;
+        }
+        this.wishlistService.toggle(Number(product.id)).subscribe({
+            next: wished => this.toastr.success(wished ? 'Đã thêm vào yêu thích' : 'Đã bỏ khỏi yêu thích'),
+            error: () => this.toastr.error('Không thể cập nhật yêu thích. Vui lòng thử lại.')
+        });
     }
 
     addToCompare(product: any): void {
@@ -156,6 +188,11 @@ export class ProductsComponent implements OnInit, OnDestroy {
         this.minPrice = min;
         this.maxPrice = max > 0 ? max : 50000000;
         this.applyFilters();
+    }
+
+    /** Rounds to whole stars so filled + empty always totals 5 (floor(4.8)+floor(0.2) used to give 4). */
+    roundedRating(rating: number): number {
+        return Math.min(5, Math.max(0, Math.round(rating || 0)));
     }
 
     getStarArray(n: number): any[] {

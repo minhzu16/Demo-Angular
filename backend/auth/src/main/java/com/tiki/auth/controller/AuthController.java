@@ -37,7 +37,8 @@ public class AuthController {
     public AuthResponse login(@Valid @RequestBody LoginRequest request,
                               HttpServletRequest httpRequest) {
         // Brute-force protection — block after 5 failed attempts
-        String lockKey = request.getUsernameOrEmail();
+        // Normalised: "Admin" and "admin " used to be different lockout buckets, so the limit was trivially bypassed.
+        String lockKey = request.getUsernameOrEmail().trim().toLowerCase();
         if (loginAttemptService.isBlocked(lockKey)) {
             long remaining = loginAttemptService.getRemainingLockoutSeconds(lockKey);
             log.warn("SECURITY: Blocked login attempt for '{}' (locked for {}s)", lockKey, remaining);

@@ -20,6 +20,29 @@ public class WarehouseController {
     private final WarehouseCommandService warehouseCommandService;
     private final com.tiki.warehouse.service.WarehouseAllocationService warehouseAllocationService;
 
+    private final com.tiki.warehouse.client.ShopClient shopClient;
+
+    /** Shop inventory is business data: only the shop's own seller (looked up in shop-service) or an admin. */
+    private void requireShopOwnerOrAdmin(Long shopId, Long callerId, String role) {
+        boolean admin = role != null && role.toUpperCase().contains("ADMIN");
+        if (admin) {
+            return;
+        }
+        boolean owns = false;
+        if (callerId != null) {
+            try {
+                com.tiki.warehouse.client.ShopClient.ShopRef shop = shopClient.getShopBySeller(callerId);
+                owns = shop != null && shopId != null && shopId.equals(shop.id());
+            } catch (Exception e) {
+                log.warn("Could not verify shop ownership for seller {}: {}", callerId, e.getMessage()); // fail closed
+            }
+        }
+        if (!owns) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "Bạn chỉ có thể xem kho của cửa hàng mình");
+        }
+    }
+
     @GetMapping("/stock/{productId}")
     public ResponseEntity<Integer> getStock(@PathVariable Long productId) {
         log.info("Checking stock for product: {}", productId);
@@ -54,13 +77,21 @@ public class WarehouseController {
     }
 
     @GetMapping("/shops/{shopId}/stats")
-    public ResponseEntity<Map<String, Object>> getShopStats(@PathVariable Long shopId) {
+    public ResponseEntity<Map<String, Object>> getShopStats(
+            @PathVariable Long shopId,
+            @RequestHeader(value = "X-User-Id", required = false) Long callerId,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        requireShopOwnerOrAdmin(shopId, callerId, role);
         log.info("Fetching stats for shop: {}", shopId);
         return ResponseEntity.ok(warehouseQueryService.getShopStats(shopId));
     }
 
     @GetMapping("/shops/{shopId}/stock")
-    public ResponseEntity<List<InventoryDto>> getShopStock(@PathVariable Long shopId) {
+    public ResponseEntity<List<InventoryDto>> getShopStock(
+            @PathVariable Long shopId,
+            @RequestHeader(value = "X-User-Id", required = false) Long callerId,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        requireShopOwnerOrAdmin(shopId, callerId, role);
         log.info("Fetching stock for shop: {}", shopId);
         return ResponseEntity.ok(warehouseQueryService.getShopStock(shopId));
     }

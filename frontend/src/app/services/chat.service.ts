@@ -9,6 +9,8 @@ export interface ChatMessage {
     sender: string;
     senderId: number;
     shopId: number;
+    /** The buyer side of the conversation; set by the server. */
+    buyerId?: number;
     shopName?: string;
     timestamp?: string;
 }
@@ -51,15 +53,28 @@ export class ChatService implements OnDestroy {
     private chatWsUrl = this.getChatWsUrl();
 
     private getChatWsUrl(): string {
-        const host = window.location.hostname;
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        if (host === 'localhost' || host === '127.0.0.1') {
-            return 'ws://localhost:8091/ws/chat/websocket';
-        }
-        return `${protocol}//${host}:8080/ws/chat/websocket`;
+        // Always go through the gateway (nginx proxies /ws/ in docker; the dev server runs on :4200).
+        const host = window.location.host === 'localhost:4200' ? 'localhost:8080' : window.location.host;
+        return `${protocol}//${host}/ws/chat/websocket`;
     }
 
-    connect(shopId: number, sender: string, senderId: number): void {
+    /** The STOMP session is authenticated by the JWT in the CONNECT frame (browsers cannot set WS headers). */
+    private authHeader(): Record<string, string> {
+        try {
+            const token = localStorage.getItem('access_token');
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        } catch {
+            return {};
+        }
+    }
+
+    /**
+     * Each conversation is a private channel (shop, buyer):
+     *  - 'buyer'  (default): subscribes to /topic/conv/{shopId}/{ownUserId}
+     *  - 'seller': subscribes to the shop's inbox /topic/inbox/{shopId} (all conversations; owner only)
+     */
+    connect(shopId: number, sender: string, senderId: number, mode: 'buyer' | 'seller' = 'buyer'): void {
         // ✅ BUG 23 FIX: If already connected to a DIFFERENT shop, disconnect first
         if (this.connected && this.currentShopId !== null && this.currentShopId !== shopId) {
             console.log(`[Chat] Switching from shop ${this.currentShopId} to ${shopId} — disconnecting first.`);
@@ -73,10 +88,10 @@ export class ChatService implements OnDestroy {
         this.currentSenderId = senderId;
         this.intentionalDisconnect = false;
 
-        this.openSocket(shopId, sender, senderId);
+        this.openSocket(shopId, sender, senderId, mode);
     }
 
-    private openSocket(shopId: number, sender: string, senderId: number): void {
+    private openSocket(shopId: number, sender: string, senderId: number, mode: 'buyer' | 'seller'): void {
         try {
             this.socket = new WebSocket(this.chatWsUrl);
 
@@ -85,6 +100,7 @@ export class ChatService implements OnDestroy {
                 this.sendFrame('CONNECT', {
                     'accept-version': '1.2',
                     'heart-beat': '10000,10000',
+                    ...this.authHeader(),
                     'senderId': String(senderId),
                     'sender': sender
                 });
@@ -99,14 +115,21 @@ export class ChatService implements OnDestroy {
                     this.subscriptions.clear();
                     this.messageCounter = 0;
 
-                    // Subscribe to the shop topic
-                    this.stompSubscribe(`/topic/shop/${shopId}`, (msg) => {
+                    const destination = mode === 'seller'
+                        ? `/topic/inbox/${shopId}`
+                        : `/topic/conv/${shopId}/${senderId}`;
+                    this.stompSubscribe(destination, (msg) => {
                         const current = this._messages$.value;
                         this._messages$.next([...current, msg]);
                     });
 
-                    // Send JOIN notification
-                    this.sendMessage(shopId, { type: 'JOIN', content: '', sender, senderId, shopId }, senderId);
+                    // Presence notice for the buyer's own conversation (a seller opening the inbox stays silent)
+                    if (mode === 'buyer') {
+                        this.sendFrame('SEND', {
+                            destination: `/app/chat/${shopId}/${senderId}/join`,
+                            'content-type': 'application/json'
+                        }, JSON.stringify({ type: 'JOIN', content: '', sender, senderId, shopId }));
+                    }
 
                 } else if (data.startsWith('MESSAGE')) {
                     this.handleStompMessage(data);
@@ -125,7 +148,7 @@ export class ChatService implements OnDestroy {
                     this.reconnectAttempts++;
                     console.log(`[Chat] Connection closed (code=${event.code}). Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.MAX_RETRIES})...`);
                     this.reconnectTimer = setTimeout(() => {
-                        this.openSocket(shopId, sender, senderId);
+                        this.openSocket(shopId, sender, senderId, mode);
                     }, delay);
                 } else if (this.reconnectAttempts >= this.MAX_RETRIES) {
                     console.warn('[Chat] Max reconnect attempts reached. Giving up.');
@@ -143,12 +166,16 @@ export class ChatService implements OnDestroy {
         }
     }
 
-    sendMessage(shopId: number, message: ChatMessage, senderId?: number): void {
+    /**
+     * Sends into the conversation (shopId, buyerId). A buyer talks in their own conversation (buyerId defaults to
+     * their id); a seller replies by passing the buyer's id. The server ignores any sender identity sent here —
+     * it is stamped from the JWT — and rejects conversations the user may not join.
+     */
+    sendMessage(shopId: number, message: ChatMessage, senderId?: number, buyerId?: number): void {
         if (!this.connected || !this.socket) return;
         const body = JSON.stringify(message);
-        // ✅ BUG 25 FIX: Include senderId in STOMP SEND header for server-side validation
         const headers: Record<string, string> = {
-            destination: `/app/chat/${shopId}`,
+            destination: `/app/chat/${shopId}/${buyerId ?? senderId ?? this.currentSenderId}`,
             'content-type': 'application/json'
         };
         if (senderId !== undefined) {
@@ -157,8 +184,8 @@ export class ChatService implements OnDestroy {
         this.sendFrame('SEND', headers, body);
     }
 
-    sendChatMessage(shopId: number, content: string, sender: string, senderId: number): void {
-        this.sendMessage(shopId, { type: 'CHAT', content, sender, senderId, shopId }, senderId);
+    sendChatMessage(shopId: number, content: string, sender: string, senderId: number, buyerId: number = senderId): void {
+        this.sendMessage(shopId, { type: 'CHAT', content, sender, senderId, shopId, buyerId }, senderId, buyerId);
     }
 
     disconnect(): void {

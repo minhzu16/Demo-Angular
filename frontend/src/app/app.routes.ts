@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { roleGuard } from './guards/role.guard';
 import { GuestLayoutComponent } from './layouts/guest-layout/guest-layout.component';
 
 export const routes: Routes = [
@@ -59,6 +60,8 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/order-success/order-success.component').then(m => m.OrderSuccessComponent),
         canActivate: [authGuard]
       },
+      // Old deep links to a standalone flash-sale page now land on the home flash-sale section.
+      { path: 'flash-sale', redirectTo: 'home', pathMatch: 'full' },
       { path: '', redirectTo: 'home', pathMatch: 'full' }
     ]
   },
@@ -77,12 +80,12 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
-    canActivate: [authGuard]
+    canActivate: [roleGuard('ADMIN')]
   },
   {
     path: 'admin',
     loadComponent: () => import('./pages/admin/admin-layout/admin-layout.component').then(m => m.AdminLayoutComponent),
-    canActivate: [authGuard],
+    canActivate: [roleGuard('ADMIN')],
     children: [
       {
         path: 'dashboard',
@@ -110,34 +113,35 @@ export const routes: Routes = [
 
   // ── Seller ────────────────────────────────────────────────
   {
-    path: 'seller/dashboard',
-    loadComponent: () => import('./pages/seller/dashboard/seller-dashboard.component').then(m => m.SellerDashboardComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'seller/products',
-    loadComponent: () => import('./pages/seller/products/seller-products.component').then(m => m.SellerProductsComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'seller/products/new',
-    loadComponent: () => import('./pages/seller/products/seller-product-form.component').then(m => m.SellerProductFormComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'seller/products/edit/:id',
-    loadComponent: () => import('./pages/seller/products/seller-product-form.component').then(m => m.SellerProductFormComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'seller/orders',
-    loadComponent: () => import('./pages/seller/orders/seller-orders.component').then(m => m.SellerOrdersComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'seller/chat',
-    loadComponent: () => import('./pages/seller/chat/seller-chat.component').then(m => m.SellerChatComponent),
-    canActivate: [authGuard]
+    path: 'seller',
+    canActivate: [roleGuard('SELLER', 'ADMIN')],
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./pages/seller/dashboard/seller-dashboard.component').then(m => m.SellerDashboardComponent)
+      },
+      {
+        path: 'products',
+        loadComponent: () => import('./pages/seller/products/seller-products.component').then(m => m.SellerProductsComponent)
+      },
+      {
+        path: 'products/new',
+        loadComponent: () => import('./pages/seller/products/seller-product-form.component').then(m => m.SellerProductFormComponent)
+      },
+      {
+        path: 'products/edit/:id',
+        loadComponent: () => import('./pages/seller/products/seller-product-form.component').then(m => m.SellerProductFormComponent)
+      },
+      {
+        path: 'orders',
+        loadComponent: () => import('./pages/seller/orders/seller-orders.component').then(m => m.SellerOrdersComponent)
+      },
+      {
+        path: 'chat',
+        loadComponent: () => import('./pages/seller/chat/seller-chat.component').then(m => m.SellerChatComponent)
+      },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
+    ]
   },
 
   // ── 404 ──────────────────────────────────────────────────

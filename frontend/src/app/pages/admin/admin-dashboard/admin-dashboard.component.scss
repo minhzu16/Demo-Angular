@@ -1,0 +1,85 @@
+.admin-page-title {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  margin: 8px 0 0;
+}
+
+.kpi-card {
+  border: none;
+  color: #fff;
+  border-radius: var(--nx-radius-lg);
+  overflow: hidden;
+  position: relative;
+
+  /* seal-diamond watermark */
+  &::after {
+    content: '';
+    position: absolute;
+    right: -26px;
+    top: -26px;
+    width: 96px;
+    height: 96px;
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    transform: rotate(45deg);
+    border-radius: 14px;
+  }
+
+  .card-body { padding: 22px 24px; }
+
+  .kpi-label {
+    font-family: var(--nx-font-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: inherit;
+    opacity: 0.92;
+    margin-bottom: 10px;
+  }
+
+  .kpi-value {
+    font-family: var(--nx-font-display);
+    font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 0 0 6px;
+  }
+
+  small { opacity: 0.85; }
+}
+
+.kpi-revenue { background: var(--nx-primary); }
+.kpi-orders  { background: var(--nx-secondary); }
+.kpi-aov     { background: var(--nx-ink); .kpi-value { color: var(--nx-gold); } }
+
+.card-heading {
+  font-family: var(--nx-font-body);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--nx-text);
+  margin: 0;
+}
+
+.admin-shortcuts {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: var(--nx-radius);
+    border: 1px solid var(--nx-border);
+    color: var(--nx-text);
+    font-weight: 500;
+    text-decoration: none;
+
+    i { color: var(--nx-primary); }
+    &:hover { border-color: var(--nx-ink); background: var(--nx-surface-2); }
+  }
+}

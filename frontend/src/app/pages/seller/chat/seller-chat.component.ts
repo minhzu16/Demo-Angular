@@ -30,6 +30,10 @@ export class SellerChatComponent implements OnInit, OnDestroy, AfterViewChecked 
     loading = true;
     error = '';
 
+    /** Conversation currently open (the buyer's user id). Each conversation is a private channel (shop, buyer). */
+    selectedBuyerId: number | null = null;
+    private readState = new Map<number, number>();   // buyerId -> number of messages already seen
+
     private messagesSub!: Subscription;
     private connectedSub!: Subscription;
     private shouldScroll = false;
@@ -64,7 +68,8 @@ export class SellerChatComponent implements OnInit, OnDestroy, AfterViewChecked 
                 this.shop = shop;
                 this.loading = false;
                 // Auto-connect to own shop's chat channel
-                this.chatService.connect(shop.id, this.currentUser, this.currentUserId);
+                // The shop inbox carries every conversation of this shop; only the shop's owner may subscribe.
+                this.chatService.connect(shop.id, this.currentUser, this.currentUserId, 'seller');
             },
             error: () => {
                 this.error = 'Không thể tải thông tin cửa hàng. Bạn cần có cửa hàng để sử dụng tính năng chat.';
@@ -73,9 +78,46 @@ export class SellerChatComponent implements OnInit, OnDestroy, AfterViewChecked 
         });
     }
 
+    /** One entry per buyer who has written to the shop, most recent first. */
+    get conversations(): { buyerId: number; name: string; lastMessage: string; lastTime?: string; unread: number }[] {
+        const byBuyer = new Map<number, ChatMessage[]>();
+        for (const m of this.messages) {
+            if (m.buyerId == null || m.type !== 'CHAT') continue;
+            const list = byBuyer.get(m.buyerId) ?? [];
+            list.push(m);
+            byBuyer.set(m.buyerId, list);
+        }
+        return Array.from(byBuyer.entries()).map(([buyerId, list]) => {
+            const last = list[list.length - 1];
+            const buyerMsg = [...list].reverse().find(m => m.senderId === buyerId);
+            const seen = buyerId === this.selectedBuyerId ? list.length : (this.readState.get(buyerId) ?? 0);
+            return {
+                buyerId,
+                name: buyerMsg?.sender || `Khách #${buyerId}`,
+                lastMessage: last.content,
+                lastTime: last.timestamp,
+                unread: Math.max(0, list.length - seen)
+            };
+        }).sort((a, b) => (b.lastTime ?? '').localeCompare(a.lastTime ?? ''));
+    }
+
+    get activeMessages(): ChatMessage[] {
+        return this.selectedBuyerId == null ? [] : this.messages.filter(m => m.buyerId === this.selectedBuyerId);
+    }
+
+    get activeConversationName(): string {
+        return this.conversations.find(c => c.buyerId === this.selectedBuyerId)?.name ?? '';
+    }
+
+    selectConversation(buyerId: number): void {
+        this.selectedBuyerId = buyerId;
+        this.readState.set(buyerId, this.messages.filter(m => m.buyerId === buyerId && m.type === 'CHAT').length);
+        this.shouldScroll = true;
+    }
+
     sendMessage(): void {
-        if (!this.newMessage.trim() || !this.shop) return;
-        this.chatService.sendChatMessage(this.shop.id, this.newMessage.trim(), this.currentUser, this.currentUserId);
+        if (!this.newMessage.trim() || !this.shop || this.selectedBuyerId == null) return;
+        this.chatService.sendChatMessage(this.shop.id, this.newMessage.trim(), this.currentUser, this.currentUserId, this.selectedBuyerId);
         this.newMessage = '';
     }
 

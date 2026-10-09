@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -34,25 +35,44 @@ public class CartController {
         return new SessionResponse(sessionId);
     }
 
+    /**
+     * The caller's identity comes ONLY from the gateway-validated X-User-Id header.
+     * A userId in the query string or body used to be honoured when the header was absent, which let an
+     * anonymous caller read or modify any user's cart. Guests are identified by their sessionId instead.
+     */
+    private static Integer callerId(Long userIdHeader) {
+        return userIdHeader != null ? userIdHeader.intValue() : null;
+    }
+
+    private static void requireSelf(Long userIdHeader, Integer pathUserId) {
+        if (userIdHeader == null || !userIdHeader.equals(pathUserId.longValue())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn chỉ có thể xem giỏ hàng của chính mình");
+        }
+    }
+
     /** Get or create cart */
     @GetMapping
     public CartDto getCart(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
                            @RequestParam(required = false) Integer userId,
                            @RequestParam(required = false) String sessionId){
-        Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
+        Integer finalUserId = callerId(userIdHeader);
         log.debug("Getting cart for userId: {}, sessionId: {}", finalUserId, sessionId);
         return cartService.getCart(finalUserId, sessionId);
     }
 
-    /** Get cart by user ID */
+    /** Get cart by user ID (own cart only) */
     @GetMapping("/user/{userId}")
-    public ResponseEntity<CartDto> getCartByUserId(@PathVariable Integer userId){
+    public ResponseEntity<CartDto> getCartByUserId(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+                                                   @PathVariable Integer userId){
+        requireSelf(userIdHeader, userId);
         return ResponseEntity.ok(cartService.getCart(userId, null));
     }
 
-    /** Get cart items count by user ID */
+    /** Get cart items count by user ID (own cart only) */
     @GetMapping("/user/{userId}/count")
-    public ResponseEntity<Integer> getCartCountByUserId(@PathVariable Integer userId){
+    public ResponseEntity<Integer> getCartCountByUserId(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+                                                        @PathVariable Integer userId){
+        requireSelf(userIdHeader, userId);
         return ResponseEntity.ok(cartService.getCart(userId, null).getTotalItems());
     }
 
@@ -62,7 +82,7 @@ public class CartController {
     public CartDto addItemSimple(
             @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
             @Valid @RequestBody AddItemRequest req){
-        Integer userId = userIdHeader != null ? userIdHeader.intValue() : req.getUserId();
+        Integer userId = callerId(userIdHeader);
         Integer productId = req.getProductId();
         Integer quantity = req.getQuantity() != null ? req.getQuantity() : 1;
         
@@ -79,7 +99,7 @@ public class CartController {
                                            @RequestParam(required = false) Integer userId,
                                            @RequestParam(required = false) String sessionId,
                                            @Valid @RequestBody AddItemRequest req){
-        Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
+        Integer finalUserId = callerId(userIdHeader);
         // ✅ SECURITY FIX: Fetch giá từ ProductService
         BigDecimal price = fetchProductPrice(req.getProductId());
         log.info("Legacy endpoint: Fetched price {} for product {}", price, req.getProductId());
@@ -93,7 +113,7 @@ public class CartController {
                                              @RequestParam(required = false) String sessionId,
                                              @PathVariable Integer productId,
                                              @Valid @RequestBody UpdateQtyRequest req){
-        Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
+        Integer finalUserId = callerId(userIdHeader);
         return ResponseEntity.ok(cartService.updateQty(finalUserId,sessionId,productId,req.getQuantity()));
     }
 
@@ -103,7 +123,7 @@ public class CartController {
                                           @RequestParam(required = false) Integer userId,
                                           @RequestParam(required = false) String sessionId,
                                           @PathVariable Integer productId){
-        Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
+        Integer finalUserId = callerId(userIdHeader);
         return ResponseEntity.ok(cartService.removeItem(finalUserId,sessionId,productId));
     }
 
@@ -112,7 +132,7 @@ public class CartController {
     public ResponseEntity<Integer> count(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
                                          @RequestParam(required = false) Integer userId,
                                          @RequestParam(required = false) String sessionId){
-        Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
+        Integer finalUserId = callerId(userIdHeader);
         return ResponseEntity.ok(cartService.getCart(finalUserId,sessionId).getTotalItems());
     }
 
@@ -121,14 +141,19 @@ public class CartController {
     public ResponseEntity<BigDecimal> total(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
                                             @RequestParam(required = false) Integer userId,
                                             @RequestParam(required = false) String sessionId){
-        Integer finalUserId = userIdHeader != null ? userIdHeader.intValue() : userId;
+        Integer finalUserId = callerId(userIdHeader);
         return ResponseEntity.ok(cartService.getCart(finalUserId,sessionId).getTotalAmount());
     }
 
-    /** Merge guest cart to user cart */
+    /** Merge the guest cart (by sessionId) into the signed-in caller's cart. */
     @PostMapping("/merge")
-    public ResponseEntity<CartDto> merge(@RequestParam Integer userId, @RequestParam String sessionId){
-        return ResponseEntity.ok(cartService.merge(userId,sessionId));
+    public ResponseEntity<CartDto> merge(@RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+                                         @RequestParam(required = false) Integer userId,
+                                         @RequestParam String sessionId){
+        if (userIdHeader == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cần đăng nhập để gộp giỏ hàng");
+        }
+        return ResponseEntity.ok(cartService.merge(userIdHeader.intValue(), sessionId));
     }
     
     /** Get cart summary */
@@ -178,17 +203,17 @@ public class CartController {
     private BigDecimal fetchProductPrice(Integer productId) {
         try {
             ProductClient.ProductDTO product = productClient.getProduct(productId);
-            if (product != null && product.getPrice() != null) {
+            if (product != null && product.getPrice() != null && product.getPrice().signum() > 0) {
                 BigDecimal price = product.getPrice();
                 log.debug("Fetched price {} for product {}", price, productId);
                 return price;
             }
-            log.warn("Product {} not found or has no price, using 0", productId);
-            return BigDecimal.ZERO;
         } catch (Exception e) {
             log.error("Failed to fetch price for product {}: {}", productId, e.getMessage());
-            // Fallback to 0 if Product Service is down
-            return BigDecimal.ZERO;
         }
+        // Never store a zero price: it showed "0 ₫" items in the cart and hid that the product service
+        // was down (the Feign fallback also returns price 0 for unknown products).
+        throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                "Không thể xác minh giá sản phẩm lúc này. Vui lòng thử lại sau.");
     }
 }

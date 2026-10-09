@@ -12,17 +12,20 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Global filter for JWT authentication at the API Gateway level.
@@ -44,6 +47,136 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
 
     private Key signingKey;
 
+    private enum Access { BLOCKED, ADMIN, SELLER, AUTHENTICATED }
+
+    /** access == null means "explicitly open" (overrides a broader rule that follows). */
+    private record Rule(HttpMethod method, String pattern, Access access) {
+        static Rule any(String pattern, Access access) { return new Rule(null, pattern, access); }
+        static Rule of(HttpMethod method, String pattern, Access access) { return new Rule(method, pattern, access); }
+    }
+
+    private static final AntPathMatcher MATCHER = new AntPathMatcher();
+
+    /**
+     * Edge policy for endpoints whose services expose them without their own authentication.
+     * BLOCKED = service-to-service only (called through Feign, never by a browser) -> always 403.
+     * ADMIN = money-moving / privileged operations. AUTHENTICATED = a valid JWT is required.
+     * First match wins, so specific rules precede the broad prefixes.
+     */
+    private static final List<Rule> POLICY = List.of(
+            Rule.of(HttpMethod.POST, "/api/v1/users/*/role", Access.BLOCKED),
+            Rule.of(HttpMethod.POST, "/api/v1/users/*/points", Access.BLOCKED),
+            Rule.any("/api/v1/membership/check/*", Access.BLOCKED),
+            Rule.any("/api/v1/membership/use-freeship/*", Access.BLOCKED),
+            Rule.of(HttpMethod.POST, "/api/v1/gift-cards/apply", Access.BLOCKED),
+            Rule.of(HttpMethod.POST, "/api/v1/store-credit/deduct", Access.BLOCKED),
+            Rule.any("/api/v1/warehouse/reserve/**", Access.BLOCKED),
+            Rule.any("/api/v1/warehouse/confirm/**", Access.BLOCKED),
+            Rule.any("/api/v1/warehouse/release/**", Access.BLOCKED),
+            Rule.of(HttpMethod.POST, "/api/v1/settlement/calculate", Access.BLOCKED),
+            // Settlement moves seller money: rules + payout approval are admin-only, a shop's own pages need SELLER
+            // (the service additionally checks the caller owns that shop).
+            // Catalog writes: sellers manage their own products (the service enforces ownership); flash sales and
+            // search reindexing are admin-only; reviews go through review-service (purchase verification), not product.
+            Rule.of(HttpMethod.POST, "/api/v1/products/*/reviews", Access.BLOCKED),
+            Rule.of(HttpMethod.POST, "/api/v1/products/search/reindex", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/products", Access.SELLER),
+            Rule.of(HttpMethod.PUT, "/api/v1/products/*", Access.SELLER),
+            Rule.of(HttpMethod.DELETE, "/api/v1/products/*", Access.SELLER),
+            Rule.of(HttpMethod.POST, "/api/v1/flash-sales/validate-item", Access.AUTHENTICATED),
+            Rule.of(HttpMethod.POST, "/api/v1/flash-sales/**", Access.ADMIN),
+            Rule.of(HttpMethod.PUT, "/api/v1/flash-sales/**", Access.ADMIN),
+            Rule.of(HttpMethod.DELETE, "/api/v1/flash-sales/**", Access.ADMIN),
+            // RMA (returns/exchanges): refunds, warehouse intake and inspection are admin-only, seller decisions need
+            // SELLER (the service checks shop ownership), everything else needs a login.
+            Rule.of(HttpMethod.POST, "/api/v1/rma/*/refund", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/rma/*/exchange", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/rma/*/receive", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/rma/*/inspect", Access.ADMIN),
+            Rule.of(HttpMethod.GET, "/api/v1/rma/admin", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/rma/*/approve", Access.SELLER),
+            Rule.of(HttpMethod.POST, "/api/v1/rma/*/reject", Access.SELLER),
+            Rule.of(HttpMethod.GET, "/api/v1/rma/shop/**", Access.SELLER),
+            Rule.any("/api/v1/rma/**", Access.AUTHENTICATED),
+            // Membership: plans are public to read, creating a plan is admin-only, the rest needs a login.
+            Rule.of(HttpMethod.GET, "/api/v1/membership/plans", null),
+            Rule.of(HttpMethod.POST, "/api/v1/membership/plans", Access.ADMIN),
+            Rule.any("/api/v1/membership/**", Access.AUTHENTICATED),
+            // Marketing/templates: the service has no auth, so every write and the full (inactive/draft) listings are
+            // admin-only; /active feeds and a campaign by code stay public.
+            Rule.of(HttpMethod.POST, "/api/v1/marketing/**", Access.ADMIN),
+            Rule.of(HttpMethod.PUT, "/api/v1/marketing/**", Access.ADMIN),
+            Rule.of(HttpMethod.DELETE, "/api/v1/marketing/**", Access.ADMIN),
+            Rule.of(HttpMethod.PATCH, "/api/v1/marketing/**", Access.ADMIN),
+            Rule.of(HttpMethod.GET, "/api/v1/marketing/banners", Access.ADMIN),
+            Rule.of(HttpMethod.GET, "/api/v1/marketing/campaigns", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/templates/**", Access.ADMIN),
+            Rule.of(HttpMethod.PUT, "/api/v1/templates/**", Access.ADMIN),
+            Rule.of(HttpMethod.DELETE, "/api/v1/templates/**", Access.ADMIN),
+            // Analytics: public storefront recommendations stay open; per-user ones need a login; everything else
+            // (sales, customers, product performance) is seller/admin and the service checks shop ownership.
+            Rule.of(HttpMethod.GET, "/api/v1/analytics/recommendations/trending", null),
+            Rule.of(HttpMethod.GET, "/api/v1/analytics/recommendations/product/**", null),
+            Rule.of(HttpMethod.GET, "/api/v1/analytics/recommendations/category/**", null),
+            Rule.any("/api/v1/analytics/recommendations/*", Access.AUTHENTICATED),
+            Rule.any("/api/v1/analytics/**", Access.SELLER),
+            // Reviews: writing/deleting needs a login, shop replies need SELLER (the service checks it is the product's shop)
+            Rule.of(HttpMethod.POST, "/api/v1/reviews/*/reply", Access.SELLER),
+            Rule.of(HttpMethod.POST, "/api/v1/reviews/create", Access.AUTHENTICATED),
+            Rule.of(HttpMethod.DELETE, "/api/v1/reviews/*", Access.AUTHENTICATED),
+            Rule.of(HttpMethod.POST, "/api/v1/settlement/rules", Access.ADMIN),
+            Rule.of(HttpMethod.DELETE, "/api/v1/settlement/rules/*", Access.ADMIN),
+            Rule.any("/api/v1/settlement/payouts/**", Access.ADMIN),
+            Rule.any("/api/v1/settlement/shop/**", Access.SELLER),
+            Rule.any("/api/v1/settlement/**", Access.AUTHENTICATED),
+            Rule.of(HttpMethod.POST, "/api/v1/notifications/stock-alert/trigger", Access.BLOCKED),
+            // Live: viewer counts are server-side data (no browser should set them); the rest of the
+            // write API needs a signed-in user because the service now requires X-User-Id.
+            Rule.of(HttpMethod.POST, "/api/v1/live/sessions/*/viewers", Access.BLOCKED),
+            Rule.of(HttpMethod.POST, "/api/v1/live/**", Access.AUTHENTICATED),
+            Rule.of(HttpMethod.DELETE, "/api/v1/live/**", Access.AUTHENTICATED),
+            // Notifications are personal: the service checks ownership, so a token is mandatory.
+            Rule.any("/api/v1/notifications/user/**", Access.AUTHENTICATED),
+            Rule.of(HttpMethod.PUT, "/api/v1/notifications/*/read", Access.AUTHENTICATED),
+            Rule.of(HttpMethod.POST, "/api/v1/payments/confirm/**", Access.ADMIN),
+            Rule.of(HttpMethod.PUT, "/api/v1/payments/order/*/status", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/payments/order/*/refund", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/store-credit/add", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/gift-cards/*/reload", Access.ADMIN),
+            // Approving a seller application grants the SELLER role -> admin only; applying/editing a shop needs login.
+            Rule.of(HttpMethod.GET, "/api/v1/seller-applications", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/seller-applications/*/review", Access.ADMIN),
+            Rule.of(HttpMethod.PUT, "/api/v1/seller-applications/*/approve", Access.ADMIN),
+            Rule.of(HttpMethod.PUT, "/api/v1/seller-applications/*/reject", Access.ADMIN),
+            Rule.any("/api/v1/seller-applications/**", Access.AUTHENTICATED),
+            Rule.of(HttpMethod.POST, "/api/v1/shops", Access.AUTHENTICATED),
+            Rule.of(HttpMethod.PUT, "/api/v1/shops/*", Access.AUTHENTICATED),
+            Rule.of(HttpMethod.GET, "/api/v1/shops/my-shop", Access.AUTHENTICATED),
+            // B2B: company verification (credit limit) and wholesale price tiers are platform-admin only.
+            Rule.of(HttpMethod.POST, "/api/v1/b2b/companies/*/verify", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/b2b/prices", Access.ADMIN),
+            Rule.any("/api/v1/b2b/**", Access.AUTHENTICATED),
+            // Warehouse stock management: the service itself has no authentication.
+            Rule.of(HttpMethod.POST, "/api/v1/warehouse/locations", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/warehouse/allocate", Access.ADMIN),
+            Rule.of(HttpMethod.PUT, "/api/v1/warehouse/stock-by-warehouse/**", Access.ADMIN),
+            Rule.of(HttpMethod.PUT, "/api/v1/warehouse/stock/**", Access.SELLER),
+            Rule.of(HttpMethod.PUT, "/api/v1/warehouse/products/*", Access.SELLER),
+            Rule.any("/api/v1/warehouse/shops/**", Access.SELLER),
+            // The payment provider webhook authenticates itself with its own API key.
+            Rule.any("/api/v1/payments/sepay-webhook", null),
+            Rule.any("/api/v1/payments/**", Access.AUTHENTICATED),
+            Rule.any("/api/v1/gift-cards/**", Access.AUTHENTICATED),
+            Rule.any("/api/v1/store-credit/**", Access.AUTHENTICATED)
+    );
+
+    /** Read-only catalogue calls that must keep working when the browser still holds a stale token. */
+    private static final List<String> PUBLIC_READ_PATTERNS = List.of(
+            "/api/v1/products/**", "/api/v1/categories/**", "/api/v1/brands/**", "/api/v1/flash-sales/**",
+            "/api/v1/reviews/product/**", "/api/v1/analytics/recommendations/trending",
+            "/api/v1/templates/**", "/api/v1/marketing/**", "/api/products/**"
+    );
+
     @PostConstruct
     public void init() {
         this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
@@ -52,13 +185,19 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
-        String path = request.getURI().getPath();
+        // Normalise before matching: matrix params (";x=1") and duplicate slashes must not hide a protected path.
+        String path = normalizePath(request.getURI().getPath());
+        HttpMethod method = request.getMethod();
+        Access required = requiredAccess(method, path);
 
         // SECURITY FIX (Vulnerability 3.4): Block direct external access to internal service-to-service endpoints
-        if (isInternalPath(path)) {
+        if (isInternalPath(path) || required == Access.BLOCKED) {
             log.warn("Blocked direct external access attempt to internal path: {}", path);
             return onError(exchange, HttpStatus.FORBIDDEN, "Truy cập tài nguyên nội bộ bị từ chối qua Gateway");
         }
+        final boolean adminRequired = isAdminPath(path) || required == Access.ADMIN;
+        final boolean sellerRequired = required == Access.SELLER;
+        final boolean authRequired = adminRequired || sellerRequired || required == Access.AUTHENTICATED;
 
         String reqId = request.getHeaders().getFirst("X-Request-Id");
         if (reqId == null || reqId.isBlank()) {
@@ -85,9 +224,14 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                 String role = roleObj != null ? String.valueOf(roleObj) : "BUYER";
 
                 // Check admin authorization if requesting admin endpoint
-                if (isAdminPath(path) && !hasAdminRole(role)) {
+                if (adminRequired && !hasAdminRole(role)) {
                     log.warn("Access denied for user {} with role {} on admin path: {}", username, role, path);
                     return onError(exchange, HttpStatus.FORBIDDEN, "Quyền truy cập bị từ chối: Yêu cầu quyền ADMIN");
+                }
+
+                if (sellerRequired && !hasSellerRole(role) && !hasAdminRole(role)) {
+                    log.warn("Access denied for user {} with role {} on seller path: {}", username, role, path);
+                    return onError(exchange, HttpStatus.FORBIDDEN, "Quyền truy cập bị từ chối: Yêu cầu quyền người bán");
                 }
 
                 // Mutate request: Strip client headers and set trusted headers from validated token
@@ -112,20 +256,29 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                 return chain.filter(exchange.mutate().request(mutatedRequest).build());
 
             } catch (JwtException | IllegalArgumentException e) {
+                // A stale token must not break anonymous catalogue browsing: serve it as a guest.
+                if (!authRequired && isPublicRead(method, path)) {
+                    log.debug("Ignoring invalid token on public read {}: {}", path, e.getMessage());
+                    return chain.filter(exchange.mutate().request(stripIdentity(exchange, correlationId)).build());
+                }
                 log.warn("Invalid JWT token on path {}: {}", path, e.getMessage());
                 return onError(exchange, HttpStatus.UNAUTHORIZED, "Token không hợp lệ hoặc đã hết hạn");
             }
         }
 
         // No Bearer token provided
-        // Strictly protect admin paths from unauthenticated access
-        if (isAdminPath(path)) {
-            log.warn("Unauthenticated access attempt on admin path: {}", path);
+        // Strictly protect admin / money / payment paths from unauthenticated access
+        if (authRequired) {
+            log.warn("Unauthenticated access attempt on protected path: {}", path);
             return onError(exchange, HttpStatus.UNAUTHORIZED, "Yêu cầu đăng nhập để truy cập tài nguyên này");
         }
 
         // Strip client headers for all non-authenticated requests to prevent spoofing
-        ServerHttpRequest cleanRequest = exchange.getRequest().mutate()
+        return chain.filter(exchange.mutate().request(stripIdentity(exchange, correlationId)).build());
+    }
+
+    private ServerHttpRequest stripIdentity(ServerWebExchange exchange, String correlationId) {
+        return exchange.getRequest().mutate()
                 .headers(headers -> {
                     headers.remove("X-User-Id");
                     headers.remove("X-Username");
@@ -133,8 +286,27 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                     headers.set("X-Request-Id", correlationId);
                 })
                 .build();
+    }
 
-        return chain.filter(exchange.mutate().request(cleanRequest).build());
+    /** Drops path parameters (";…" per segment) and collapses repeated slashes. */
+    static String normalizePath(String path) {
+        if (path == null) {
+            return "";
+        }
+        return path.replaceAll(";[^/]*", "").replaceAll("/{2,}", "/");
+    }
+
+    private Access requiredAccess(HttpMethod method, String path) {
+        for (Rule rule : POLICY) {
+            if ((rule.method() == null || rule.method().equals(method)) && MATCHER.match(rule.pattern(), path)) {
+                return rule.access();
+            }
+        }
+        return null;
+    }
+
+    private boolean isPublicRead(HttpMethod method, String path) {
+        return HttpMethod.GET.equals(method) && PUBLIC_READ_PATTERNS.stream().anyMatch(p -> MATCHER.match(p, path));
     }
 
     private boolean isAdminPath(String path) {
@@ -143,6 +315,15 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
 
     private boolean isInternalPath(String path) {
         return path != null && (path.contains("/internal/") || path.endsWith("/internal"));
+    }
+
+    private boolean hasSellerRole(String role) {
+        if (role == null || role.isBlank()) {
+            return false;
+        }
+        return Arrays.stream(role.split(","))
+                .map(String::trim)
+                .anyMatch(r -> r.equalsIgnoreCase("SELLER") || r.equalsIgnoreCase("ROLE_SELLER"));
     }
 
     private boolean hasAdminRole(String role) {

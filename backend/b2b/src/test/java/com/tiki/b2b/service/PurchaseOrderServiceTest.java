@@ -152,6 +152,34 @@ class PurchaseOrderServiceTest {
     }
 
     @Test
+    void testCreatePO_WithoutTierPrice_IsRejected_NotPricedByClient() {
+        PurchaseOrderCreateRequest req = PurchaseOrderCreateRequest.builder()
+                .companyId(1L)
+                .items(List.of(PurchaseOrderItemDto.builder()
+                        .productId(101L).productName("X").quantity(5)
+                        .defaultPrice(new BigDecimal("1.00")) // client-chosen price must be ignored
+                        .build()))
+                .build();
+        when(companyRepository.findById(1L)).thenReturn(Optional.of(activeCompany));
+        when(companyUserRepository.findByCompanyIdAndUserIdAndIsActiveTrue(1L, 10L)).thenReturn(Optional.of(buyerUser));
+        when(b2bService.getB2BPrice(eq(101L), eq(5), any())).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class, () -> purchaseOrderService.createPO(10L, req));
+        verify(purchaseOrderRepository, never()).save(any());
+    }
+
+    @Test
+    void testRejectPO_ByPlainBuyer_IsDenied() {
+        PurchaseOrderEntity po = PurchaseOrderEntity.builder()
+                .id(100L).companyId(1L).status(PurchaseOrderEntity.POStatus.PENDING_APPROVAL).build();
+        when(purchaseOrderRepository.findById(100L)).thenReturn(Optional.of(po));
+        when(companyUserRepository.findByCompanyIdAndUserIdAndIsActiveTrue(1L, 10L)).thenReturn(Optional.of(buyerUser));
+
+        assertThrows(SecurityException.class, () -> purchaseOrderService.rejectPO(100L, 10L, "no"));
+        verify(purchaseOrderRepository, never()).save(any());
+    }
+
+    @Test
     void testConvertToOrder_Success() {
         PurchaseOrderEntity po = PurchaseOrderEntity.builder()
                 .id(100L)

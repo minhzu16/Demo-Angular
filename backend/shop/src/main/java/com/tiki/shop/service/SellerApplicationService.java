@@ -31,6 +31,11 @@ public class SellerApplicationService {
         if (repository.existsByUserIdAndStatus(userId, SellerApplication.Status.PENDING)) {
             throw new RuntimeException("You already have a pending seller application");
         }
+        // The body is client-controlled: make sure it cannot overwrite an existing application or pre-fill review data.
+        application.setId(null);
+        application.setReviewedBy(null);
+        application.setReviewedAt(null);
+        application.setRejectionReason(null);
         application.setUserId(userId);
         application.setStatus(SellerApplication.Status.PENDING);
         return repository.save(application);

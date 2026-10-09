@@ -36,6 +36,19 @@ public class NotificationService {
         });
     }
 
+    /** Marks the notification read only if it belongs to {@code userId}; returns false when it is not theirs / missing. */
+    @Transactional
+    public boolean markAsRead(Long notificationId, Long userId) {
+        return notificationRepository.findById(notificationId)
+                .filter(n -> userId != null && userId.equals(n.getUserId()))
+                .map(n -> {
+                    n.setRead(true);
+                    notificationRepository.save(n);
+                    return true;
+                })
+                .orElse(false);
+    }
+
     @Transactional
     public void markAllAsRead(Long userId) {
         List<NotificationEntity> unread = notificationRepository.findByUserIdAndIsReadFalseOrderByCreatedAtDesc(userId);

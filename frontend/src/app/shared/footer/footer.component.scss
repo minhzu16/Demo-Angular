@@ -1,26 +1,21 @@
 /* ═══════════════════════════════════════════
-   NexMart Footer
+   NexMart Footer — ink panel closing the paper page
+   All text pairs on --nx-ink are >= 7:1.
    ═══════════════════════════════════════════ */
 .nexmart-footer {
-  background: var(--nx-bg-2, #13131F);
-  color: var(--nx-text-muted, #6B6B8A);
-  margin-top: auto;
-  border-top: 1px solid var(--nx-border);
+  background: var(--nx-ink);
+  color: #CFC5B8;
+  margin-top: 64px;
+  border-top: 4px solid var(--nx-primary);
+
+  ul { list-style: none; padding: 0; margin: 0; }
 }
 
-/* Gradient top divider */
-.footer-gradient-top {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--nx-primary, #6C63FF), var(--nx-secondary, #FF6584), transparent);
-  opacity: 0.5;
-}
-
-/* Main grid */
 .footer-main { padding: 56px 0 40px; }
 
 .footer-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1.2fr;
+  grid-template-columns: 1.8fr 1fr 1fr 1.3fr;
   gap: 48px;
 
   @media (max-width: 1024px) { grid-template-columns: 1fr 1fr; gap: 36px; }
@@ -28,10 +23,8 @@
 }
 
 /* ── Brand Column ─────────────────────────── */
-.footer-brand {}
-
 .footer-logo-link {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
   text-decoration: none;
@@ -39,29 +32,34 @@
 }
 
 .footer-logo-icon {
-  width: 36px; height: 36px;
-  background: linear-gradient(135deg, #6C63FF, #FF6584);
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  background: var(--nx-primary);
+  color: #fff;
   border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  color: white;
+  font-family: var(--nx-font-display);
+  font-size: 22px;
+  font-weight: 700;
+  transform: rotate(-4deg);
+  box-shadow: inset 0 0 0 2px var(--nx-primary), inset 0 0 0 3.5px rgba(255, 255, 255, 0.5);
 }
 
 .footer-logo-text {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 20px;
-  font-weight: 800;
-  .logo-nex  { color: #6C63FF; }
-  .logo-mart { color: var(--nx-text, #F0F0FF); }
+  font-family: var(--nx-font-display);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  .logo-nex  { color: var(--nx-gold); }
+  .logo-mart { color: #fff; }
 }
 
 .footer-desc {
-  font-size: 13.5px;
-  line-height: 1.8;
-  color: var(--nx-text-muted);
-  max-width: 280px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: #CFC5B8;
+  max-width: 320px;
   margin-bottom: 18px;
 }
 
@@ -69,105 +67,66 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255,179,71,0.08);
-  border: 1px solid rgba(255,179,71,0.2);
-  color: #FFB347;
+  border: 1px solid rgba(242, 193, 78, 0.4);
+  color: var(--nx-gold);
   font-size: 13px;
   font-weight: 500;
   padding: 8px 14px;
-  border-radius: 10px;
-  margin-bottom: 20px;
+  border-radius: var(--nx-radius);
 
-  i { font-size: 14px; }
   strong { font-weight: 700; }
-}
-
-.footer-social {
-  display: flex;
-  gap: 10px;
-}
-
-.social-link {
-  width: 38px; height: 38px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid var(--nx-border);
-  color: var(--nx-text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  text-decoration: none;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: var(--nx-primary, #6C63FF);
-    border-color: var(--nx-primary);
-    color: white;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgba(108,99,255,0.4);
-    text-decoration: none;
-  }
 }
 
 /* ── Links Columns ────────────────────────── */
 .footer-heading {
-  color: var(--nx-text, #F0F0FF);
+  font-family: var(--nx-font-body);
+  color: #fff;
   font-weight: 700;
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   margin-bottom: 18px;
 }
 
 .footer-links {
-  list-style: none;
-  padding: 0; margin: 0 0 24px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 4px;
+  margin-bottom: 20px !important;
 
   a {
-    color: var(--nx-text-muted);
-    font-size: 13.5px;
+    color: #CFC5B8;
+    font-size: 14px;
     text-decoration: none;
-    transition: color 0.18s;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    min-height: 32px;
+    transition: color 0.18s;
 
-    &:hover {
-      color: var(--nx-primary-light, #8B85FF);
-      text-decoration: none;
-    }
+    &:hover { color: var(--nx-gold); text-decoration: underline; text-underline-offset: 3px; }
+    &:focus-visible { outline-color: var(--nx-gold); }
   }
 }
 
-/* Trust Icons */
 .footer-trust-icons {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .trust-icon-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--nx-text-secondary, #A8A8C8);
+  gap: 10px;
+  font-size: 13px;
+  color: #E9E1D6;
 
-  i {
-    font-size: 14px;
-    color: var(--nx-accent, #43D9AD);
-    width: 16px;
-    text-align: center;
-  }
+  i { font-size: 15px; color: var(--nx-gold); width: 18px; text-align: center; }
 }
 
 /* ── Footer Bottom ────────────────────────── */
 .footer-bottom {
-  border-top: 1px solid var(--nx-border);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: 18px 0;
 }
 
@@ -179,33 +138,16 @@
   flex-wrap: wrap;
 }
 
-.footer-copyright {
-  font-size: 12.5px;
-  color: var(--nx-text-muted);
-}
+.footer-copyright, .footer-made { font-size: 12.5px; color: #B5AA9C; }
 
-.footer-payment-icons {
-  display: flex;
-  gap: 8px;
-}
+.footer-payment-icons { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .payment-icon {
   padding: 4px 10px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid var(--nx-border);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 6px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
-  color: var(--nx-text-secondary);
-  letter-spacing: 0.05em;
-}
-
-.footer-made {
-  font-size: 12px;
-  color: var(--nx-text-muted);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-
-  i { color: var(--nx-secondary, #FF6584); font-size: 12px; }
+  color: #E9E1D6;
+  letter-spacing: 0.04em;
 }

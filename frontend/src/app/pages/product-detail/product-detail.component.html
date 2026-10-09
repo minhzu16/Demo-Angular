@@ -35,14 +35,19 @@
             <!-- ✅ BUG 36 FIX: Load fallback placeholder when image URL fails to load -->
             <img [src]="selectedImage" [alt]="product.name" (error)="selectedImage = 'assets/placeholder-product.jpg'">
             <div class="flash-sale-badge" *ngIf="product.discount">
-              <i class="bi bi-lightning-fill"></i> Giảm {{ product.discount }}%
+              <i class="bi bi-lightning-fill" aria-hidden="true"></i> Giảm {{ product.discount }}%
             </div>
-            <button class="wishlist-btn-float"><i class="bi bi-heart"></i></button>
+            <button type="button" class="wishlist-btn-float" [class.active]="isWished" (click)="toggleWishlist()"
+              [attr.aria-pressed]="isWished" [attr.aria-label]="isWished ? 'Bỏ khỏi danh sách yêu thích' : 'Thêm vào danh sách yêu thích'">
+              <i class="bi" [ngClass]="isWished ? 'bi-heart-fill' : 'bi-heart'" aria-hidden="true"></i>
+            </button>
           </div>
-          <div class="thumbnail-list" *ngIf="images && images.length > 1">
-            <div *ngFor="let img of images; let i = index" class="thumbnail" [class.active]="img === selectedImage" (click)="selectImage(img)">
-              <img [src]="img" [alt]="product.name" (error)="images[i] = 'assets/placeholder-product.jpg'">
-            </div>
+          <div class="thumbnail-list" *ngIf="images && images.length > 1" role="list" aria-label="Ảnh sản phẩm">
+            <button type="button" *ngFor="let img of images; let i = index" class="thumbnail" role="listitem"
+              [class.active]="img === selectedImage" (click)="selectImage(img)"
+              [attr.aria-label]="'Xem ảnh ' + (i + 1)" [attr.aria-current]="img === selectedImage">
+              <img [src]="img" alt="" (error)="images[i] = 'assets/placeholder-product.jpg'">
+            </button>
           </div>
         </div>
       </div>
@@ -53,24 +58,28 @@
           <h1 class="product-title">{{ product.name }}</h1>
 
           <div class="product-meta">
-            <div class="rating-box">
-              <span class="rating-num">{{ product.averageRating || 0 | number:'1.1-1' }}</span>
-              <div class="stars">
-                <span *ngFor="let star of getStarArray(product.averageRating || 0)" class="star filled">★</span>
-                <span *ngFor="let star of getStarArray(5 - (product.averageRating || 0))" class="star">★</span>
+            <div class="rating-box" *ngIf="product.reviewCount > 0; else noRating"
+                 [attr.aria-label]="'Đánh giá ' + (product.averageRating | number:'1.1-1') + ' trên 5'">
+              <span class="rating-num" aria-hidden="true">{{ product.averageRating || 0 | number:'1.1-1' }}</span>
+              <div class="stars" aria-hidden="true">
+                <span *ngFor="let star of filledStars(product.averageRating)" class="star filled">★</span><span *ngFor="let star of emptyStars(product.averageRating)" class="star">★</span>
               </div>
             </div>
-            <div class="meta-divider"></div>
-            <div class="meta-item"><strong>{{ product.reviewCount || 0 }}</strong> Đánh giá</div>
-            <div class="meta-divider"></div>
-            <div class="meta-item"><strong>{{ product.soldCount || 0 }}</strong> Đã bán</div>
+            <ng-template #noRating><div class="meta-item">Chưa có đánh giá</div></ng-template>
+            <div class="meta-divider" aria-hidden="true"></div>
+            <a class="meta-item" href="javascript:void(0)" (click)="scrollToReviews()"><strong>{{ product.reviewCount || 0 }}</strong> Đánh giá</a>
+            <ng-container *ngIf="product.soldCount != null">
+              <div class="meta-divider" aria-hidden="true"></div>
+              <div class="meta-item"><strong>{{ product.soldCount }}</strong> Đã bán</div>
+            </ng-container>
           </div>
 
           <div class="price-box mb-4">
             <div class="price-main">{{ formatPrice(product.price) }}</div>
             <div class="price-original" *ngIf="product.originalPrice">{{ formatPrice(product.originalPrice) }}</div>
             <div class="loyalty-earn">
-              <i class="bi bi-lightning-charge-fill text-warning"></i> +{{ ((product.price)/10000) | number:'1.0-0' }} NexPoints
+              <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+              Nhận khoảng +{{ estimatedPoints | number:'1.0-0' }} NexPoints khi đơn được giao
             </div>
           </div>
 
@@ -87,33 +96,36 @@
 
           <!-- Quantity -->
           <div class="product-quantity">
-            <label>Số lượng</label>
+            <label for="qty-input">Số lượng</label>
             <div class="qty-wrap">
               <div class="qty-control">
-                <button class="qty-btn" (click)="decreaseQuantity()"><i class="bi bi-dash"></i></button>
-                <input type="number" class="qty-input" [(ngModel)]="quantity" min="1" [max]="product.stock || 99">
-                <button class="qty-btn" (click)="increaseQuantity()"><i class="bi bi-plus"></i></button>
+                <button type="button" class="qty-btn" (click)="decreaseQuantity()" [disabled]="quantity <= 1" aria-label="Giảm số lượng"><i class="bi bi-dash" aria-hidden="true"></i></button>
+                <input id="qty-input" type="number" class="qty-input" [ngModel]="quantity" (ngModelChange)="onQuantityChange($event)"
+                       min="1" [max]="maxQuantity" inputmode="numeric">
+                <button type="button" class="qty-btn" (click)="increaseQuantity()" [disabled]="quantity >= maxQuantity" aria-label="Tăng số lượng"><i class="bi bi-plus" aria-hidden="true"></i></button>
               </div>
-              <span class="stock-status text-muted">{{ product.stock || 0 }} sản phẩm có sẵn</span>
+              <span class="stock-status" *ngIf="hasStockInfo" [class.text-danger]="outOfStock">
+                {{ outOfStock ? 'Tạm hết hàng' : product.stock + ' sản phẩm có sẵn' }}
+              </span>
             </div>
           </div>
 
           <!-- Actions -->
           <div class="product-actions mt-4">
-            <button class="btn btn-primary btn-xl w-100 mb-3 btn-buy" (click)="buyNow()">
-              <i class="bi bi-lightning-charge-fill"></i> Mua ngay
+            <button type="button" class="btn btn-primary btn-xl w-100 mb-3 btn-buy" (click)="buyNow()" [disabled]="addingToCart || outOfStock">
+              <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i> {{ outOfStock ? 'Tạm hết hàng' : 'Mua ngay' }}
             </button>
-            <button class="btn btn-outline-primary btn-xl w-100 btn-cart" (click)="addToCart()" [disabled]="addingToCart">
-              <span *ngIf="addingToCart" class="spinner-border spinner-border-sm me-2"></span>
-              <i class="bi bi-cart-plus me-2" *ngIf="!addingToCart"></i> {{ addingToCart ? 'Đang thêm...' : 'Thêm vào giỏ hàng' }}
+            <button type="button" class="btn btn-outline-primary btn-xl w-100 btn-cart" (click)="addToCart()" [disabled]="addingToCart || outOfStock">
+              <span *ngIf="addingToCart" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+              <i class="bi bi-cart-plus" *ngIf="!addingToCart" aria-hidden="true"></i> {{ addingToCart ? 'Đang thêm…' : 'Thêm vào giỏ hàng' }}
             </button>
           </div>
 
-          <div class="trust-features mt-4">
-            <div class="tf-item"><i class="bi bi-shield-check text-success"></i> Hàng chính hãng 100%</div>
-            <div class="tf-item"><i class="bi bi-arrow-counterclockwise text-primary"></i> 30 ngày đổi trả miễn phí</div>
-            <div class="tf-item"><i class="bi bi-truck text-warning"></i> Giao siêu tốc 2H</div>
-          </div>
+          <ul class="trust-features mt-4">
+            <li class="tf-item"><i class="bi bi-qr-code-scan" aria-hidden="true"></i> Thanh toán VietQR hoặc COD khi nhận hàng</li>
+            <li class="tf-item"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Gửi yêu cầu đổi trả ngay trong trang đơn hàng</li>
+            <li class="tf-item"><i class="bi bi-truck" aria-hidden="true"></i> Miễn phí vận chuyển cho đơn từ 500.000&nbsp;₫</li>
+          </ul>
         </div>
       </div>
     </div>
@@ -134,7 +146,7 @@
         <!-- Reviews -->
         <div class="content-card" id="reviews">
           <div class="card-header border-bottom d-flex justify-content-between align-items-center">
-            <h4 class="m-0"><i class="bi bi-star-half"></i> Khách hàng đánh giá ({{ totalReviews }})</h4>
+            <h2 class="m-0 card-title-sm"><i class="bi bi-star-half" aria-hidden="true"></i> Khách hàng đánh giá<span *ngIf="totalReviews > 0"> ({{ totalReviews }})</span></h2>
             <div class="avg-rating-badge" *ngIf="totalReviews > 0">
               <span class="score">{{ averageRating | number:'1.1-1' }}</span> / 5
             </div>
@@ -143,13 +155,16 @@
           <div class="card-body">
             <!-- Add Review -->
             <div class="review-form-box mb-4" *ngIf="isLoggedIn">
-              <h6 class="mb-3">Viết đánh giá của bạn</h6>
-              <div class="rating-select mb-3">
-                <span *ngFor="let i of [1,2,3,4,5]" (click)="newRating = i" [class.active]="newRating >= i" class="star"><i class="bi bi-star-fill"></i></span>
+              <h3 class="review-form-title">Viết đánh giá của bạn</h3>
+              <div class="rating-select mb-3" role="radiogroup" aria-label="Chấm điểm sản phẩm">
+                <button type="button" *ngFor="let i of [1,2,3,4,5]" (click)="newRating = i" [class.active]="newRating >= i" class="star"
+                  role="radio" [attr.aria-checked]="newRating === i" [attr.aria-label]="i + ' sao'"><i class="bi bi-star-fill" aria-hidden="true"></i></button>
               </div>
-              <textarea class="nx-form-control mb-3" rows="3" [(ngModel)]="newComment" placeholder="Sản phẩm này thế nào? Chia sẻ trải nghiệm của bạn nhé..."></textarea>
-              <input type="text" class="nx-form-control mb-3" [(ngModel)]="newMediaUrl" placeholder="Đính kèm link hình ảnh/video (cách nhau bằng dấu phẩy) - không bắt buộc" />
-              <button class="btn btn-primary" (click)="submitReview()" [disabled]="!newComment.trim()">Gửi đánh giá</button>
+              <label for="review-comment" class="form-label">Nhận xét</label>
+              <textarea id="review-comment" class="form-control mb-3" rows="4" [(ngModel)]="newComment" placeholder="Sản phẩm dùng thế nào? Chia sẻ trải nghiệm của bạn nhé…"></textarea>
+              <label for="review-media" class="form-label">Link ảnh/video <span class="text-muted fw-normal">(không bắt buộc, cách nhau bằng dấu phẩy)</span></label>
+              <input id="review-media" type="url" class="form-control mb-3" [(ngModel)]="newMediaUrl" placeholder="https://…" />
+              <button type="button" class="btn btn-primary" (click)="submitReview()" [disabled]="!newComment.trim()">Gửi đánh giá</button>
             </div>
 
             <div class="alert alert-info" *ngIf="!isLoggedIn">
@@ -170,9 +185,8 @@
                     <span class="reviewer-name">{{ review.userName }}</span>
                     <span class="review-date">{{ review.createdAt | date:'dd/MM/yyyy' }}</span>
                   </div>
-                  <div class="review-stars text-warning" style="font-size: 12px; margin-bottom: 8px;">
-                     <span *ngFor="let star of getStarArray(review.rating)">★</span>
-                     <span *ngFor="let star of getStarArray(5 - review.rating)" class="opacity-25">★</span>
+                  <div class="review-stars" [attr.aria-label]="review.rating + ' trên 5 sao'">
+                     <span *ngFor="let star of filledStars(review.rating)" aria-hidden="true">★</span><span *ngFor="let star of emptyStars(review.rating)" class="opacity-25" aria-hidden="true">★</span>
                   </div>
                   <div class="review-text">{{ review.comment }}</div>
                   <div class="review-media mt-2" *ngIf="review.mediaUrls && review.mediaUrls.length > 0">
@@ -213,26 +227,27 @@
     <!-- Recommendations -->
     <div class="row mt-5" *ngIf="recommendations && recommendations.length > 0">
       <div class="col-12">
-        <h4 class="mb-4"><i class="bi bi-stars text-warning"></i> Sản phẩm tương tự / Mua kèm</h4>
-        <div class="products-row stagger-children d-flex gap-3 overflow-auto pb-3">
-          <div class="nx-product-card" *ngFor="let p of recommendations; let i = index"
-            [routerLink]="['/products', p.id]" style="min-width: 250px;">
+        <div class="section-header">
+          <h2 class="section-title">Có thể bạn cũng thích</h2>
+        </div>
+        <ul class="related-row">
+          <li class="nx-product-card" *ngFor="let p of recommendations; let i = index">
             <div class="product-img">
-              <img [src]="p.imageUrl || 'assets/placeholder-product.jpg'" [alt]="p.name" loading="lazy">
+              <img [src]="p.imageUrl || p.thumbnailUrl || 'assets/placeholder-product.jpg'" [alt]="p.name" loading="lazy" width="300" height="300">
               <div class="product-badges">
-                <span class="flash-sale-badge" style="font-size: 10px; padding: 3px 7px;" *ngIf="p.discount">-{{ p.discount }}%</span>
+                <span class="discount-badge" *ngIf="p.discount">-{{ p.discount }}%</span>
               </div>
             </div>
             <div class="product-body">
-              <div class="product-seller"><i class="bi bi-shop"></i> {{ p.shopName || 'NexMart Store' }}</div>
-              <p class="product-name">{{ p.name }}</p>
+              <div class="product-seller"><i class="bi bi-shop" aria-hidden="true"></i> {{ p.shopName || 'NexMart Store' }}</div>
+              <a class="product-name product-link" [routerLink]="['/products', p.id]">{{ p.name }}</a>
               <div class="product-pricing">
                 <span class="price-primary">{{ formatPrice(p.price) }}</span>
                 <span class="price-original" *ngIf="p.originalPrice">{{ formatPrice(p.originalPrice) }}</span>
               </div>
             </div>
-          </div>
-        </div>
+          </li>
+        </ul>
       </div>
     </div>
   </div>

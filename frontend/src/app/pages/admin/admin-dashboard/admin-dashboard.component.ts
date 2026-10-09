@@ -58,14 +58,16 @@ export class AdminDashboardComponent implements OnInit {
     // For demo using shopId 1
     this.analyticsService.getRevenue(1, start, end, 'daily').subscribe({
       next: (data) => {
+        const points = Array.isArray(data) ? data : [];
         this.lineChartData = {
-          labels: data.map(d => d.date),
+          labels: points.map(d => d.date),
           datasets: [
             {
-              data: data.map(d => d.revenue),
+              data: points.map(d => d.revenue),
               label: 'Doanh thu (VND)',
-              backgroundColor: 'rgba(13, 110, 253, 0.2)',
-              borderColor: 'rgba(13, 110, 253, 1)',
+              backgroundColor: 'rgba(201, 47, 24, 0.12)',
+              borderColor: '#C92F18',
+              pointBackgroundColor: '#C92F18',
               fill: 'origin',
             }
           ]

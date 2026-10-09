@@ -11,7 +11,7 @@ import { FooterComponent } from '../../shared/footer/footer.component';
   template: `
     <div class="storefront-layout">
       <app-header></app-header>
-      <main class="storefront-content">
+      <main class="storefront-content" id="main-content" tabindex="-1">
         <router-outlet></router-outlet>
       </main>
       <app-footer></app-footer>
@@ -19,10 +19,8 @@ import { FooterComponent } from '../../shared/footer/footer.component';
   `,
   styles: [`
     .storefront-layout { display: flex; flex-direction: column; min-height: 100vh; }
-    .storefront-content {
-      flex: 1;
-      padding-top: var(--nx-total-header, 132px);
-    }
+    /* The header is sticky (in flow), so no fixed top padding is needed. */
+    .storefront-content { flex: 1; padding-top: 0; outline: none; }
   `]
 })
 export class GuestLayoutComponent {}

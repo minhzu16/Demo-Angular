@@ -43,6 +43,10 @@ public class MembershipService {
         }
 
         boolean isTrial = Boolean.TRUE.equals(req.getStartTrial()) && plan.getTrialDays() != null && plan.getTrialDays() > 0;
+        // One free trial per user: re-subscribing with startTrial after each expiry gave unlimited free PRO.
+        if (isTrial && membershipRepository.findByUserId(userId).isPresent()) {
+            throw new IllegalStateException("Bạn đã sử dụng dùng thử miễn phí trước đó.");
+        }
         LocalDateTime startDate = now;
         LocalDateTime endDate;
         MembershipEntity.MembershipStatus status;

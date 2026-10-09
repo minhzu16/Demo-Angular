@@ -1,37 +1,38 @@
-<div class="container-fluid py-4">
-  <h2>Tiki Admin Dashboard (Platform Analytics)</h2>
-  
+<div class="container-fluid py-2">
+  <span class="nx-eyebrow">Nền tảng NexMart</span>
+  <h1 class="admin-page-title">Tổng quan nền tảng</h1>
+
   <div class="row mt-4" *ngIf="loading">
-    <div class="col-12"><div class="spinner-border text-primary" role="status"></div></div>
+    <div class="col-12"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Đang tải…</span></div></div>
   </div>
 
   <div class="row mt-4" *ngIf="!loading && overview">
     <div class="col-md-4">
-      <div class="card bg-primary text-white mb-4 shadow">
+      <div class="card kpi-card kpi-revenue mb-4">
         <div class="card-body">
-          <h5 class="card-title">Total Platform Revenue</h5>
-          <h2 class="mb-0">{{ overview.totalRevenue | currency:'VND' }}</h2>
-          <small>Last 30 days</small>
-        </div>
-      </div>
-    </div>
-    
-    <div class="col-md-4">
-      <div class="card bg-success text-white mb-4 shadow">
-        <div class="card-body">
-          <h5 class="card-title">Total Platform Orders</h5>
-          <h2 class="mb-0">{{ overview.totalOrders }}</h2>
-          <small>Last 30 days</small>
+          <h2 class="kpi-label">Doanh thu nền tảng</h2>
+          <p class="kpi-value nx-num">{{ overview.totalRevenue | number:'1.0-0' }}&nbsp;₫</p>
+          <small>30 ngày gần nhất</small>
         </div>
       </div>
     </div>
 
     <div class="col-md-4">
-      <div class="card bg-info text-white mb-4 shadow">
+      <div class="card kpi-card kpi-orders mb-4">
         <div class="card-body">
-          <h5 class="card-title">Average Order Value</h5>
-          <h2 class="mb-0">{{ overview.averageOrderValue | currency:'VND' }}</h2>
-          <small>Platform-wide</small>
+          <h2 class="kpi-label">Tổng số đơn hàng</h2>
+          <p class="kpi-value nx-num">{{ overview.totalOrders | number }}</p>
+          <small>30 ngày gần nhất</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card kpi-card kpi-aov mb-4">
+        <div class="card-body">
+          <h2 class="kpi-label">Giá trị đơn trung bình</h2>
+          <p class="kpi-value nx-num">{{ overview.averageOrderValue | number:'1.0-0' }}&nbsp;₫</p>
+          <small>Toàn nền tảng</small>
         </div>
       </div>
     </div>
@@ -41,7 +42,7 @@
     <div class="col-lg-8">
       <div class="card shadow mb-4">
         <div class="card-header py-3 bg-white">
-          <h6 class="m-0 font-weight-bold text-primary">Biểu đồ doanh thu (7 ngày gần nhất)</h6>
+          <h2 class="card-heading">Doanh thu 7 ngày gần nhất</h2>
         </div>
         <div class="card-body">
           <div style="height: 300px;">
@@ -58,18 +59,15 @@
     <div class="col-lg-4">
       <div class="card shadow mb-4">
         <div class="card-header py-3 bg-white">
-          <h6 class="m-0 font-weight-bold text-primary">Hoạt động gần đây</h6>
+          <h2 class="card-heading">Lối tắt quản trị</h2>
         </div>
         <div class="card-body">
-          <p class="text-muted">Analytics integrations successfully connected to Elasticsearch / MySQL sources.</p>
-          <hr>
-          <div class="d-flex align-items-center mb-3">
-             <div class="flex-shrink-0"><i class="bi bi-graph-up text-success fs-3"></i></div>
-             <div class="ms-3">
-                <div class="small text-muted">Hôm qua</div>
-                <div>+12% tăng trưởng sales</div>
-             </div>
-          </div>
+          <ul class="admin-shortcuts">
+            <li><a routerLink="/admin/sellers"><i class="bi bi-person-badge" aria-hidden="true"></i> Duyệt hồ sơ người bán</a></li>
+            <li><a routerLink="/admin/products"><i class="bi bi-box-seam" aria-hidden="true"></i> Kiểm duyệt sản phẩm</a></li>
+            <li><a routerLink="/admin/flash-sales"><i class="bi bi-lightning-charge" aria-hidden="true"></i> Lên lịch Flash Sale</a></li>
+            <li><a routerLink="/admin/users"><i class="bi bi-people" aria-hidden="true"></i> Quản lý người dùng</a></li>
+          </ul>
         </div>
       </div>
     </div>

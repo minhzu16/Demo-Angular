@@ -6,6 +6,8 @@ import com.tiki.product.dto.ProductListDTO;
 import com.tiki.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -53,11 +55,46 @@ public class ProductController {
         return productService.search(searchQuery, categoryId, brand, minPrice, maxPrice, sort, page, size, sellerId);
     }
 
+    private final com.tiki.product.client.ShopClient shopClient;
+
+    private static boolean isAdmin(String role) {
+        return role != null && role.toUpperCase().contains("ADMIN");
+    }
+
+    /**
+     * Writes need an identity. ProductService only checked ownership "if a sellerId is provided", so a request
+     * without X-User-Id could edit or delete any product — including setting its price, which the order service
+     * then trusts as the authoritative price.
+     */
+    private static Long requireCaller(Long userId) {
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập");
+        }
+        return userId;
+    }
+
     @PostMapping
     public ProductDetailDTO create(
             @RequestBody ProductDetailDTO request,
-            @RequestHeader(value = "X-User-Id", required = false) Long sellerId
+            @RequestHeader(value = "X-User-Id", required = false) Long sellerId,
+            @RequestHeader(value = "X-User-Role", required = false) String role
     ) {
+        requireCaller(sellerId);
+        if (!isAdmin(role)) {
+            // A seller can only list products in their own shop, whatever shopId the body claims.
+            try {
+                com.tiki.product.client.ShopClient.ShopInfo shop = shopClient.getShopBySeller(sellerId);
+                if (shop == null || shop.id() == null) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn cần có cửa hàng để đăng sản phẩm");
+                }
+                request.setShopId(shop.id());
+            } catch (ResponseStatusException e) {
+                throw e;
+            } catch (Exception e) {
+                log.warn("Could not resolve shop for seller {}: {}", sellerId, e.getMessage());
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không xác minh được cửa hàng của bạn");
+            }
+        }
         log.debug("Creating product for seller: {}", sellerId);
         return productService.create(request, sellerId);
     }
@@ -66,19 +103,24 @@ public class ProductController {
     public ProductDetailDTO update(
             @PathVariable Integer id,
             @RequestBody ProductDetailDTO request,
-            @RequestHeader(value = "X-User-Id", required = false) Long sellerId
+            @RequestHeader(value = "X-User-Id", required = false) Long sellerId,
+            @RequestHeader(value = "X-User-Role", required = false) String role
     ) {
+        requireCaller(sellerId);
         log.debug("Updating product {} for seller: {}", id, sellerId);
-        return productService.update(id, request, sellerId);
+        // null = admin: ProductService skips the ownership check only in that case
+        return productService.update(id, request, isAdmin(role) ? null : sellerId);
     }
 
     @DeleteMapping("/{id}")
     public void delete(
             @PathVariable Integer id,
-            @RequestHeader(value = "X-User-Id", required = false) Long sellerId
+            @RequestHeader(value = "X-User-Id", required = false) Long sellerId,
+            @RequestHeader(value = "X-User-Role", required = false) String role
     ) {
+        requireCaller(sellerId);
         log.debug("Deleting product {} for seller: {}", id, sellerId);
-        productService.delete(id, sellerId);
+        productService.delete(id, isAdmin(role) ? null : sellerId);
     }
 
     @GetMapping("/{id}")

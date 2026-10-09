@@ -11,6 +11,9 @@ public class LoginRequest {
     
     @NotBlank(message = "Password is required")
     private String password;
+
+    /** TOTP or backup code; required only for accounts with 2FA enabled. */
+    private String twoFactorCode;
 }
 
 

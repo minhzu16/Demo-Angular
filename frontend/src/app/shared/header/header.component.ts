@@ -52,9 +52,34 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
+  private notificationStreamsBound = false;
+
   @HostListener('window:scroll')
   onScroll(): void {
     this.isScrolled = window.scrollY > 20;
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.closeMenus();
+  }
+
+  closeMenus(): void {
+    this.showUserMenu = false;
+    this.showNotificationsDropdown = false;
+  }
+
+  toggleUserMenu(): void {
+    this.showUserMenu = !this.showUserMenu;
+    this.showNotificationsDropdown = false;
+  }
+
+  /** Skip link: the router's <base href="/"> would turn a bare #fragment into a full navigation. */
+  skipToContent(event: Event): void {
+    event.preventDefault();
+    const main = document.getElementById('main-content');
+    main?.focus();
+    main?.scrollIntoView();
   }
 
   ngOnInit(): void {
@@ -102,6 +127,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
     const userId = this.profile?.id;
     if (!userId) return;
     this.notificationService.loadNotifications();
+    // Bind the streams once; re-binding on every panel toggle stacked duplicate subscriptions.
+    if (this.notificationStreamsBound) return;
+    this.notificationStreamsBound = true;
     this.notificationService.notifications$.pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.notifications = res || [];
     });
@@ -176,7 +204,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   private saveRecentSearch(query: string): void {
     this.recentSearches = [query, ...this.recentSearches.filter(s => s !== query)].slice(0, 5);
-    localStorage.setItem('nx_recent_searches', JSON.stringify(this.recentSearches));
+    try {
+      localStorage.setItem('nx_recent_searches', JSON.stringify(this.recentSearches));
+    } catch { /* storage unavailable (private mode / quota) — recent searches are optional */ }
   }
 
   getAvatarLetter(): string {

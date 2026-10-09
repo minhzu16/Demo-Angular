@@ -167,6 +167,10 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=admin
       - RABBITMQ_PASSWORD=admin123
+      # Feign targets (defaults point at localhost, which does not exist inside the container)
+      - SERVICES_ORDER_URL=http://order:8083
+      - SERVICES_REVIEW_URL=http://review:8089
+      - SERVICES_SHOP_URL=http://shop:8086
     depends_on:
       mysql:
         condition: service_healthy
@@ -192,6 +196,13 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       - DB_USERNAME=${MYSQL_USER:-sa}
       - DB_PASSWORD=${MYSQL_PASSWORD:-123}
+      # Feign targets (defaults point at localhost, which does not exist inside the container)
+      - PRODUCT_SERVICE_URL=http://product:8081
+      - PAYMENT_SERVICE_URL=http://payment:8084
+      - WAREHOUSE_SERVICE_URL=http://warehouse:8092
+      - SETTLEMENT_SERVICE_URL=http://settlement:8094
+      - SHOP_SERVICE_URL=http://shop:8086
+      - SERVICES_AUTH_URL=http://auth:8082
     depends_on:
       mysql:
         condition: service_healthy
@@ -214,6 +225,7 @@ services:
       - DB_USERNAME=${MYSQL_USER:-sa}
       - DB_PASSWORD=${MYSQL_PASSWORD:-123}
       - PRODUCT_SERVICE_URL=http://product:8081
+      - SERVICES_AUTH_URL=http://auth:8082
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=admin
@@ -237,6 +249,7 @@ services:
     #   - "8084:8084"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - ORDER_SERVICE_URL=http://order:8083
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USERNAME=${MYSQL_USER:-sa}
@@ -274,6 +287,8 @@ services:
       - RABBITMQ_PASSWORD=admin123
       - MYSQL_USER=${MYSQL_USER:-sa}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-123}
+      - NOTIFICATION_SERVICE_URL=http://notification:8088
+      - SHOP_SERVICE_URL=http://shop:8086
     depends_on:
       mysql:
         condition: service_healthy
@@ -379,6 +394,7 @@ services:
     #   - "8088:8088"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - JWT_SECRET=${JWT_SECRET}  # validates the JWT in STOMP CONNECT frames (must match the gateway)
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USERNAME=${MYSQL_USER:-sa}
@@ -422,6 +438,7 @@ services:
       - DB_PASSWORD=${MYSQL_PASSWORD:-123}
       - ORDER_SERVICE_URL=http://order:8083
       - PRODUCT_SERVICE_URL=http://product:8081
+      - SHOP_SERVICE_URL=http://shop:8086
       - NOTIFICATION_SERVICE_URL=http://notification:8088
       - SECURITY_USERNAME=admin
       - SECURITY_PASSWORD=admin
@@ -487,6 +504,8 @@ services:
     #   - "8091:8091"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - JWT_SECRET=${JWT_SECRET}  # validates the JWT in STOMP CONNECT frames (must match the gateway)
+      - SHOP_SERVICE_URL=http://shop:8086  # resolves which shop a seller owns (conversation / inbox access)
     networks:
       - tiki_net
     restart: unless-stopped
@@ -505,6 +524,7 @@ services:
     container_name: settlement
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - SHOP_SERVICE_URL=http://shop:8086
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USERNAME=${MYSQL_USER:-sa}

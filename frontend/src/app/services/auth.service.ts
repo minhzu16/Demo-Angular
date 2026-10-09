@@ -5,7 +5,7 @@ import { catchError, tap, map } from 'rxjs/operators';
 import { Observable, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 
-interface LoginRequest { usernameOrEmail: string; password: string; }
+interface LoginRequest { usernameOrEmail: string; password: string; twoFactorCode?: string; }
 interface RegisterRequest { username: string; password: string; firstName: string; lastName: string; company?: string; }
 interface LoginResponse { accessToken: string; user: UserProfile; }
 export interface UserProfile {
@@ -126,8 +126,14 @@ export class AuthService {
   }
 
   getUser(): UserProfile | null {
-    const userStr = localStorage.getItem(USER_KEY);
-    return userStr ? JSON.parse(userStr) : null;
+    try {
+      const userStr = localStorage.getItem(USER_KEY);
+      return userStr ? JSON.parse(userStr) : null;
+    } catch {
+      // Corrupted profile in storage must not crash every page that reads the user.
+      localStorage.removeItem(USER_KEY);
+      return null;
+    }
   }
 
   isAuthenticated(): boolean {

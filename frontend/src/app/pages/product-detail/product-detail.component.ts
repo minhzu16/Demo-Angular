@@ -7,6 +7,7 @@ import { CartService } from '../../services/cart.service';
 import { ReviewService, Review } from '../../services/review.service';
 import { AuthService } from '../../services/auth.service';
 import { AnalyticsService } from '../../services/analytics.service';
+import { WishlistService } from '../../services/wishlist.service';
 import { ToastrService } from 'ngx-toastr';
 
 import { ChatWidgetComponent } from '../../components/chat-widget/chat-widget.component';
@@ -26,6 +27,7 @@ export class ProductDetailComponent implements OnInit {
     private reviewService = inject(ReviewService);
     private authService = inject(AuthService);
     private analyticsService = inject(AnalyticsService);
+    private wishlistService = inject(WishlistService);
     private toastr = inject(ToastrService);
 
     product: any = null;
@@ -51,7 +53,8 @@ export class ProductDetailComponent implements OnInit {
 
     ngOnInit() {
         this.isLoggedIn = this.authService.isAuthenticated();
-        
+        this.wishlistService.ensureLoaded();
+
         // ✅ BUG 35 FIX: Subscribe to route params to handle navigation to related products
         this.route.paramMap.subscribe(params => {
             const productId = params.get('id');
@@ -70,10 +73,11 @@ export class ProductDetailComponent implements OnInit {
 
         this.productService.getProductDetail(id).subscribe({
             next: (product) => {
-                this.product = product;
-                this.images = product.imageUrl ? [product.imageUrl] : ['assets/placeholder-product.jpg'];
+                this.product = this.normalizeProduct(product);
                 this.selectedImage = this.images[0];
+                this.quantity = 1;
                 this.loading = false;
+                this.averageRating = this.product.averageRating || 0;
                 this.loadRecommendations();
             },
             error: (err) => {
@@ -81,6 +85,76 @@ export class ProductDetailComponent implements OnInit {
                 this.loading = false;
             }
         });
+    }
+
+    /**
+     * Maps the API's ProductDetailDTO onto what the template renders:
+     * gallery from thumbnailUrl + images[].url (the API has no `imageUrl`),
+     * strike-through price from listPrice, discount %, and specs from attributesJson.
+     */
+    private normalizeProduct(p: any): any {
+        const gallery = (Array.isArray(p?.images) ? [...p.images] : [])
+            .sort((a: any, b: any) => (a?.sortOrder ?? 0) - (b?.sortOrder ?? 0))
+            .map((img: any) => (typeof img === 'string' ? img : img?.url))
+            .filter((url: any): url is string => !!url);
+        const primary = p?.imageUrl || p?.thumbnailUrl;
+        this.images = Array.from(new Set([primary, ...gallery].filter((u): u is string => !!u)));
+        if (this.images.length === 0) this.images = ['assets/placeholder-product.jpg'];
+
+        const original = p?.originalPrice ?? p?.listPrice;
+        const product = { ...p, originalPrice: original && original > p.price ? original : null };
+        if (product.originalPrice && !product.discount) {
+            product.discount = Math.round((1 - product.price / product.originalPrice) * 100);
+        }
+        if (!product.specifications && product.attributesJson) {
+            try {
+                const attrs = JSON.parse(product.attributesJson);
+                if (attrs && typeof attrs === 'object' && !Array.isArray(attrs)) product.specifications = attrs;
+            } catch { /* attributes are optional free-form JSON */ }
+        }
+        return product;
+    }
+
+    /** Stock is only enforced when the API actually reports it. */
+    get hasStockInfo(): boolean {
+        return typeof this.product?.stock === 'number';
+    }
+
+    get outOfStock(): boolean {
+        return this.hasStockInfo && this.product.stock <= 0;
+    }
+
+    get maxQuantity(): number {
+        return this.hasStockInfo ? Math.max(1, Math.min(this.product.stock, 99)) : 99;
+    }
+
+    /** Mirrors the backend rule: 1 NexPoint per 1.000 ₫ when the order is delivered. */
+    get estimatedPoints(): number {
+        return Math.floor((Number(this.product?.price) || 0) * this.quantity / 1000);
+    }
+
+    get isWished(): boolean {
+        return !!this.product && this.wishlistService.has(Number(this.product.id));
+    }
+
+    toggleWishlist() {
+        if (!this.isLoggedIn) {
+            this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+            return;
+        }
+        this.wishlistService.toggle(Number(this.product.id)).subscribe({
+            next: wished => this.toastr.success(wished ? 'Đã thêm vào yêu thích' : 'Đã bỏ khỏi yêu thích'),
+            error: () => this.toastr.error('Không thể cập nhật yêu thích. Vui lòng thử lại.')
+        });
+    }
+
+    scrollToReviews() {
+        document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    onQuantityChange(value: number) {
+        const n = Math.floor(Number(value));
+        this.quantity = Number.isFinite(n) ? Math.min(Math.max(n, 1), this.maxQuantity) : 1;
     }
 
     recommendations: any[] = [];
@@ -142,7 +216,7 @@ export class ProductDetailComponent implements OnInit {
     }
 
     increaseQuantity() {
-        if (this.quantity < 99) {
+        if (this.quantity < this.maxQuantity) {
             this.quantity++;
         }
     }
@@ -153,28 +227,30 @@ export class ProductDetailComponent implements OnInit {
         }
     }
 
-    addToCart() {
-        if (!this.product) return;
+    addToCart(onAdded?: () => void) {
+        if (!this.product || this.addingToCart || this.outOfStock) return;
 
         this.addingToCart = true;
 
         this.cartService.addItem(this.product.id, this.quantity).subscribe({
             next: () => {
                 this.addingToCart = false;
-                this.toastr.success('Đã thêm vào giỏ hàng!');
+                if (onAdded) {
+                    onAdded();
+                } else {
+                    this.toastr.success('Đã thêm vào giỏ hàng!');
+                }
             },
             error: (err) => {
                 this.addingToCart = false;
-                this.toastr.error('Không thể thêm vào giỏ hàng. Vui lòng thử lại.');
+                this.toastr.error(err?.message || 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.');
             }
         });
     }
 
+    /** Navigate only once the item is really in the cart (the old 500 ms timer raced the request). */
     buyNow() {
-        this.addToCart();
-        setTimeout(() => {
-            this.router.navigate(['/cart']);
-        }, 500);
+        this.addToCart(() => this.router.navigate(['/cart']));
     }
 
     goBack() {
@@ -189,8 +265,8 @@ export class ProductDetailComponent implements OnInit {
         this.reviewsLoading = true;
         this.reviewService.getProductReviews(id, 0, 5).subscribe({
             next: (res) => {
-                this.reviews = res.content || [];
-                this.totalReviews = res.totalElements;
+                this.reviews = res?.content || [];
+                this.totalReviews = res?.totalElements ?? this.reviews.length;
                 this.reviewsLoading = false;
                 // Average Rating now comes from product object itself, kept in sync by backend
                 if (this.product) {
@@ -231,5 +307,14 @@ export class ProductDetailComponent implements OnInit {
 
     getStarArray(n: number): any[] {
         return Array(Math.max(0, Math.floor(n))).fill(0);
+    }
+
+    /** Always 5 stars in total: e.g. 4.8 → 5 filled, 4.2 → 4 filled + 1 empty. */
+    filledStars(rating: number): any[] {
+        return this.getStarArray(Math.min(5, Math.max(0, Math.round(rating || 0))));
+    }
+
+    emptyStars(rating: number): any[] {
+        return this.getStarArray(5 - Math.min(5, Math.max(0, Math.round(rating || 0))));
     }
 }

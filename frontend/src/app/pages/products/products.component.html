@@ -61,6 +61,8 @@
               type="number"
               class="form-control"
               id="min-price-input"
+              aria-label="Giá thấp nhất"
+              min="0"
               placeholder="Từ"
               [(ngModel)]="minPrice"
               (ngModelChange)="applyFilters()"
@@ -70,6 +72,8 @@
               type="number"
               class="form-control"
               id="max-price-input"
+              aria-label="Giá cao nhất"
+              min="0"
               placeholder="Đến"
               [(ngModel)]="maxPrice"
               (ngModelChange)="applyFilters()"
@@ -142,19 +146,21 @@
               <div class="product-badges">
                 <span class="flash-sale-badge" style="font-size:10px;padding:3px 7px;" *ngIf="product.discount">-{{ product.discount }}%</span>
               </div>
-              <button class="wishlist-btn" [id]="'wish-btn-' + product.id" (click)="$event.stopPropagation(); toggleWishlist(product)" [class.active]="product.wished">
-                <i class="bi" [class]="product.wished ? 'bi-heart-fill' : 'bi-heart'"></i>
+              <button type="button" class="wishlist-btn" [id]="'wish-btn-' + product.id" (click)="$event.stopPropagation(); toggleWishlist(product)"
+                [class.active]="isWished(product)" [attr.aria-pressed]="isWished(product)"
+                [attr.aria-label]="(isWished(product) ? 'Bỏ yêu thích ' : 'Yêu thích ') + product.name">
+                <i class="bi" [ngClass]="isWished(product) ? 'bi-heart-fill' : 'bi-heart'" aria-hidden="true"></i>
               </button>
-              <button class="compare-btn position-absolute" style="top: 10px; right: 40px; background: white; border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" [id]="'compare-btn-' + product.id" (click)="$event.stopPropagation(); addToCompare(product)" title="So sánh">
-                <i class="bi bi-diagram-3 text-muted"></i>
+              <button type="button" class="compare-btn" [id]="'compare-btn-' + product.id" (click)="$event.stopPropagation(); addToCompare(product)"
+                [attr.aria-label]="'So sánh ' + product.name" title="So sánh">
+                <i class="bi bi-diagram-3" aria-hidden="true"></i>
               </button>
             </div>
             <div class="product-body">
               <p class="product-name">{{ product.name }}</p>
               <div class="product-rating">
                 <span class="stars">
-                  <span *ngFor="let s of getStarArray(product.averageRating || 0)" class="star filled">★</span>
-                  <span *ngFor="let s of getStarArray(5 - (product.averageRating || 0))" class="star">★</span>
+                  <span *ngFor="let s of getStarArray(roundedRating(product.averageRating))" class="star filled">★</span><span *ngFor="let s of getStarArray(5 - roundedRating(product.averageRating))" class="star">★</span>
                 </span>
                 <span class="count">({{ product.reviewCount || 0 }})</span>
               </div>

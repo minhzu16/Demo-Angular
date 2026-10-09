@@ -30,7 +30,8 @@ public class AuthService {
     private final JwtService jwtService;
     private final RedisTemplate<String, String> redisTemplate;
     private final UserService userService;
-    
+    private final TwoFactorAuthService twoFactorAuthService;
+
     private static final String REFRESH_TOKEN_PREFIX = "refresh_token:";
     private static final String USER_TOKENS_PREFIX = "user_tokens:";
     private static final long REFRESH_TOKEN_EXPIRY_DAYS = 7;
@@ -80,33 +81,38 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        log.info("=== LOGIN ATTEMPT ===");
-        log.info("Username/Email: {}", request.getUsernameOrEmail());
-        log.info("Password length: {}", request.getPassword() != null ? request.getPassword().length() : 0);
-        
+        // One generic message for "no such user" and "wrong password" (they used to differ, which let anyone
+        // enumerate accounts), and nothing secret in the logs (the password hash prefix and length were logged).
+        final String invalid = "Sai tên đăng nhập hoặc mật khẩu";
         User user = userRepository.findByUsernameOrEmail(
-                request.getUsernameOrEmail(), 
+                request.getUsernameOrEmail(),
                 request.getUsernameOrEmail()
         ).orElseThrow(() -> {
-            log.error("LOGIN FAILED - User not found: {}", request.getUsernameOrEmail());
-            return new UserNotFoundException("User not found");
+            log.warn("Login failed: unknown account");
+            return new InvalidCredentialsException(invalid);
         });
 
         // Load user roles from user_roles table
         userService.loadUserRoles(user);
-        
-        log.info("User found - Username: {}, Roles: {}", user.getUsername(), user.getRolesAsString());
-        log.info("Password hash from DB: {}", user.getPasswordHash().substring(0, 20) + "...");
-        
-        boolean passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
-        log.info("Password matches: {}", passwordMatches);
-        
-        if (!passwordMatches) {
-            log.error("LOGIN FAILED - Invalid password for user: {}", user.getUsername());
-            throw new InvalidCredentialsException("Invalid password");
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            log.warn("Login failed: wrong password for userId={}", user.getId());
+            throw new InvalidCredentialsException(invalid);
         }
 
-        log.info("LOGIN SUCCESS - User: {}, Roles: {}", user.getUsername(), user.getRolesAsString());
+        // Second factor: an enabled 2FA used to be ignored at login, so a stolen password was enough.
+        if (twoFactorAuthService != null && twoFactorAuthService.getStatus(user.getId()).isEnabled()) {
+            String code = request.getTwoFactorCode();
+            if (code == null || code.isBlank()) {
+                throw new InvalidCredentialsException("Cần nhập mã xác thực 2 lớp (2FA_REQUIRED)");
+            }
+            if (!twoFactorAuthService.verify2FACode(user.getId(), code.trim())) {
+                log.warn("Login failed: wrong 2FA code for userId={}", user.getId());
+                throw new InvalidCredentialsException("Mã xác thực 2 lớp không đúng");
+            }
+        }
+
+        log.info("Login success: userId={}", user.getId());
         return buildAuthResponse(user);
     }
 

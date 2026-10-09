@@ -28,26 +28,26 @@ public class MembershipController {
 
     @PostMapping("/subscribe")
     public ResponseEntity<MembershipResponseDto> subscribe(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody MembershipSubscribeRequest req) {
         return ResponseEntity.ok(membershipService.subscribe(userId, req));
     }
 
     @GetMapping("/my")
     public ResponseEntity<MembershipResponseDto> getMyMembership(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId) {
+            @RequestHeader("X-User-Id") Long userId) {
         return ResponseEntity.ok(membershipService.getMyMembership(userId));
     }
 
     @PostMapping("/cancel")
     public ResponseEntity<MembershipResponseDto> cancelSubscription(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId) {
+            @RequestHeader("X-User-Id") Long userId) {
         return ResponseEntity.ok(membershipService.cancelSubscription(userId));
     }
 
     @GetMapping("/benefits")
     public ResponseEntity<MembershipBenefitsDto> getBenefits(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId) {
+            @RequestHeader("X-User-Id") Long userId) {
         return ResponseEntity.ok(membershipService.getBenefits(userId));
     }
 

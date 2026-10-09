@@ -44,14 +44,8 @@ public class ReviewService {
             username = "anonymous";
         }
 
-        // Validate user (if not anonymous)
-        if (userId != 0) {
-            try {
-                userClient.getUser(userId);
-            } catch (Exception ex) {
-                throw new BadRequestException("Invalid user id");
-            }
-        }
+        // The user id comes from the gateway-validated JWT (X-User-Id). The old remote lookup targeted a
+        // non-existent "common-service" host and rejected every signed-in reviewer with "Invalid user id".
         // Check if user already reviewed this product (skip check for anonymous)
         if (userId != 0 && reviewRepository.findByProductIdAndUserId(productId, userId).isPresent()) {
             throw new BadRequestException("You have already reviewed this product");

@@ -4,8 +4,10 @@ import com.tiki.shop.entity.ShopEntity;
 import com.tiki.shop.service.ShopService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/v1/shops")
@@ -36,14 +38,32 @@ public class ShopController {
 
     @PostMapping
     public ResponseEntity<ShopEntity> create(@RequestBody ShopEntity shop, @RequestHeader(value = "X-User-Id", required = false) Long sellerId) {
-        if (sellerId != null && shop.getSellerId() == null) shop.setSellerId(sellerId);
-        log.info("Creating a new shop with name: {}", shop.getName());
-        return ResponseEntity.ok(shopService.createOrUpdateShop(shop));
+        if (sellerId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập");
+        }
+        log.info("Creating a new shop with name: {} for seller {}", shop.getName(), sellerId);
+        try {
+            return ResponseEntity.ok(shopService.createShopForSeller(sellerId, shop));
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ShopEntity> update(@PathVariable Long id, @RequestBody ShopEntity shop) {
-        shop.setId(id);
-        return ResponseEntity.ok(shopService.createOrUpdateShop(shop));
+    public ResponseEntity<ShopEntity> update(
+            @PathVariable Long id,
+            @RequestBody ShopEntity shop,
+            @RequestHeader(value = "X-User-Id", required = false) Long callerId,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        if (callerId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập");
+        }
+        boolean admin = role != null && role.toUpperCase().contains("ADMIN");
+        try {
+            ShopEntity updated = shopService.updateShopProfile(id, callerId, admin, shop);
+            return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
+        }
     }
 }
