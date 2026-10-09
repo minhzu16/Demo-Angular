@@ -5,7 +5,7 @@ import { catchError, tap, map } from 'rxjs/operators';
 import { Observable, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 
-interface LoginRequest { usernameOrEmail: string; password: string; }
+interface LoginRequest { usernameOrEmail: string; password: string; twoFactorCode?: string; }
 interface RegisterRequest { username: string; password: string; firstName: string; lastName: string; company?: string; }
 interface LoginResponse { accessToken: string; user: UserProfile; }
 export interface UserProfile {

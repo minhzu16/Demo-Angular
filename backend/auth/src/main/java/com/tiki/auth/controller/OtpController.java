@@ -8,6 +8,7 @@ import com.tiki.auth.service.OtpService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,58 +30,34 @@ public class OtpController {
      */
     @PostMapping("/send")
     public ResponseEntity<OtpResponse> sendOtp(@RequestBody(required = false) SendOtpRequest request) {
+        // This endpoint used to answer "OTP sent (mock/fallback)" for a missing phone, an invalid phone, rate
+        // limiting AND SMS failures — the user waited for a code that was never sent. Report what really happened.
+        if (request == null || request.getPhone() == null || request.getPhone().isBlank()) {
+            return failure(HttpStatus.BAD_REQUEST, "Vui lòng nhập số điện thoại");
+        }
         try {
-            // Return mock response if request is null or missing phone
-            if (request == null || request.getPhone() == null || request.getPhone().isEmpty()) {
-                log.warn("OTP request missing phone number, returning mock success");
-                OtpResponse mockResponse = OtpResponse.builder()
-                        .success(true)
-                        .message("OTP sent successfully (mock)")
-                        .phone("***-****-5678")
-                        .expiresAt(java.time.LocalDateTime.now().plusMinutes(5))
-                        .remainingAttempts(3)
-                        .build();
-                return ResponseEntity.ok(mockResponse);
-            }
-            
-            PhoneOtpEntity otp = otpService.generateAndSendOtp(
-                request.getPhone(), 
-                request.getPurpose()
-            );
-            
-            OtpResponse response = OtpResponse.builder()
+            PhoneOtpEntity otp = otpService.generateAndSendOtp(request.getPhone(), request.getPurpose());
+            return ResponseEntity.ok(OtpResponse.builder()
                     .success(true)
                     .message("OTP sent successfully")
                     .phone(maskPhone(request.getPhone()))
                     .expiresAt(otp.getExpiresAt())
                     .remainingAttempts(3)
-                    .build();
-            
-            return ResponseEntity.ok(response);
-            
+                    .build());
         } catch (IllegalArgumentException e) {
-            log.error("Invalid request: {}", e.getMessage());
-            // Return mock success for testing
-            OtpResponse mockResponse = OtpResponse.builder()
-                    .success(true)
-                    .message("OTP sent successfully (fallback)")
-                    .phone("***-****-0000")
-                    .expiresAt(java.time.LocalDateTime.now().plusMinutes(5))
-                    .remainingAttempts(3)
-                    .build();
-            return ResponseEntity.ok(mockResponse);
+            log.warn("Invalid OTP request: {}", e.getMessage());
+            return failure(HttpStatus.BAD_REQUEST, "Số điện thoại không hợp lệ");
         } catch (RuntimeException e) {
             log.error("Failed to send OTP: {}", e.getMessage());
-            // Return mock success for testing
-            OtpResponse mockResponse = OtpResponse.builder()
-                    .success(true)
-                    .message("OTP sent successfully (fallback)")
-                    .phone("***-****-0000")
-                    .expiresAt(java.time.LocalDateTime.now().plusMinutes(5))
-                    .remainingAttempts(3)
-                    .build();
-            return ResponseEntity.ok(mockResponse);
+            boolean rateLimited = e.getMessage() != null && e.getMessage().startsWith("Too many OTP requests");
+            return rateLimited
+                    ? failure(HttpStatus.TOO_MANY_REQUESTS, "Bạn yêu cầu mã quá nhiều lần. Vui lòng thử lại sau ít phút.")
+                    : failure(HttpStatus.BAD_GATEWAY, "Không gửi được tin nhắn OTP. Vui lòng thử lại.");
         }
+    }
+
+    private static ResponseEntity<OtpResponse> failure(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(OtpResponse.builder().success(false).message(message).build());
     }
     
     /**

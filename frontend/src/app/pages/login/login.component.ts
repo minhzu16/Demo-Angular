@@ -19,8 +19,12 @@ export class LoginComponent {
   form = this.fb.group({
     username: ['', Validators.required],
     password: ['', Validators.required],
+    twoFactorCode: [''],
     rememberMe: [false]
   });
+
+  /** Set when the server says this account has 2FA enabled and a code is needed to finish logging in. */
+  needsTwoFactor = false;
 
   loading = false;
   error: string | null = null;
@@ -38,7 +42,8 @@ export class LoginComponent {
 
     const loginData = {
       usernameOrEmail: this.form.value.username!,
-      password: this.form.value.password!
+      password: this.form.value.password!,
+      ...(this.needsTwoFactor && this.form.value.twoFactorCode ? { twoFactorCode: this.form.value.twoFactorCode.trim() } : {})
     };
 
     this.auth.login(loginData).subscribe({
@@ -63,7 +68,13 @@ export class LoginComponent {
         this.loading = false;
       },
       error: err => {
-        this.error = (err?.error?.message as string) || err?.message || 'Đăng nhập không thành công. Vui lòng thử lại.';
+        const message = (err?.error?.message as string) || err?.message || 'Đăng nhập không thành công. Vui lòng thử lại.';
+        if (message.includes('2FA_REQUIRED')) {
+          this.needsTwoFactor = true;
+          this.error = 'Tài khoản đã bật xác thực 2 lớp. Nhập mã 6 số từ ứng dụng xác thực của bạn.';
+        } else {
+          this.error = message;
+        }
         this.loading = false;
       }
     });
