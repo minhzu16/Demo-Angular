@@ -50,7 +50,7 @@ public class StoreCreditService {
             throw new IllegalArgumentException("Số tiền nạp vào Store Credit phải lớn hơn 0");
         }
 
-        StoreCreditEntity entity = storeCreditRepository.findByUserId(userId)
+        StoreCreditEntity entity = storeCreditRepository.findByUserIdForUpdate(userId)
                 .orElseGet(() -> StoreCreditEntity.builder()
                         .userId(userId)
                         .balance(BigDecimal.ZERO)
@@ -84,7 +84,7 @@ public class StoreCreditService {
             throw new IllegalArgumentException("Số tiền thanh toán từ Store Credit phải lớn hơn 0");
         }
 
-        StoreCreditEntity entity = storeCreditRepository.findByUserId(userId)
+        StoreCreditEntity entity = storeCreditRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new IllegalStateException("Ví Store Credit chưa được kích hoạt hoặc không có số dư"));
 
         if (entity.getBalance().compareTo(amount) < 0) {

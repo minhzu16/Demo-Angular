@@ -116,6 +116,11 @@ public class PaymentService {
         PaymentEntity existing = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new RuntimeException("Payment not found for order id: " + orderId));
 
+        String current = existing.getPaymentStatus();
+        if (!"PAID".equalsIgnoreCase(current) && !"COMPLETED".equalsIgnoreCase(current)) {
+            throw new IllegalStateException("Chỉ có thể hoàn tiền cho khoản đã thanh toán (hiện tại: " + current + ")");
+        }
+
         existing.setPaymentStatus("REFUNDED");
         PaymentEntity saved = paymentRepository.save(existing);
         log.info("Payment for order {} marked as REFUNDED", orderId);

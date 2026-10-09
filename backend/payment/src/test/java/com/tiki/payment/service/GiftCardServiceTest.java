@@ -80,7 +80,7 @@ class GiftCardServiceTest {
 
     @Test
     void testRedeemGiftCard_Success() {
-        when(giftCardRepository.findByCode("GIFT-AAAA-BBBB-CCCC")).thenReturn(Optional.of(activeCard));
+        when(giftCardRepository.findByCodeForUpdate("GIFT-AAAA-BBBB-CCCC")).thenReturn(Optional.of(activeCard));
         when(giftCardRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         GiftCardResponseDto res = giftCardService.redeemGiftCard("GIFT-AAAA-BBBB-CCCC", 20L);
@@ -93,7 +93,7 @@ class GiftCardServiceTest {
 
     @Test
     void testApplyGiftCardAtCheckout_Success() {
-        when(giftCardRepository.findByCode("GIFT-AAAA-BBBB-CCCC")).thenReturn(Optional.of(activeCard));
+        when(giftCardRepository.findByCodeForUpdate("GIFT-AAAA-BBBB-CCCC")).thenReturn(Optional.of(activeCard));
         when(giftCardRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         GiftCardResponseDto res = giftCardService.applyGiftCardAtCheckout("GIFT-AAAA-BBBB-CCCC", new BigDecimal("50000.00"), 101);
@@ -105,15 +105,23 @@ class GiftCardServiceTest {
 
     @Test
     void testApplyGiftCardAtCheckout_ExceedsBalance_Throws() {
-        when(giftCardRepository.findByCode("GIFT-AAAA-BBBB-CCCC")).thenReturn(Optional.of(activeCard));
+        when(giftCardRepository.findByCodeForUpdate("GIFT-AAAA-BBBB-CCCC")).thenReturn(Optional.of(activeCard));
 
         assertThrows(IllegalStateException.class, () ->
                 giftCardService.applyGiftCardAtCheckout("GIFT-AAAA-BBBB-CCCC", new BigDecimal("300000.00"), 101));
     }
 
     @Test
+    void testApplyGiftCardAtCheckout_NonPositiveAmount_Throws() {
+        assertThrows(IllegalArgumentException.class, () ->
+                giftCardService.applyGiftCardAtCheckout("GIFT-AAAA-BBBB-CCCC", new BigDecimal("-1"), 101));
+        assertThrows(IllegalArgumentException.class, () ->
+                giftCardService.reloadGiftCard("GIFT-AAAA-BBBB-CCCC", BigDecimal.ZERO));
+    }
+
+    @Test
     void testReloadGiftCard_Success() {
-        when(giftCardRepository.findByCode("GIFT-AAAA-BBBB-CCCC")).thenReturn(Optional.of(activeCard));
+        when(giftCardRepository.findByCodeForUpdate("GIFT-AAAA-BBBB-CCCC")).thenReturn(Optional.of(activeCard));
         when(giftCardRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         GiftCardResponseDto res = giftCardService.reloadGiftCard("GIFT-AAAA-BBBB-CCCC", new BigDecimal("100000.00"));

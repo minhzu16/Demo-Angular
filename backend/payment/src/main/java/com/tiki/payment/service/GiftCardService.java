@@ -69,7 +69,7 @@ public class GiftCardService {
 
     @Transactional
     public GiftCardResponseDto redeemGiftCard(String code, Long userId) {
-        GiftCardEntity card = getValidCard(code);
+        GiftCardEntity card = getValidCard(code, true);
 
         if (card.getCurrentBalance().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("Thẻ quà tặng không còn số dư để quy đổi");
@@ -106,7 +106,10 @@ public class GiftCardService {
 
     @Transactional
     public GiftCardResponseDto applyGiftCardAtCheckout(String code, BigDecimal amount, Integer orderId) {
-        GiftCardEntity card = getValidCard(code);
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Số tiền áp dụng phải lớn hơn 0");
+        }
+        GiftCardEntity card = getValidCard(code, true);
 
         if (card.getCurrentBalance().compareTo(amount) < 0) {
             throw new IllegalStateException("Số dư thẻ quà tặng không đủ. Số dư hiện tại: " +
@@ -135,7 +138,10 @@ public class GiftCardService {
 
     @Transactional
     public GiftCardResponseDto reloadGiftCard(String code, BigDecimal amount) {
-        GiftCardEntity card = giftCardRepository.findByCode(code)
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Số tiền nạp thêm phải lớn hơn 0");
+        }
+        GiftCardEntity card = giftCardRepository.findByCodeForUpdate(code)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thẻ quà tặng: " + code));
 
         if (!Boolean.TRUE.equals(card.getIsReloadable())) {
@@ -168,7 +174,11 @@ public class GiftCardService {
     }
 
     private GiftCardEntity getValidCard(String code) {
-        GiftCardEntity card = giftCardRepository.findByCode(code)
+        return getValidCard(code, false);
+    }
+
+    private GiftCardEntity getValidCard(String code, boolean forUpdate) {
+        GiftCardEntity card = (forUpdate ? giftCardRepository.findByCodeForUpdate(code) : giftCardRepository.findByCode(code))
                 .orElseThrow(() -> new IllegalArgumentException("Mã thẻ quà tặng không hợp lệ: " + code));
 
         if (card.getStatus() == GiftCardEntity.GiftCardStatus.CANCELLED) {

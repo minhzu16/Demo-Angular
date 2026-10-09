@@ -65,7 +65,7 @@ class StoreCreditServiceTest {
 
     @Test
     void testAddCredit_Success() {
-        when(storeCreditRepository.findByUserId(10L)).thenReturn(Optional.of(existingWallet));
+        when(storeCreditRepository.findByUserIdForUpdate(10L)).thenReturn(Optional.of(existingWallet));
         when(storeCreditRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(storeCreditTransactionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -86,7 +86,7 @@ class StoreCreditServiceTest {
 
     @Test
     void testDeductCredit_Success() {
-        when(storeCreditRepository.findByUserId(10L)).thenReturn(Optional.of(existingWallet));
+        when(storeCreditRepository.findByUserIdForUpdate(10L)).thenReturn(Optional.of(existingWallet));
         when(storeCreditRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(storeCreditTransactionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -105,7 +105,7 @@ class StoreCreditServiceTest {
 
     @Test
     void testDeductCredit_InsufficientBalance_Throws() {
-        when(storeCreditRepository.findByUserId(10L)).thenReturn(Optional.of(existingWallet));
+        when(storeCreditRepository.findByUserIdForUpdate(10L)).thenReturn(Optional.of(existingWallet));
 
         assertThrows(IllegalStateException.class, () ->
                 storeCreditService.deductCredit(10L, new BigDecimal("500000.00"), "ORDER-101", "Thanh toán"));

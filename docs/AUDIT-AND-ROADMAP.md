@@ -97,3 +97,8 @@ Lưu ý: font chưa kiểm chứng subset tiếng Việt qua mạng (Be Vietnam 
 **Giai đoạn 2 — Tính năng nâng cao (≈2–4 tháng)**: tìm kiếm hybrid Elasticsearch (kNN + phân tích tiếng Việt, gợi ý tự động); tích hợp vận chuyển GHN/GHTK + webhook theo dõi; hoá đơn điện tử (NĐ 123/2020); thông báo Zalo ZNS/web push; công cụ người bán (upload hàng loạt, quảng cáo sản phẩm, dự báo tồn kho); B2B RFQ/hạn mức công nợ; PWA + SSR cho trang sản phẩm (SEO).
 **Giai đoạn 3 — AI & quy mô (≈4–6+ tháng)**: trợ lý mua sắm bằng Claude có tool-use trên API catalog/đơn hàng (thay bot FAQ; model `claude-sonnet-5-5` cho hội thoại, `claude-haiku-4-5-20251001` cho phân loại/kiểm duyệt); tóm tắt & kiểm duyệt đánh giá; gợi ý cá nhân hoá theo sự kiện hành vi; chấm điểm gian lận ML; CDC (Debezium) cho outbox; Kubernetes + Helm + autoscaling; tuân thủ NĐ 13/2023 (PII).
 **Quick wins (≤1 tuần)**: B3 (env compose), bỏ `defaultValue="1"`, Dependabot, thêm `README` chạy local một lệnh, xoá artefact build khỏi repo.
+
+## 0d. Audit bổ sung — payment-service (nghiệp vụ)
+
+- **Đã sửa**: ví Store Credit và thẻ quà tặng dùng khóa ghi pessimistic (`findByUserIdForUpdate`, `findByCodeForUpdate`) → hết race double-spend khi redeem/apply/deduct song song; `applyGiftCardAtCheckout` và `reloadGiftCard` từ chối số tiền ≤ 0 (trước đây số âm có thể cộng tiền vào thẻ); `refundPayment` chỉ hoàn tiền cho khoản đã PAID/COMPLETED.
+- **Còn lại (cần quyết định nghiệp vụ)**: `createPayment` vẫn tin `amount` do client gửi (cần đối chiếu tổng đơn từ order-service); OAuth liên kết tài khoản theo email chưa xác minh; refresh token/logout qua query string; voucher/shipping/complaint của order-service; membership trả phí chưa trừ tiền.
