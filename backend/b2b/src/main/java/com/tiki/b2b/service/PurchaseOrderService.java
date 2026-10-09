@@ -63,11 +63,13 @@ public class PurchaseOrderService {
         List<PurchaseOrderItemEntity> items = new ArrayList<>();
 
         for (PurchaseOrderItemDto itemDto : req.getItems()) {
-            BigDecimal unitPrice = b2bService.getB2BPrice(
-                    itemDto.getProductId(),
-                    itemDto.getQuantity(),
-                    itemDto.getDefaultPrice() != null ? itemDto.getDefaultPrice() : BigDecimal.ZERO
-            );
+            // Price comes ONLY from the B2B price tiers. The request's defaultPrice used to be the fallback,
+            // so a buyer could order at any price (even 0) for products without a tier.
+            BigDecimal unitPrice = b2bService.getB2BPrice(itemDto.getProductId(), itemDto.getQuantity(), null);
+            if (unitPrice == null || unitPrice.signum() <= 0) {
+                throw new IllegalArgumentException("Sản phẩm #" + itemDto.getProductId()
+                        + " chưa có bảng giá sỉ (B2B) cho số lượng " + itemDto.getQuantity() + ".");
+            }
 
             BigDecimal itemTotal = unitPrice.multiply(BigDecimal.valueOf(itemDto.getQuantity()));
             subtotal = subtotal.add(itemTotal);
@@ -140,6 +142,12 @@ public class PurchaseOrderService {
         CompanyUserEntity approver = companyUserRepository
                 .findByCompanyIdAndUserIdAndIsActiveTrue(po.getCompanyId(), approverId)
                 .orElseThrow(() -> new SecurityException("Bạn không thuộc doanh nghiệp này."));
+
+        // Same authority as approving: a plain BUYER/VIEWER must not be able to reject purchase orders.
+        if (approver.getRole() != CompanyUserEntity.CompanyRole.ADMIN &&
+            approver.getRole() != CompanyUserEntity.CompanyRole.APPROVER) {
+            throw new SecurityException("Chỉ tài khoản APPROVER hoặc ADMIN mới có quyền từ chối đơn mua hàng.");
+        }
 
         po.setStatus(PurchaseOrderEntity.POStatus.REJECTED);
         po.setRejectionReason(reason);

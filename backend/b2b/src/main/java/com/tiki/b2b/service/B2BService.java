@@ -79,6 +79,11 @@ public class B2BService {
         return toCompanyDto(saved);
     }
 
+    public boolean isActiveMember(Long companyId, Long userId) {
+        return companyId != null && userId != null
+                && companyUserRepository.findByCompanyIdAndUserIdAndIsActiveTrue(companyId, userId).isPresent();
+    }
+
     public BigDecimal getB2BPrice(Long productId, Integer quantity, BigDecimal defaultPrice) {
         if (quantity == null || quantity <= 0) {
             return defaultPrice;
