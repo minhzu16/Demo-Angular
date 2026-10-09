@@ -174,6 +174,9 @@ services:
       - "8081:8081"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - SERVICES_ORDER_URL=http://order:8083
+      - SERVICES_REVIEW_URL=http://review:8089
+      - SERVICES_SHOP_URL=http://shop:8086
       - SERVER_FORWARD_HEADERS_STRATEGY=framework
       - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
       - DB_HOST=mysql
@@ -217,6 +220,12 @@ services:
       - "8083:8083"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - PRODUCT_SERVICE_URL=http://product:8081
+      - PAYMENT_SERVICE_URL=http://payment:8084
+      - WAREHOUSE_SERVICE_URL=http://warehouse:8092
+      - SETTLEMENT_SERVICE_URL=http://settlement:8094
+      - SHOP_SERVICE_URL=http://shop:8086
+      - SERVICES_AUTH_URL=http://auth:8082
       - SERVER_FORWARD_HEADERS_STRATEGY=framework
       - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
       - DB_HOST=mysql
@@ -256,6 +265,7 @@ services:
       - "8085:8085"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - SERVICES_AUTH_URL=http://auth:8082
       - SERVER_FORWARD_HEADERS_STRATEGY=framework
       - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
       - DB_HOST=mysql
@@ -292,6 +302,7 @@ services:
       - "8084:8084"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - ORDER_SERVICE_URL=http://order:8083
       - SERVER_FORWARD_HEADERS_STRATEGY=framework
       - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
       - DB_HOST=mysql
@@ -327,6 +338,8 @@ services:
       - "8092:8092"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - NOTIFICATION_SERVICE_URL=http://notification:8088
+      - SHOP_SERVICE_URL=http://shop:8086
       - SERVER_FORWARD_HEADERS_STRATEGY=framework
       - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
       - DB_HOST=mysql
@@ -440,6 +453,7 @@ services:
       - "8088:8088"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - JWT_SECRET=${JWT_SECRET}
       - SERVER_FORWARD_HEADERS_STRATEGY=framework
       - SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING=true
       - DB_HOST=mysql
