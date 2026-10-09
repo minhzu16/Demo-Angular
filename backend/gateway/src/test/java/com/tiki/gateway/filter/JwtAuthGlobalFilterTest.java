@@ -292,6 +292,33 @@ class JwtAuthGlobalFilterTest {
     }
 
     @Test
+    @DisplayName("Audit: RMA và membership")
+    void auditRules_rmaAndMembership() {
+        String buyer = createTestToken(10L, "buyer", "BUYER", 3600000);
+        String seller = createTestToken(20L, "seller", "SELLER", 3600000);
+        String admin = createTestToken(1L, "admin", "ADMIN", 3600000);
+        java.util.function.Function<String, String> bearer = t -> "Bearer " + t;
+
+        assertEquals(HttpStatus.UNAUTHORIZED, run(MockServerHttpRequest.post("/api/v1/rma/1/refund").build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.post("/api/v1/rma/1/refund")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(buyer)).build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.post("/api/v1/rma/1/inspect")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(seller)).build()));
+        assertNull(run(MockServerHttpRequest.post("/api/v1/rma/1/refund").header(HttpHeaders.AUTHORIZATION, bearer.apply(admin)).build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.post("/api/v1/rma/1/approve")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(buyer)).build()));
+        assertNull(run(MockServerHttpRequest.post("/api/v1/rma/1/approve").header(HttpHeaders.AUTHORIZATION, bearer.apply(seller)).build()));
+        assertNull(run(MockServerHttpRequest.post("/api/v1/rma").header(HttpHeaders.AUTHORIZATION, bearer.apply(buyer)).build()));
+        assertEquals(HttpStatus.UNAUTHORIZED, run(MockServerHttpRequest.get("/api/v1/rma/my").build()));
+
+        assertNull(run(MockServerHttpRequest.get("/api/v1/membership/plans").build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.post("/api/v1/membership/plans")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(buyer)).build()));
+        assertEquals(HttpStatus.UNAUTHORIZED, run(MockServerHttpRequest.post("/api/v1/membership/subscribe").build()));
+        assertNull(run(MockServerHttpRequest.post("/api/v1/membership/subscribe").header(HttpHeaders.AUTHORIZATION, bearer.apply(buyer)).build()));
+    }
+
+    @Test
     @DisplayName("Shop: duyệt hồ sơ người bán chỉ ADMIN; tạo/sửa shop cần đăng nhập")
     void sellerApplicationReview_isAdminOnly() {
         String buyer = createTestToken(10L, "buyer", "BUYER", 3600000);

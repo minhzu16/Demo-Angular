@@ -22,7 +22,7 @@ public class StoreCreditController {
 
     @GetMapping("/balance")
     public ResponseEntity<StoreCreditResponseDto> getBalance(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId) {
+            @RequestHeader("X-User-Id") Long userId) {
         return ResponseEntity.ok(storeCreditService.getBalance(userId));
     }
 
@@ -33,7 +33,7 @@ public class StoreCreditController {
 
     @PostMapping("/add")
     public ResponseEntity<StoreCreditTransactionDto> addCredit(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody StoreCreditOperationRequest req) {
         StoreCreditTransactionEntity.TransactionType type = StoreCreditTransactionEntity.TransactionType.ADMIN_ADJUSTMENT;
         if (req.getType() != null) {
@@ -47,7 +47,7 @@ public class StoreCreditController {
 
     @PostMapping("/deduct")
     public ResponseEntity<StoreCreditTransactionDto> deductCredit(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody StoreCreditOperationRequest req) {
         return ResponseEntity.ok(storeCreditService.deductCredit(
                 userId, req.getAmount(), req.getReferenceId(), req.getNote()));
@@ -55,7 +55,7 @@ public class StoreCreditController {
 
     @GetMapping("/history")
     public ResponseEntity<Page<StoreCreditTransactionDto>> getHistory(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             @PageableDefault(size = 10) Pageable pageable) {
         return ResponseEntity.ok(storeCreditService.getTransactionHistory(userId, pageable));
     }

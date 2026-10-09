@@ -87,6 +87,21 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
             Rule.of(HttpMethod.POST, "/api/v1/flash-sales/**", Access.ADMIN),
             Rule.of(HttpMethod.PUT, "/api/v1/flash-sales/**", Access.ADMIN),
             Rule.of(HttpMethod.DELETE, "/api/v1/flash-sales/**", Access.ADMIN),
+            // RMA (returns/exchanges): refunds, warehouse intake and inspection are admin-only, seller decisions need
+            // SELLER (the service checks shop ownership), everything else needs a login.
+            Rule.of(HttpMethod.POST, "/api/v1/rma/*/refund", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/rma/*/exchange", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/rma/*/receive", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/rma/*/inspect", Access.ADMIN),
+            Rule.of(HttpMethod.GET, "/api/v1/rma/admin", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/rma/*/approve", Access.SELLER),
+            Rule.of(HttpMethod.POST, "/api/v1/rma/*/reject", Access.SELLER),
+            Rule.of(HttpMethod.GET, "/api/v1/rma/shop/**", Access.SELLER),
+            Rule.any("/api/v1/rma/**", Access.AUTHENTICATED),
+            // Membership: plans are public to read, creating a plan is admin-only, the rest needs a login.
+            Rule.of(HttpMethod.GET, "/api/v1/membership/plans", null),
+            Rule.of(HttpMethod.POST, "/api/v1/membership/plans", Access.ADMIN),
+            Rule.any("/api/v1/membership/**", Access.AUTHENTICATED),
             // Marketing/templates: the service has no auth, so every write and the full (inactive/draft) listings are
             // admin-only; /active feeds and a campaign by code stay public.
             Rule.of(HttpMethod.POST, "/api/v1/marketing/**", Access.ADMIN),

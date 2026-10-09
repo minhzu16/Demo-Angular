@@ -22,7 +22,7 @@ public class GiftCardController {
 
     @PostMapping("/purchase")
     public ResponseEntity<GiftCardResponseDto> purchaseGiftCard(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody GiftCardPurchaseRequest req) {
         return ResponseEntity.ok(giftCardService.purchaseGiftCard(userId, req));
     }
@@ -34,7 +34,7 @@ public class GiftCardController {
 
     @PostMapping("/redeem")
     public ResponseEntity<GiftCardResponseDto> redeemGiftCard(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             @RequestParam String code) {
         return ResponseEntity.ok(giftCardService.redeemGiftCard(code, userId));
     }
@@ -54,7 +54,7 @@ public class GiftCardController {
 
     @GetMapping("/my")
     public ResponseEntity<Page<GiftCardResponseDto>> getMyGiftCards(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             @PageableDefault(size = 10) Pageable pageable) {
         return ResponseEntity.ok(giftCardService.getMyGiftCards(userId, pageable));
     }
