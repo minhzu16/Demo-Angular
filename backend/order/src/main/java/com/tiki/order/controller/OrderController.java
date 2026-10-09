@@ -39,6 +39,26 @@ public class OrderController {
     private final OrderAnalyticsService orderAnalyticsService;
     private final OrderPaymentService orderPaymentService;
     private final MockPaymentService mockPaymentService;
+    private final com.tiki.order.service.ShopOwnershipService shopOwnershipService;
+
+    private static boolean isAdminRole(String role) {
+        return role != null && role.toUpperCase().contains("ADMIN");
+    }
+
+    /**
+     * A seller may only touch their own shop. Shop ids are not user ids, so ownership is resolved through
+     * shop-service (the old checks compared shopId with the user id and either blocked every real seller
+     * or, on the list endpoints, checked nothing at all).
+     */
+    private void requireShopAccess(Long shopId, Long userId, String role, String action) {
+        if (isAdminRole(role)) {
+            return;
+        }
+        if (!shopOwnershipService.ownsShop(userId, shopId)) {
+            log.warn("SECURITY: user {} attempted '{}' on shop {} that is not theirs", userId, action, shopId);
+            throw new AccessDeniedException(userId, action, shopId);
+        }
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -139,6 +159,7 @@ public class OrderController {
         Long currentUserId = (Long) request.getAttribute("userId");
         String role = (String) request.getAttribute("role");
         log.debug("GET /orders/shop/{} - userId={}, role={}", shopId, currentUserId, role);
+        requireShopAccess(shopId, currentUserId, role, "view_shop_orders");
 
         if (size > 100) size = 100;
         if (size <= 0) size = 10;
@@ -211,6 +232,48 @@ public class OrderController {
         return cancelOrder(orderId, request);
     }
 
+    /**
+     * Seller fulfilment: confirm → prepare → ship (or cancel before shipping).
+     * PUT /api/v1/orders/{orderId}/status  {"status": "CONFIRMED"}
+     * The seller UI calls this path; previously only the ADMIN-only /admin/orders endpoint existed.
+     * DELIVERED stays with the buyer (confirm-received) / admin, refunds with the RMA flow.
+     */
+    @PutMapping("/{orderId}/status")
+    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN')")
+    public OrderDto updateOrderStatusBySeller(
+            @PathVariable Integer orderId,
+            @RequestBody Map<String, String> body,
+            @RequestHeader(value = "X-User-Id", required = true) Long staffId,
+            @RequestHeader(value = "X-User-Role", required = false) String roleHeader) {
+
+        OrderEntity.OrderStatus target;
+        try {
+            target = OrderEntity.OrderStatus.valueOf(String.valueOf(body.get("status")).trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new com.tiki.order.exception.BadRequestException("Trạng thái đơn hàng không hợp lệ");
+        }
+
+        OrderDto order = orderQueryService.getOrder(orderId);
+        requireShopAccess(order.getShopId(), staffId, roleHeader, "update_order_status");
+
+        OrderEntity.OrderStatus current = OrderEntity.OrderStatus.valueOf(String.valueOf(order.getStatus()));
+        boolean allowed = switch (target) {
+            case CONFIRMED -> current == OrderEntity.OrderStatus.PENDING;
+            case PROCESSING -> current == OrderEntity.OrderStatus.CONFIRMED;
+            case SHIPPING -> current == OrderEntity.OrderStatus.CONFIRMED || current == OrderEntity.OrderStatus.PROCESSING;
+            case CANCELLED -> current == OrderEntity.OrderStatus.PENDING || current == OrderEntity.OrderStatus.CONFIRMED
+                    || current == OrderEntity.OrderStatus.PROCESSING;
+            default -> false;
+        };
+        if (!allowed) {
+            throw new com.tiki.order.exception.BadRequestException(
+                    "Không thể chuyển đơn hàng từ " + current + " sang " + target);
+        }
+
+        log.info("Staff {} moves order {} from {} to {}", staffId, orderId, current, target);
+        return orderStatusService.updateStatus(orderId, target);
+    }
+
     @PutMapping("/{orderId}/confirm-received")
     @PreAuthorize("hasRole('BUYER') or hasRole('ADMIN')")
     public OrderDto confirmReceived(
@@ -254,12 +317,8 @@ public class OrderController {
             @RequestHeader(value = "X-Username", required = false) String staffUsername) {
 
         OrderDto order = orderQueryService.getOrder(orderId);
-        boolean isAdmin = roleHeader != null && (roleHeader.contains("ADMIN") || roleHeader.contains("ROLE_ADMIN"));
         // SECURITY: Seller can only refund orders belonging to their own shop
-        if (!isAdmin && order.getShopId() != null && !order.getShopId().equals(staffId)) {
-            log.warn("SECURITY: Seller {} attempted to refund order {} belonging to shop {}", staffId, orderId, order.getShopId());
-            throw new AccessDeniedException(staffId, "refund_order", orderId);
-        }
+        requireShopAccess(order.getShopId(), staffId, roleHeader, "refund_order");
 
         log.info("Staff {} ({}) approved return / refund for order {}", staffUsername, staffId, orderId);
         return orderStatusService.refundOrder(orderId);
@@ -275,12 +334,8 @@ public class OrderController {
             @RequestHeader(value = "X-Username", required = false) String staffUsername) {
 
         OrderDto order = orderQueryService.getOrder(orderId);
-        boolean isAdmin = roleHeader != null && (roleHeader.contains("ADMIN") || roleHeader.contains("ROLE_ADMIN"));
         // SECURITY: Seller can only reject returns for orders belonging to their own shop
-        if (!isAdmin && order.getShopId() != null && !order.getShopId().equals(staffId)) {
-            log.warn("SECURITY: Seller {} attempted to reject return for order {} belonging to shop {}", staffId, orderId, order.getShopId());
-            throw new AccessDeniedException(staffId, "reject_return", orderId);
-        }
+        requireShopAccess(order.getShopId(), staffId, roleHeader, "reject_return");
 
         log.info("Staff {} ({}) rejected return for order {}: reason={}", staffUsername, staffId, orderId, reason);
         return orderStatusService.rejectReturn(orderId, reason);
@@ -326,7 +381,11 @@ public class OrderController {
      */
     @GetMapping("/stats/shop")
     @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN')")
-    public OrderStatsDTO getShopOrderStats(@RequestParam Long shopId) {
+    public OrderStatsDTO getShopOrderStats(
+            @RequestParam Long shopId,
+            @RequestHeader(value = "X-User-Id", required = false) Long callerId,
+            @RequestHeader(value = "X-User-Role", required = false) String callerRole) {
+        requireShopAccess(shopId, callerId, callerRole, "view_shop_stats");
         log.debug("Getting order stats for shop: {}", shopId);
         return orderAnalyticsService.getShopOrderStats(shopId);
     }
@@ -337,7 +396,11 @@ public class OrderController {
      */
     @GetMapping("/shop/{shopId}/statistics")
     @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN')")
-    public OrderStatsDTO getShopOrderStatsForSeller(@PathVariable Long shopId) {
+    public OrderStatsDTO getShopOrderStatsForSeller(
+            @PathVariable Long shopId,
+            @RequestHeader(value = "X-User-Id", required = false) Long callerId,
+            @RequestHeader(value = "X-User-Role", required = false) String callerRole) {
+        requireShopAccess(shopId, callerId, callerRole, "view_shop_stats");
         log.debug("Getting dashboard order stats for shop: {}", shopId);
         return orderAnalyticsService.getShopOrderStats(shopId);
     }
