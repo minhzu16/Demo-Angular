@@ -18,6 +18,37 @@ class ChatControllerTest {
     }
 
     @Test
+    void testConversationMessage_isPublishedToConversationAndInboxOnly() {
+        org.springframework.messaging.simp.SimpMessagingTemplate template =
+                org.mockito.Mockito.mock(org.springframework.messaging.simp.SimpMessagingTemplate.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(chatController, "messagingTemplate", template);
+        ChatMessage msg = ChatMessage.builder().type(ChatMessage.MessageType.CHAT).content("Xin chào").sender("x").build();
+
+        chatController.chat(5L, 7L, msg, "7", "an");
+
+        org.mockito.ArgumentCaptor<ChatMessage> sent = org.mockito.ArgumentCaptor.forClass(ChatMessage.class);
+        org.mockito.Mockito.verify(template).convertAndSend(org.mockito.ArgumentMatchers.eq("/topic/conv/5/7"), sent.capture());
+        org.mockito.Mockito.verify(template).convertAndSend(org.mockito.ArgumentMatchers.eq("/topic/inbox/5"), org.mockito.ArgumentMatchers.any(ChatMessage.class));
+        org.mockito.Mockito.verifyNoMoreInteractions(template);
+        assertEquals(7L, sent.getValue().getBuyerId());
+        assertEquals(7L, sent.getValue().getSenderId());
+        assertEquals("an", sent.getValue().getSender());
+    }
+
+    @Test
+    void testSellerJoin_staysSilent_buyerJoin_isAnnounced() {
+        org.springframework.messaging.simp.SimpMessagingTemplate template =
+                org.mockito.Mockito.mock(org.springframework.messaging.simp.SimpMessagingTemplate.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(chatController, "messagingTemplate", template);
+
+        chatController.join(5L, 7L, ChatMessage.builder().sender("seller").build(), "50", "seller");
+        org.mockito.Mockito.verifyNoInteractions(template);
+
+        chatController.join(5L, 7L, ChatMessage.builder().sender("an").build(), "7", "an");
+        org.mockito.Mockito.verify(template).convertAndSend(org.mockito.ArgumentMatchers.eq("/topic/conv/5/7"), org.mockito.ArgumentMatchers.any(ChatMessage.class));
+    }
+
+    @Test
     void testSendMessage_NormalChat() {
         ChatMessage msg = ChatMessage.builder()
                 .type(ChatMessage.MessageType.CHAT)
@@ -26,7 +57,7 @@ class ChatControllerTest {
                 .senderId(99L)
                 .build();
 
-        ChatMessage result = chatController.sendMessage(1L, msg, "123");
+        ChatMessage result = chatController.sendMessage(1L, msg, "123", null);
 
         assertNotNull(result);
         assertEquals(1L, result.getShopId());
@@ -43,7 +74,7 @@ class ChatControllerTest {
                 .sender("Attacker")
                 .build();
 
-        ChatMessage result = chatController.sendMessage(1L, msg, "100");
+        ChatMessage result = chatController.sendMessage(1L, msg, "100", null);
 
         assertFalse(result.getContent().contains("<script>"));
         assertTrue(result.getContent().contains("&lt;script&gt;"));
@@ -58,7 +89,7 @@ class ChatControllerTest {
                     .content("Spam message " + i)
                     .sender("Spammer")
                     .build();
-            chatController.sendMessage(1L, msg, "555");
+            chatController.sendMessage(1L, msg, "555", null);
         }
 
         // 11th message should be rate limited
@@ -67,7 +98,7 @@ class ChatControllerTest {
                 .content("Spam message 11")
                 .sender("Spammer")
                 .build();
-        ChatMessage blocked = chatController.sendMessage(1L, spamMsg, "555");
+        ChatMessage blocked = chatController.sendMessage(1L, spamMsg, "555", null);
 
         assertEquals("System", blocked.getSender());
         assertTrue(blocked.getContent().contains("quá nhiều tin nhắn"));
@@ -81,7 +112,7 @@ class ChatControllerTest {
                 .sender("Buyer1")
                 .build();
 
-        ChatMessage result = chatController.sendMessage(1L, msg, "200");
+        ChatMessage result = chatController.sendMessage(1L, msg, "200", null);
 
         assertEquals("Tiki Bot Assistant", result.getSender());
         assertTrue(result.getContent().contains("Chính sách đổi trả & RMA"));

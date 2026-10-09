@@ -32,7 +32,10 @@ export class WebSocketService {
     this.socket.onopen = () => {
       console.log('WebSocket connected');
       // Simple STOMP CONNECT frame
-      this.socket?.send('CONNECT\naccept-version:1.2\nheart-beat:10000,10000\n\n\0');
+      // The JWT in the CONNECT frame authenticates the STOMP session (browsers cannot set WS headers).
+      const token = localStorage.getItem('access_token');
+      const auth = token ? `Authorization:Bearer ${token}\n` : '';
+      this.socket?.send(`CONNECT\naccept-version:1.2\nheart-beat:10000,10000\n${auth}\n\0`);
     };
 
     this.socket.onmessage = (event) => {
@@ -66,10 +69,14 @@ export class WebSocketService {
       }
     };
 
-    this.socket.onclose = () => {
+    this.socket.onclose = (event) => {
       console.log('WebSocket connection closed');
-      // Attempt reconnect after 5 seconds
-      setTimeout(() => this.connect(), 5000);
+      if (this.socket === event.target) this.socket = null;
+      // Reconnect only while signed in (the server now rejects unauthenticated sessions; retrying forever
+      // after logout or with an expired token just hammered it every 5 s).
+      if (this.authService.isAuthenticated()) {
+        setTimeout(() => this.connect(), 5000);
+      }
     };
 
     this.socket.onerror = (error) => {
@@ -79,8 +86,9 @@ export class WebSocketService {
 
   disconnect() {
     if (this.socket) {
-      this.socket.close();
+      const socket = this.socket;
       this.socket = null;
+      socket.close();
     }
   }
 

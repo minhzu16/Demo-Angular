@@ -34,6 +34,9 @@ public class ChatMessage {
     private Long senderId;
 
     private Long shopId;
+
+    /** The buyer side of the conversation (set by the server from the destination). */
+    private Long buyerId;
     private String shopName;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING)

@@ -6,7 +6,8 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 import java.time.Instant;
@@ -35,22 +36,67 @@ public class ChatController {
 
     private final Map<Long, long[]> rateLimiter = new ConcurrentHashMap<>();
 
+    @Autowired(required = false)
+    private SimpMessagingTemplate messagingTemplate;
+
     /**
-     * Buyer/Seller sends a CHAT message to a shop channel.
-     * Client sends to: /app/chat/{shopId}
-     * Subscribers of /topic/shop/{shopId} receive the message.
+     * One private channel per conversation (shop, buyer). Delivered to the conversation topic (buyer + shop
+     * owner) and to the shop's inbox topic (owner only, so the seller UI can list all conversations).
      */
-    @MessageMapping("/chat/{shopId}")
-    @SendTo("/topic/shop/{shopId}")
+    private void publish(Long shopId, Long buyerId, ChatMessage message) {
+        message.setBuyerId(buyerId);
+        if (messagingTemplate == null) {
+            return;
+        }
+        messagingTemplate.convertAndSend("/topic/conv/" + shopId + "/" + buyerId, message);
+        messagingTemplate.convertAndSend("/topic/inbox/" + shopId, message);
+    }
+
+    /** Client sends to /app/chat/{shopId}/{buyerId}; access is enforced by StompJwtChannelInterceptor. */
+    @MessageMapping("/chat/{shopId}/{buyerId}")
+    public void chat(@DestinationVariable Long shopId, @DestinationVariable Long buyerId,
+                     @Payload ChatMessage message,
+                     @Header(value = "senderId", required = false) String senderIdHeader,
+                     @Header(value = "senderName", required = false) String senderNameHeader) {
+        publish(shopId, buyerId, sendMessage(shopId, message, senderIdHeader, senderNameHeader));
+    }
+
+    @MessageMapping("/chat/{shopId}/{buyerId}/join")
+    public void join(@DestinationVariable Long shopId, @DestinationVariable Long buyerId,
+                     @Payload ChatMessage message,
+                     @Header(value = "senderId", required = false) String senderIdHeader,
+                     @Header(value = "senderName", required = false) String senderNameHeader) {
+        // Presence notices are for the buyer's own side; a seller opening the conversation stays silent.
+        if (String.valueOf(buyerId).equals(senderIdHeader)) {
+            publish(shopId, buyerId, joinChat(shopId, message, senderIdHeader, senderNameHeader));
+        }
+    }
+
+    @MessageMapping("/chat/{shopId}/{buyerId}/leave")
+    public void leave(@DestinationVariable Long shopId, @DestinationVariable Long buyerId,
+                      @Payload ChatMessage message,
+                      @Header(value = "senderId", required = false) String senderIdHeader,
+                      @Header(value = "senderName", required = false) String senderNameHeader) {
+        if (String.valueOf(buyerId).equals(senderIdHeader)) {
+            publish(shopId, buyerId, leaveChat(shopId, message, senderIdHeader, senderNameHeader));
+        }
+    }
+
+    /** Builds the outgoing message for a CHAT frame (sender verification, rate limit, sanitising, FAQ bot). */
     public ChatMessage sendMessage(
             @DestinationVariable Long shopId,
             @Payload ChatMessage message,
-            @Header(value = "senderId", required = false) String senderIdHeader) {
+            @Header(value = "senderId", required = false) String senderIdHeader,
+            @Header(value = "senderName", required = false) String senderNameHeader) {
 
-        // ✅ BUG 20 FIX: Override senderId from trusted STOMP header, not from the payload body
+        // ✅ BUG 20 FIX: senderId / senderName are stamped by StompJwtChannelInterceptor from the verified JWT
+        // (the client-supplied header used to be trusted as-is). Never take them from the payload body.
         Long verifiedSenderId = parseSenderId(senderIdHeader);
         if (verifiedSenderId != null) {
             message.setSenderId(verifiedSenderId);
+        }
+        if (senderNameHeader != null && !senderNameHeader.isBlank()) {
+            message.setSender(sanitize(senderNameHeader));
         }
 
         // ✅ BUG 22 FIX: Rate limiting check
@@ -146,16 +192,18 @@ public class ChatController {
      * User joins a chat room (shop channel).
      * Client sends to: /app/chat/{shopId}/join
      */
-    @MessageMapping("/chat/{shopId}/join")
-    @SendTo("/topic/shop/{shopId}")
     public ChatMessage joinChat(
             @DestinationVariable Long shopId,
             @Payload ChatMessage message,
-            @Header(value = "senderId", required = false) String senderIdHeader) {
+            @Header(value = "senderId", required = false) String senderIdHeader,
+            @Header(value = "senderName", required = false) String senderNameHeader) {
 
         Long verifiedSenderId = parseSenderId(senderIdHeader);
         if (verifiedSenderId != null) {
             message.setSenderId(verifiedSenderId);
+        }
+        if (senderNameHeader != null && !senderNameHeader.isBlank()) {
+            message.setSender(senderNameHeader);
         }
 
         message.setShopId(shopId);
@@ -172,16 +220,18 @@ public class ChatController {
      * User leaves a chat room.
      * Client sends to: /app/chat/{shopId}/leave
      */
-    @MessageMapping("/chat/{shopId}/leave")
-    @SendTo("/topic/shop/{shopId}")
     public ChatMessage leaveChat(
             @DestinationVariable Long shopId,
             @Payload ChatMessage message,
-            @Header(value = "senderId", required = false) String senderIdHeader) {
+            @Header(value = "senderId", required = false) String senderIdHeader,
+            @Header(value = "senderName", required = false) String senderNameHeader) {
 
         Long verifiedSenderId = parseSenderId(senderIdHeader);
         if (verifiedSenderId != null) {
             message.setSenderId(verifiedSenderId);
+        }
+        if (senderNameHeader != null && !senderNameHeader.isBlank()) {
+            message.setSender(senderNameHeader);
         }
 
         message.setShopId(shopId);

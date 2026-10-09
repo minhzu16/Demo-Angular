@@ -28,22 +28,33 @@
 
   <!-- Chat Area -->
   <div class="seller-chat-container" *ngIf="!loading && shop">
+    <div class="conversation-list" role="navigation" aria-label="Danh sách hội thoại">
+      <div class="conversation-list-title">Hội thoại</div>
+      <p class="conversation-empty" *ngIf="conversations.length === 0">Chưa có khách hàng nào nhắn tin.</p>
+      <button type="button" class="conversation-item" *ngFor="let c of conversations"
+              [class.active]="c.buyerId === selectedBuyerId" (click)="selectConversation(c.buyerId)">
+        <span class="conversation-name">{{ c.name }}</span>
+        <span class="conversation-preview">{{ c.lastMessage }}</span>
+        <span class="conversation-unread" *ngIf="c.unread > 0" [attr.aria-label]="c.unread + ' tin chưa đọc'">{{ c.unread }}</span>
+      </button>
+    </div>
+
     <div class="chat-panel">
       <!-- Shop Info -->
       <div class="shop-info-bar">
         <i class="bi bi-shop"></i>
-        <span>{{ shop.name }} — Chat với khách hàng</span>
+        <span>{{ shop.name }}<ng-container *ngIf="selectedBuyerId != null"> — {{ activeConversationName }}</ng-container></span>
       </div>
 
       <!-- Messages -->
       <div class="chat-messages-area" #messagesContainer>
-        <div class="empty-chat" *ngIf="messages.length === 0">
+        <div class="empty-chat" *ngIf="selectedBuyerId == null">
           <i class="bi bi-chat-text"></i>
-          <h5>Chưa có tin nhắn nào</h5>
-          <p>Khi khách hàng nhắn tin cho cửa hàng, tin nhắn sẽ hiển thị ở đây.</p>
+          <h5>Chọn một hội thoại</h5>
+          <p>Mỗi khách hàng có một cuộc trò chuyện riêng. Chọn khách ở bên trái để xem và trả lời.</p>
         </div>
 
-        <div *ngFor="let msg of messages"
+        <div *ngFor="let msg of activeMessages"
              class="msg-row"
              [class.own]="isOwnMessage(msg)"
              [class.system]="msg.type === 'JOIN' || msg.type === 'LEAVE'">
@@ -69,10 +80,10 @@
                [(ngModel)]="newMessage"
                (keydown)="onKeyDown($event)"
                placeholder="Nhập tin nhắn phản hồi..."
-               [disabled]="!isConnected">
+               [disabled]="!isConnected || selectedBuyerId == null">
         <button class="btn btn-primary send-btn"
                 (click)="sendMessage()"
-                [disabled]="!newMessage.trim() || !isConnected">
+                [disabled]="!newMessage.trim() || !isConnected || selectedBuyerId == null">
           <i class="bi bi-send-fill"></i> Gửi
         </button>
       </div>
