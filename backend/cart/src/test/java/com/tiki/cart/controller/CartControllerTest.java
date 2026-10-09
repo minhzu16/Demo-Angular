@@ -19,6 +19,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -158,6 +160,43 @@ public class CartControllerTest {
     // Note: Cart clearing is the responsibility of OrderService or 
     //       Frontend after checkout. This tests the cart /clear endpoint.
     // ═══════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("Audit: không đọc được giỏ hàng của user khác qua /user/{id}")
+    public void testGetCartOfAnotherUser_IsForbidden() throws Exception {
+        mockMvc.perform(get("/api/v1/cart/user/2").header("X-User-Id", "1")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/cart/user/2")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/cart/user/2/count").header("X-User-Id", "1")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Audit: userId trên query string không thay được danh tính; gộp giỏ cần đăng nhập")
+    public void testQueryUserIdIsIgnored_andMergeRequiresLogin() throws Exception {
+        when(cartService.getCart(eq((Integer) null), eq("s1"))).thenReturn(new CartDto());
+        mockMvc.perform(get("/api/v1/cart").param("userId", "99").param("sessionId", "s1")).andExpect(status().isOk());
+        verify(cartService).getCart(null, "s1");
+        verify(cartService, never()).getCart(eq(99), any());
+
+        mockMvc.perform(post("/api/v1/cart/merge").param("userId", "99").param("sessionId", "s1"))
+                .andExpect(status().isUnauthorized());
+        verify(cartService, never()).merge(any(), any());
+    }
+
+    @Test
+    @DisplayName("Audit: giá sản phẩm không xác minh được -> 503, không lưu giá 0")
+    public void testAddItem_PriceUnavailable_ReturnsServiceUnavailable() throws Exception {
+        AddItemRequest request = new AddItemRequest();
+        request.setProductId(1);
+        request.setQuantity(1);
+        ProductClient.ProductDTO zero = new ProductClient.ProductDTO();
+        zero.setPrice(BigDecimal.ZERO); // what the Feign circuit-breaker fallback returns
+        when(productClient.getProduct(1)).thenReturn(zero);
+
+        mockMvc.perform(post("/api/v1/cart").contentType(MediaType.APPLICATION_JSON).header("X-User-Id", "1")
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isServiceUnavailable());
+        verify(cartService, never()).addItem(any(), any(), any(), any(), any(BigDecimal.class));
+    }
 
     @Test
     @DisplayName("Bug 5: API /cart/clear phải trả 204 No Content")
