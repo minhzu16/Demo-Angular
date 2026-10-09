@@ -3,6 +3,7 @@ package com.tiki.analytics.controller;
 import com.tiki.analytics.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +19,15 @@ public class RecommendationController {
     private final RecommendationService recommendationService;
 
     @GetMapping("/{userId}")
-    public ResponseEntity<List<Map<String, Object>>> getRecommendations(@PathVariable Long userId) {
+    public ResponseEntity<List<Map<String, Object>>> getRecommendations(
+            @PathVariable Long userId,
+            @RequestHeader(value = "X-User-Id", required = false) Long callerId,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        // Personalised (purchase-based) data: only the user themself or an admin.
+        boolean admin = role != null && role.toUpperCase().contains("ADMIN");
+        if (!admin && (callerId == null || !callerId.equals(userId))) {
+            return ResponseEntity.status(callerId == null ? HttpStatus.UNAUTHORIZED : HttpStatus.FORBIDDEN).build();
+        }
         log.info("GET /recommendations/{}", userId);
         return ResponseEntity.ok(recommendationService.getRecommendations(userId));
     }
