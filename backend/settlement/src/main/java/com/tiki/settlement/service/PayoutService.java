@@ -37,6 +37,11 @@ public class PayoutService {
             if (s.getStatus() == SellerSettlementEntity.SettlementStatus.PAID) {
                 throw new IllegalStateException("Kỳ quyết toán " + period + " của shop " + shopId + " đã được chi trả trước đó.");
             }
+            // APPROVED means the settlement is already part of an open payout; paying it again created a duplicate payout.
+            if (s.getStatus() != SellerSettlementEntity.SettlementStatus.CALCULATED) {
+                throw new IllegalStateException("Kỳ quyết toán " + period + " của shop " + shopId
+                        + " đã có yêu cầu chi trả đang xử lý.");
+            }
             totalOrder = totalOrder.add(s.getOrderAmount());
             totalComm = totalComm.add(s.getCommissionAmount());
             totalPayout = totalPayout.add(s.getSellerPayoutAmount());
@@ -86,6 +91,10 @@ public class PayoutService {
 
         if (payout.getStatus() == SellerPayoutEntity.PayoutStatus.COMPLETED) {
             throw new IllegalStateException("Yêu cầu chi trả id=" + payoutId + " đã hoàn tất trước đó.");
+        }
+        // Must go through approval first (PENDING -> PROCESSING -> COMPLETED); confirming a PENDING payout skipped the approval step.
+        if (payout.getStatus() != SellerPayoutEntity.PayoutStatus.PROCESSING) {
+            throw new IllegalStateException("Yêu cầu chi trả id=" + payoutId + " chưa được duyệt (trạng thái: " + payout.getStatus() + ").");
         }
 
         payout.setStatus(SellerPayoutEntity.PayoutStatus.COMPLETED);

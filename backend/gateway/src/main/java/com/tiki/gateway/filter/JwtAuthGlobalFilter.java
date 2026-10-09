@@ -74,6 +74,13 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
             Rule.any("/api/v1/warehouse/confirm/**", Access.BLOCKED),
             Rule.any("/api/v1/warehouse/release/**", Access.BLOCKED),
             Rule.of(HttpMethod.POST, "/api/v1/settlement/calculate", Access.BLOCKED),
+            // Settlement moves seller money: rules + payout approval are admin-only, a shop's own pages need SELLER
+            // (the service additionally checks the caller owns that shop).
+            Rule.of(HttpMethod.POST, "/api/v1/settlement/rules", Access.ADMIN),
+            Rule.of(HttpMethod.DELETE, "/api/v1/settlement/rules/*", Access.ADMIN),
+            Rule.any("/api/v1/settlement/payouts/**", Access.ADMIN),
+            Rule.any("/api/v1/settlement/shop/**", Access.SELLER),
+            Rule.any("/api/v1/settlement/**", Access.AUTHENTICATED),
             Rule.of(HttpMethod.POST, "/api/v1/notifications/stock-alert/trigger", Access.BLOCKED),
             // Live: viewer counts are server-side data (no browser should set them); the rest of the
             // write API needs a signed-in user because the service now requires X-User-Id.

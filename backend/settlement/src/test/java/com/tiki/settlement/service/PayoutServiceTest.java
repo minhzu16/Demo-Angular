@@ -82,6 +82,31 @@ class PayoutServiceTest {
     }
 
     @Test
+    void testInitiatePayout_ThrowsIfPeriodAlreadyInOpenPayout_NoDuplicatePayout() {
+        SellerSettlementEntity inOpenPayout = SellerSettlementEntity.builder()
+                .orderAmount(new BigDecimal("1000000.00"))
+                .commissionAmount(new BigDecimal("50000.00"))
+                .sellerPayoutAmount(new BigDecimal("950000.00"))
+                .status(SellerSettlementEntity.SettlementStatus.APPROVED)
+                .build();
+        when(sellerSettlementRepository.findByShopIdAndSettlementPeriod(10L, "2027-01")).thenReturn(List.of(inOpenPayout));
+
+        assertThrows(IllegalStateException.class, () ->
+                payoutService.initiatePayout(10L, "2027-01", "123", "Bank", "Holder"));
+        org.mockito.Mockito.verify(sellerPayoutRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void testConfirmPayout_RequiresApprovalFirst() {
+        SellerPayoutEntity pending = SellerPayoutEntity.builder().id(2L)
+                .status(SellerPayoutEntity.PayoutStatus.PENDING).build();
+        when(sellerPayoutRepository.findById(2L)).thenReturn(Optional.of(pending));
+
+        assertThrows(IllegalStateException.class, () -> payoutService.confirmPayout(2L, "TX-1"));
+        assertEquals(SellerPayoutEntity.PayoutStatus.PENDING, pending.getStatus());
+    }
+
+    @Test
     void testApprovePayout_Success() {
         SellerPayoutEntity payout = SellerPayoutEntity.builder()
                 .id(1L)

@@ -523,6 +523,7 @@ services:
     container_name: settlement
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - SHOP_SERVICE_URL=http://shop:8086
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USERNAME=${MYSQL_USER:-sa}
