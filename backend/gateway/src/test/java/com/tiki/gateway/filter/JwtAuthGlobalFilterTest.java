@@ -218,6 +218,52 @@ class JwtAuthGlobalFilterTest {
     }
 
     @Test
+    @DisplayName("Audit: settlement/review/analytics/marketing — luật theo vai trò")
+    void auditRules_settlementReviewAnalyticsMarketing() {
+        String buyer = createTestToken(10L, "buyer", "BUYER", 3600000);
+        String seller = createTestToken(20L, "seller", "SELLER", 3600000);
+        String admin = createTestToken(1L, "admin", "ADMIN", 3600000);
+        java.util.function.Function<String, String> bearer = t -> "Bearer " + t;
+
+        // settlement: money operations
+        assertEquals(HttpStatus.UNAUTHORIZED, run(MockServerHttpRequest.post("/api/v1/settlement/payouts/1/approve").build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.post("/api/v1/settlement/payouts/1/approve")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(seller)).build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.post("/api/v1/settlement/rules")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(seller)).build()));
+        assertNull(run(MockServerHttpRequest.post("/api/v1/settlement/payouts/1/approve")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(admin)).build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.get("/api/v1/settlement/shop/5/summary")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(buyer)).build()));
+        assertNull(run(MockServerHttpRequest.get("/api/v1/settlement/shop/5/summary")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(seller)).build()));
+
+        // review
+        assertEquals(HttpStatus.UNAUTHORIZED, run(MockServerHttpRequest.delete("/api/v1/reviews/5").build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.post("/api/v1/reviews/5/reply")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(buyer)).build()));
+        assertNull(run(MockServerHttpRequest.get("/api/v1/reviews/product/9").build()));
+
+        // analytics
+        assertEquals(HttpStatus.UNAUTHORIZED, run(MockServerHttpRequest.get("/api/v1/analytics/sales/overview").build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.get("/api/v1/analytics/sales/overview")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(buyer)).build()));
+        assertNull(run(MockServerHttpRequest.get("/api/v1/analytics/sales/overview")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(seller)).build()));
+        assertNull(run(MockServerHttpRequest.get("/api/v1/analytics/recommendations/trending").build()));
+        assertEquals(HttpStatus.UNAUTHORIZED, run(MockServerHttpRequest.get("/api/v1/analytics/recommendations/7").build()));
+
+        // marketing / templates
+        assertEquals(HttpStatus.UNAUTHORIZED, run(MockServerHttpRequest.post("/api/v1/marketing/banners").build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.put("/api/v1/marketing/banners/3/toggle")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(seller)).build()));
+        assertNull(run(MockServerHttpRequest.post("/api/v1/marketing/banners")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(admin)).build()));
+        assertNull(run(MockServerHttpRequest.get("/api/v1/marketing/banners/active").build()));
+        assertEquals(HttpStatus.UNAUTHORIZED, run(MockServerHttpRequest.get("/api/v1/marketing/banners").build()));
+    }
+
+    @Test
     @DisplayName("Shop: duyệt hồ sơ người bán chỉ ADMIN; tạo/sửa shop cần đăng nhập")
     void sellerApplicationReview_isAdminOnly() {
         String buyer = createTestToken(10L, "buyer", "BUYER", 3600000);

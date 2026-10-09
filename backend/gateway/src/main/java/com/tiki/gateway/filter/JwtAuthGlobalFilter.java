@@ -76,6 +76,17 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
             Rule.of(HttpMethod.POST, "/api/v1/settlement/calculate", Access.BLOCKED),
             // Settlement moves seller money: rules + payout approval are admin-only, a shop's own pages need SELLER
             // (the service additionally checks the caller owns that shop).
+            // Marketing/templates: the service has no auth, so every write and the full (inactive/draft) listings are
+            // admin-only; /active feeds and a campaign by code stay public.
+            Rule.of(HttpMethod.POST, "/api/v1/marketing/**", Access.ADMIN),
+            Rule.of(HttpMethod.PUT, "/api/v1/marketing/**", Access.ADMIN),
+            Rule.of(HttpMethod.DELETE, "/api/v1/marketing/**", Access.ADMIN),
+            Rule.of(HttpMethod.PATCH, "/api/v1/marketing/**", Access.ADMIN),
+            Rule.of(HttpMethod.GET, "/api/v1/marketing/banners", Access.ADMIN),
+            Rule.of(HttpMethod.GET, "/api/v1/marketing/campaigns", Access.ADMIN),
+            Rule.of(HttpMethod.POST, "/api/v1/templates/**", Access.ADMIN),
+            Rule.of(HttpMethod.PUT, "/api/v1/templates/**", Access.ADMIN),
+            Rule.of(HttpMethod.DELETE, "/api/v1/templates/**", Access.ADMIN),
             // Analytics: public storefront recommendations stay open; per-user ones need a login; everything else
             // (sales, customers, product performance) is seller/admin and the service checks shop ownership.
             Rule.of(HttpMethod.GET, "/api/v1/analytics/recommendations/trending", null),
