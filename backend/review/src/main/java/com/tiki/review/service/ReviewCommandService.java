@@ -91,6 +91,21 @@ public class ReviewCommandService {
      *
      * @param reviewId the review to delete
      */
+    /** Deletes a review only if the caller wrote it (or is an admin). Returns false when the review does not exist. */
+    @Transactional
+    public boolean deleteReview(Long reviewId, Long callerId, boolean admin) {
+        ReviewEntity review = reviewRepository.findById(reviewId).orElse(null);
+        if (review == null) {
+            return false;
+        }
+        if (!admin && (callerId == null || !callerId.equals(review.getUserId()))) {
+            throw new SecurityException("Bạn chỉ có thể xóa đánh giá của chính mình");
+        }
+        reviewRepository.deleteById(reviewId);
+        publishReviewDeletedEvent(review);
+        return true;
+    }
+
     @Transactional
     public void deleteReview(Long reviewId) {
         log.info("Deleting review id={}", reviewId);

@@ -76,6 +76,10 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
             Rule.of(HttpMethod.POST, "/api/v1/settlement/calculate", Access.BLOCKED),
             // Settlement moves seller money: rules + payout approval are admin-only, a shop's own pages need SELLER
             // (the service additionally checks the caller owns that shop).
+            // Reviews: writing/deleting needs a login, shop replies need SELLER (the service checks it is the product's shop)
+            Rule.of(HttpMethod.POST, "/api/v1/reviews/*/reply", Access.SELLER),
+            Rule.of(HttpMethod.POST, "/api/v1/reviews/create", Access.AUTHENTICATED),
+            Rule.of(HttpMethod.DELETE, "/api/v1/reviews/*", Access.AUTHENTICATED),
             Rule.of(HttpMethod.POST, "/api/v1/settlement/rules", Access.ADMIN),
             Rule.of(HttpMethod.DELETE, "/api/v1/settlement/rules/*", Access.ADMIN),
             Rule.any("/api/v1/settlement/payouts/**", Access.ADMIN),

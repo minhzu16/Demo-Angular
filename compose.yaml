@@ -438,6 +438,7 @@ services:
       - DB_PASSWORD=${MYSQL_PASSWORD:-123}
       - ORDER_SERVICE_URL=http://order:8083
       - PRODUCT_SERVICE_URL=http://product:8081
+      - SHOP_SERVICE_URL=http://shop:8086
       - NOTIFICATION_SERVICE_URL=http://notification:8088
       - SECURITY_USERNAME=admin
       - SECURITY_PASSWORD=admin

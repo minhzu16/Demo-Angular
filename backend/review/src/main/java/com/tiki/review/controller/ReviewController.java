@@ -27,6 +27,7 @@ public class ReviewController {
 
     private final ReviewQueryService reviewQueryService;
     private final ReviewCommandService reviewCommandService;
+    private final com.tiki.review.service.ReviewAccessService reviewAccessService;
 
     /** GET /api/v1/reviews/product/{productId}?page=0&size=10 */
     @GetMapping("/product/{productId}")
@@ -77,10 +78,17 @@ public class ReviewController {
     public ResponseEntity<ReviewDto> replyReview(
             @PathVariable Long id,
             @RequestBody Map<String, String> body,
-            @RequestHeader(value = "X-User-Id", required = false) Long currentUserId) {
+            @RequestHeader(value = "X-User-Id", required = false) Long currentUserId,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
         if (currentUserId == null) {
             log.warn("SECURITY: Attempt to reply review without authentication");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        // A shop reply speaks for the shop: only the seller of the reviewed product (or an admin).
+        // Any signed-in user could previously post "shop replies" on any review.
+        if (!reviewAccessService.canReply(id, currentUserId, role)) {
+            log.warn("SECURITY: user {} (role {}) tried to reply to review {}", currentUserId, role, id);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         String reply = body != null ? body.get("reply") : null;
         log.info("POST reply review id={} by user={}", id, currentUserId);
@@ -89,9 +97,21 @@ public class ReviewController {
 
     /** DELETE /api/v1/reviews/{id} */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        log.info("DELETE review id={}", id);
-        reviewCommandService.deleteReview(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) Long currentUserId,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        if (currentUserId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        boolean admin = role != null && role.toUpperCase().contains("ADMIN");
+        log.info("DELETE review id={} by user={}", id, currentUserId);
+        try {
+            return reviewCommandService.deleteReview(id, currentUserId, admin)
+                    ? ResponseEntity.noContent().build()
+                    : ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
     }
 }
