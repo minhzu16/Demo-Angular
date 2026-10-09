@@ -264,6 +264,34 @@ class JwtAuthGlobalFilterTest {
     }
 
     @Test
+    @DisplayName("Audit: product — ghi cần SELLER, flash sale/reindex ADMIN, review qua product bị chặn")
+    void auditRules_productWrites() {
+        String buyer = createTestToken(10L, "buyer", "BUYER", 3600000);
+        String seller = createTestToken(20L, "seller", "SELLER", 3600000);
+        String admin = createTestToken(1L, "admin", "ADMIN", 3600000);
+        java.util.function.Function<String, String> bearer = t -> "Bearer " + t;
+
+        assertEquals(HttpStatus.UNAUTHORIZED, run(MockServerHttpRequest.put("/api/v1/products/5").build()));
+        assertEquals(HttpStatus.UNAUTHORIZED, run(MockServerHttpRequest.delete("/api/v1/products/5").build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.post("/api/v1/products")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(buyer)).build()));
+        assertNull(run(MockServerHttpRequest.post("/api/v1/products").header(HttpHeaders.AUTHORIZATION, bearer.apply(seller)).build()));
+        assertNull(run(MockServerHttpRequest.get("/api/v1/products/5").build()));
+        assertNull(run(MockServerHttpRequest.get("/api/v1/products?q=abc").build()));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, run(MockServerHttpRequest.post("/api/v1/flash-sales").build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.post("/api/v1/flash-sales/3/end")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(seller)).build()));
+        assertNull(run(MockServerHttpRequest.post("/api/v1/flash-sales").header(HttpHeaders.AUTHORIZATION, bearer.apply(admin)).build()));
+        assertNull(run(MockServerHttpRequest.get("/api/v1/flash-sales/active").build()));
+
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.post("/api/v1/products/search/reindex")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(seller)).build()));
+        assertEquals(HttpStatus.FORBIDDEN, run(MockServerHttpRequest.post("/api/v1/products/5/reviews")
+                .header(HttpHeaders.AUTHORIZATION, bearer.apply(buyer)).build()));
+    }
+
+    @Test
     @DisplayName("Shop: duyệt hồ sơ người bán chỉ ADMIN; tạo/sửa shop cần đăng nhập")
     void sellerApplicationReview_isAdminOnly() {
         String buyer = createTestToken(10L, "buyer", "BUYER", 3600000);
