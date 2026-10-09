@@ -23,7 +23,7 @@ public class LiveController {
 
     @PostMapping("/sessions")
     public ResponseEntity<LiveSessionResponseDto> createSession(
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long sellerId,
+            @RequestHeader("X-User-Id") Long sellerId,
             @Valid @RequestBody LiveSessionCreateRequest req) {
         return ResponseEntity.ok(liveSessionService.createSession(sellerId, req));
     }
@@ -31,14 +31,14 @@ public class LiveController {
     @PostMapping("/sessions/{id}/start")
     public ResponseEntity<LiveSessionResponseDto> startLive(
             @PathVariable Long id,
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long sellerId) {
+            @RequestHeader("X-User-Id") Long sellerId) {
         return ResponseEntity.ok(liveSessionService.startLive(id, sellerId));
     }
 
     @PostMapping("/sessions/{id}/end")
     public ResponseEntity<LiveSessionResponseDto> endLive(
             @PathVariable Long id,
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long sellerId) {
+            @RequestHeader("X-User-Id") Long sellerId) {
         return ResponseEntity.ok(liveSessionService.endLive(id, sellerId));
     }
 
@@ -55,7 +55,7 @@ public class LiveController {
     @PostMapping("/sessions/{id}/pin-product")
     public ResponseEntity<LiveProductPinDto> pinProduct(
             @PathVariable Long id,
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long sellerId,
+            @RequestHeader("X-User-Id") Long sellerId,
             @Valid @RequestBody LivePinProductRequest req) {
         return ResponseEntity.ok(liveSessionService.pinProduct(id, sellerId, req));
     }
@@ -64,7 +64,7 @@ public class LiveController {
     public ResponseEntity<Void> unpinProduct(
             @PathVariable Long id,
             @PathVariable Long productId,
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long sellerId) {
+            @RequestHeader("X-User-Id") Long sellerId) {
         liveSessionService.unpinProduct(id, productId, sellerId);
         return ResponseEntity.noContent().build();
     }
@@ -72,7 +72,7 @@ public class LiveController {
     @PostMapping("/sessions/{id}/quick-buy")
     public ResponseEntity<LiveQuickBuyResponseDto> quickBuy(
             @PathVariable Long id,
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId,
+            @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody LiveQuickBuyRequest req) {
         return ResponseEntity.ok(liveSessionService.quickBuy(id, req.getProductId(), userId, req.getQuantity()));
     }
@@ -104,11 +104,14 @@ public class LiveController {
     @PostMapping("/sessions/{id}/chat")
     public ResponseEntity<LiveChatMessageDto> postMessage(
             @PathVariable Long id,
-            @RequestHeader(value = "X-User-Id", defaultValue = "1") Long userId,
-            @RequestParam(defaultValue = "User") String userName,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader(value = "X-Username", required = false) String headerUserName,
             @Valid @RequestBody LiveChatMessageDto dto) {
+        // Display name comes from the validated token (not a query param a user could set to anything),
+        // and clients may only post plain CHAT — not system/announcement style messages.
+        String userName = headerUserName != null && !headerUserName.isBlank() ? headerUserName : "User#" + userId;
         return ResponseEntity.ok(liveChatService.postMessage(
-                id, userId, userName, dto.getMessage(), dto.getType()));
+                id, userId, userName, dto.getMessage(), null));
     }
 
     @GetMapping("/sessions/{id}/chat")
